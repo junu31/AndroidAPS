@@ -153,19 +153,6 @@
                     android:text="@string/shortgramm"
                     android:textAppearance="?android:attr/textAppearanceSmall" />
 
-                <Button
-                    android:id="@+id/ai_carbs_button"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:layout_gravity="center_vertical"
-                    android:layout_marginStart="4dp"
-                    android:contentDescription="@string/ai_carbs_button_description"
-                    android:minWidth="0dp"
-                    android:paddingStart="8dp"
-                    android:paddingEnd="8dp"
-                    android:text="@string/ai_carbs_button_label"
-                    android:textSize="12sp" />
-
             </TableRow>
 
             <TableRow
@@ -324,6 +311,21 @@
                 style="@style/ToggleBtnStyle"
                 android:contentDescription="@string/treatments_wizard_cob_label"
                 android:drawableTop="@drawable/checkbox_cob_icon" />
+
+            <Space
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <ImageButton
+                android:id="@+id/ai_carbs_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/ai_carbs_button_description"
+                android:padding="6dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_ai_sparkle" />
 
         </LinearLayout>
 

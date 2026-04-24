@@ -4,7 +4,6 @@ import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import io.reactivex.rxjava3.core.Single
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
@@ -50,17 +49,13 @@ Rules:
 
     private val gson: Gson = GsonBuilder().setLenient().create()
 
+    // No HTTP logging interceptor: the request URL carries the API key as a query param,
+    // so silent-by-default prevents leaks to logcat.
     private val client: OkHttpClient by lazy {
-        val logging = HttpLoggingInterceptor().apply {
-            // BASIC hides bodies but would still log the URL which contains ?key=.
-            // Use NONE to avoid leaking the API key in logcat.
-            level = HttpLoggingInterceptor.Level.NONE
-        }
         OkHttpClient.Builder()
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(15, TimeUnit.SECONDS)
-            .addInterceptor(logging)
             .build()
     }
 

@@ -181,4 +181,23 @@
         <item>Negative only</item>
     </string-array>
 
+    <!-- AI Carb Estimator (personal fork) -->
+    <string name="ai_carbs_button_label">AI</string>
+    <string name="ai_carbs_button_description">Estimate carbs with AI</string>
+    <string name="ai_carbs_title">AI carb estimator</string>
+    <string name="ai_carbs_warning">Estimate only — verify before applying.</string>
+    <string name="ai_carbs_food_label">What are you eating?</string>
+    <string name="ai_carbs_food_hint">e.g. 김치찌개 1인분, 공깃밥 1공기, 오이소박이 조금</string>
+    <string name="ai_carbs_estimate_button">Estimate with AI</string>
+    <string name="ai_carbs_result_label">AI estimate</string>
+    <string name="ai_carbs_final_label">Apply as</string>
+    <string name="ai_carbs_apply_button">Apply</string>
+    <string name="ai_carbs_total_prefix">Total: %1$s g</string>
+    <string name="ai_carbs_confidence_prefix">Confidence: %1$s</string>
+    <string name="ai_carbs_no_breakdown">(no item breakdown returned)</string>
+    <string name="ai_carbs_error_no_key">No API key set. Open Preferences → Overview → Overview buttons selection and paste your Gemini key.</string>
+    <string name="ai_carbs_error_empty_food">Describe the food first.</string>
+    <string name="ai_carbs_error_invalid_final">Final value must be greater than 0.</string>
+    <string name="ai_carbs_error_generic">AI estimation failed: %1$s</string>
+
 </resources>

@@ -25,6 +25,14 @@ dependencies {
     testImplementation(project(":shared:tests"))
 
     api(libs.androidx.core)
+
+    // AI Carb Estimator (personal fork) — Gemini REST client
+    implementation(libs.com.squareup.okhttp3.okhttp)
+    implementation(libs.com.squareup.retrofit2.retrofit)
+    implementation(libs.com.squareup.retrofit2.adapter.rxjava3)
+    implementation(libs.com.squareup.retrofit2.converter.gson)
+    implementation(libs.com.google.code.gson)
+
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)
 }

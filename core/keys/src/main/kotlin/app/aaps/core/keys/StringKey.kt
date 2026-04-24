@@ -36,6 +36,8 @@ enum class StringKey(
 
     OverviewCopySettingsFromNs(key = "statuslights_copy_ns", "", dependency = BooleanKey.OverviewShowStatusLights),
 
+    OverviewAiCarbsApiKey("overview_ai_carbs_api_key", "", isPassword = true),
+
     SafetyAge("age", "adult"),
     MaintenanceEmail("maintenance_logs_email", "logs@aaps.app", defaultedBySM = true),
     MaintenanceIdentification("email_for_crash_report", ""),

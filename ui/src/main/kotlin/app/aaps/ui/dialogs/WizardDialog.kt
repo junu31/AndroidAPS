@@ -16,6 +16,7 @@ import android.widget.AdapterView
 import android.widget.ArrayAdapter
 import android.widget.CompoundButton
 import androidx.fragment.app.FragmentManager
+import androidx.fragment.app.setFragmentResultListener
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.time.T
@@ -237,6 +238,19 @@ class WizardDialog : DaggerDialogFragment() {
         binding.okcancel.cancel.setOnClickListener {
             aapsLogger.debug(LTag.APS, "Dialog canceled: ${this.javaClass.simpleName}")
             dismiss()
+        }
+        // AI carb estimator (personal fork) — launch sub-dialog and receive value via FragmentResult
+        childFragmentManager.setFragmentResultListener(AiCarbsDialog.REQUEST_KEY, this) { _, bundle ->
+            val carbsG = bundle.getInt(AiCarbsDialog.RESULT_CARBS_G, 0)
+            if (carbsG > 0) {
+                binding.carbsInput.value = carbsG.toDouble()
+                calculateInsulin()
+            }
+        }
+        binding.aiCarbsButton.setOnClickListener {
+            if (childFragmentManager.findFragmentByTag("AiCarbsDialog") == null) {
+                AiCarbsDialog().show(childFragmentManager, "AiCarbsDialog")
+            }
         }
         // checkboxes
         binding.bgCheckbox.setOnCheckedChangeListener(::onCheckedChanged)

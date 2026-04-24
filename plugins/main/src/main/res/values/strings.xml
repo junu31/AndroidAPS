@@ -127,6 +127,11 @@
     <string name="subcategory">Subcategory</string>
     <string name="calculator_label">Calculator</string>
 
+    <!-- AI Carb Estimator (personal fork) -->
+    <string name="ai_carbs_api_key_title">AI Carb Estimator API Key</string>
+    <string name="ai_carbs_api_key_summary">Google Gemini API key used for AI carb estimation. Get a free key at aistudio.google.com/apikey</string>
+    <string name="ai_carbs_api_key_dialog_message">Paste your Gemini API key. It is stored locally (encrypted preference).</string>
+
     <!-- Theme switcher dark and light mode-->
     <string name="theme_switcher" translatable="false">Theme switcher</string>
     <string name="theme_switcher_summary">Choose dark, light, or to follow the system theme</string>

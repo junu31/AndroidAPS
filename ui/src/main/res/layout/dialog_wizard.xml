@@ -144,14 +144,33 @@
                     android:layout_marginBottom="2dp"
                     app:customContentDescription="@string/carbs" />
 
-                <TextView
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_vertical"
-                    android:gravity="start"
-                    android:padding="5dp"
-                    android:text="@string/shortgramm"
-                    android:textAppearance="?android:attr/textAppearanceSmall" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:gravity="start"
+                        android:padding="5dp"
+                        android:text="@string/shortgramm"
+                        android:textAppearance="?android:attr/textAppearanceSmall" />
+
+                    <ImageButton
+                        android:id="@+id/ai_carbs_button"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_marginStart="4dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:contentDescription="@string/ai_carbs_button_description"
+                        android:padding="4dp"
+                        android:scaleType="fitCenter"
+                        android:src="@drawable/ic_ai_sparkle" />
+
+                </LinearLayout>
 
             </TableRow>
 
@@ -311,21 +330,6 @@
                 style="@style/ToggleBtnStyle"
                 android:contentDescription="@string/treatments_wizard_cob_label"
                 android:drawableTop="@drawable/checkbox_cob_icon" />
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="0dp"
-                android:layout_weight="1" />
-
-            <ImageButton
-                android:id="@+id/ai_carbs_button"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:contentDescription="@string/ai_carbs_button_description"
-                android:padding="6dp"
-                android:scaleType="fitCenter"
-                android:src="@drawable/ic_ai_sparkle" />
 
         </LinearLayout>
 

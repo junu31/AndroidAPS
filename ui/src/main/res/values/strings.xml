@@ -196,8 +196,16 @@
     <string name="ai_carbs_confidence_prefix">Confidence: %1$s</string>
     <string name="ai_carbs_no_breakdown">(no item breakdown returned)</string>
     <string name="ai_carbs_error_no_key">No API key set. Open Preferences → Overview → Overview buttons selection and paste your Gemini key.</string>
-    <string name="ai_carbs_error_empty_food">Describe the food first.</string>
+    <string name="ai_carbs_error_empty_food">Add a photo or describe the food first.</string>
     <string name="ai_carbs_error_invalid_final">Final value must be greater than 0.</string>
     <string name="ai_carbs_error_generic">AI estimation failed: %1$s</string>
+    <string name="ai_carbs_image_label">Photo (optional)</string>
+    <string name="ai_carbs_image_placeholder">No image selected</string>
+    <string name="ai_carbs_image_preview_description">Selected food photo</string>
+    <string name="ai_carbs_image_camera">Camera</string>
+    <string name="ai_carbs_image_gallery">Gallery</string>
+    <string name="ai_carbs_image_clear">Remove image</string>
+    <string name="ai_carbs_image_load_failed">Could not load that image: %1$s</string>
+    <string name="ai_carbs_camera_permission_denied">Camera permission denied. You can still pick from the gallery.</string>
 
 </resources>

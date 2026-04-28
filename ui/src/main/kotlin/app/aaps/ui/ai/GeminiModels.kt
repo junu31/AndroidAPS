@@ -15,7 +15,13 @@ data class GeminiContent(
 )
 
 data class GeminiPart(
-    val text: String
+    val text: String? = null,
+    @SerializedName("inline_data") val inlineData: GeminiInlineData? = null
+)
+
+data class GeminiInlineData(
+    @SerializedName("mime_type") val mimeType: String,
+    val data: String  // base64-encoded payload
 )
 
 data class GeminiGenerationConfig(

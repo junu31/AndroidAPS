@@ -70,22 +70,38 @@ Rules:
     }
 
     /**
-     * Calls Gemini with [foodDescription] and returns the parsed [CarbEstimatePayload].
+     * Calls Gemini and returns the parsed [CarbEstimatePayload].
+     *
+     * At least one of [foodDescription] or [imageBase64] must be non-blank.
      * Errors are propagated via [Single.onError] with a human-readable message.
      */
-    fun estimateCarbs(apiKey: String, foodDescription: String, model: String = DEFAULT_MODEL): Single<CarbEstimatePayload> {
+    fun estimateCarbs(
+        apiKey: String,
+        foodDescription: String?,
+        imageBase64: String? = null,
+        imageMimeType: String = "image/jpeg",
+        model: String = DEFAULT_MODEL
+    ): Single<CarbEstimatePayload> {
         if (apiKey.isBlank()) {
             return Single.error(IllegalStateException("API key is empty"))
         }
-        if (foodDescription.isBlank()) {
-            return Single.error(IllegalArgumentException("Food description is empty"))
+        val hasText = !foodDescription.isNullOrBlank()
+        val hasImage = !imageBase64.isNullOrBlank()
+        if (!hasText && !hasImage) {
+            return Single.error(IllegalArgumentException("Provide a food description, an image, or both"))
         }
 
-        val userText = "Food description:\n$foodDescription"
+        val userParts = buildList {
+            if (hasImage) add(GeminiPart(inlineData = GeminiInlineData(mimeType = imageMimeType, data = imageBase64!!)))
+            val userText = if (hasText) "Food description:\n${foodDescription!!.trim()}"
+            else "Estimate carbs for the food shown in the image."
+            add(GeminiPart(text = userText))
+        }
+
         val request = GeminiRequest(
             contents = listOf(
-                GeminiContent(parts = listOf(GeminiPart(SYSTEM_PROMPT)), role = "user"),
-                GeminiContent(parts = listOf(GeminiPart(userText)), role = "user")
+                GeminiContent(parts = listOf(GeminiPart(text = SYSTEM_PROMPT)), role = "user"),
+                GeminiContent(parts = userParts, role = "user")
             ),
             generationConfig = GeminiGenerationConfig()
         )

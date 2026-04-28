@@ -1,11 +1,18 @@
 package app.aaps.ui.dialogs
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
 import androidx.fragment.app.setFragmentResult
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -18,10 +25,13 @@ import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.ui.R
 import app.aaps.ui.ai.CarbEstimatePayload
 import app.aaps.ui.ai.GeminiCarbService
+import app.aaps.ui.ai.ImageProcessor
 import app.aaps.ui.databinding.DialogAiCarbsBinding
 import dagger.android.support.DaggerDialogFragment
+import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
+import java.io.File
 import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -43,6 +53,9 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
         private const val STATE_FOOD = "state_food"
         private const val STATE_FINAL_CARBS = "state_final_carbs"
+        private const val STATE_IMAGE_URI = "state_image_uri"
+        private const val STATE_PENDING_CAMERA_URI = "state_pending_camera_uri"
+        private const val CAMERA_FILE_PREFIX = "ai_carb_capture"
     }
 
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -56,6 +69,29 @@ class AiCarbsDialog : DaggerDialogFragment() {
     private val disposable = CompositeDisposable()
 
     private var lastEstimate: CarbEstimatePayload? = null
+    private var selectedImageUri: Uri? = null
+    private var pendingCameraUri: Uri? = null
+
+    private val galleryLauncher = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri ->
+        if (uri != null) bindImage(uri)
+    }
+
+    private val cameraLauncher = registerForActivityResult(
+        ActivityResultContracts.TakePicture()
+    ) { success ->
+        val captured = pendingCameraUri
+        pendingCameraUri = null
+        if (success && captured != null) bindImage(captured)
+    }
+
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) launchCameraCapture()
+        else ToastUtils.warnToast(context, rh.gs(R.string.ai_carbs_camera_permission_denied))
+    }
 
     override fun onStart() {
         super.onStart()
@@ -77,6 +113,8 @@ class AiCarbsDialog : DaggerDialogFragment() {
             binding.foodInput.setText(it.getString(STATE_FOOD, ""))
             val savedFinal = it.getInt(STATE_FINAL_CARBS, -1)
             if (savedFinal >= 0) binding.finalCarbs.setText(savedFinal.toString())
+            it.getString(STATE_IMAGE_URI)?.let { uriString -> bindImage(Uri.parse(uriString)) }
+            it.getString(STATE_PENDING_CAMERA_URI)?.let { pendingCameraUri = Uri.parse(it) }
         }
 
         binding.estimateButton.setOnClickListener { runEstimation() }
@@ -86,12 +124,18 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
         binding.cancelButton.setOnClickListener { dismiss() }
         binding.applyButton.setOnClickListener { applyAndDismiss() }
+
+        binding.imageGalleryButton.setOnClickListener { launchGalleryPicker() }
+        binding.imageCameraButton.setOnClickListener { ensureCameraPermissionAndLaunch() }
+        binding.imageClearButton.setOnClickListener { clearImage() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_FOOD, binding.foodInput.text?.toString() ?: "")
         outState.putInt(STATE_FINAL_CARBS, readFinalCarbs())
+        selectedImageUri?.let { outState.putString(STATE_IMAGE_URI, it.toString()) }
+        pendingCameraUri?.let { outState.putString(STATE_PENDING_CAMERA_URI, it.toString()) }
     }
 
     override fun onDestroyView() {
@@ -107,7 +151,8 @@ class AiCarbsDialog : DaggerDialogFragment() {
             return
         }
         val food = binding.foodInput.text?.toString()?.trim().orEmpty()
-        if (food.isEmpty()) {
+        val imageUri = selectedImageUri
+        if (food.isEmpty() && imageUri == null) {
             showError(rh.gs(R.string.ai_carbs_error_empty_food))
             return
         }
@@ -115,8 +160,17 @@ class AiCarbsDialog : DaggerDialogFragment() {
         showLoading(true)
         binding.errorText.visibility = View.GONE
 
-        disposable += geminiCarbService.estimateCarbs(apiKey, food)
+        val ctx = requireContext().applicationContext
+        val encode: Single<EncodeResult> = Single.fromCallable {
+            if (imageUri != null) {
+                val encoded = ImageProcessor.encodeForGemini(ctx, imageUri)
+                EncodeResult(encoded.base64, encoded.mimeType)
+            } else EncodeResult(null, "image/jpeg")
+        }
+
+        disposable += encode
             .subscribeOn(aapsSchedulers.io)
+            .flatMap { enc -> geminiCarbService.estimateCarbs(apiKey, food.ifEmpty { null }, enc.base64, enc.mimeType) }
             .observeOn(aapsSchedulers.main)
             .subscribe(
                 { payload ->
@@ -129,6 +183,58 @@ class AiCarbsDialog : DaggerDialogFragment() {
                     showError(rh.gs(R.string.ai_carbs_error_generic, error.message ?: error.javaClass.simpleName))
                 }
             )
+    }
+
+    private data class EncodeResult(val base64: String?, val mimeType: String)
+
+    private fun launchGalleryPicker() {
+        galleryLauncher.launch(
+            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+        )
+    }
+
+    private fun ensureCameraPermissionAndLaunch() {
+        val ctx = context ?: return
+        val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (granted) launchCameraCapture()
+        else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+    }
+
+    private fun launchCameraCapture() {
+        val ctx = context ?: return
+        val cacheFile = File(ctx.cacheDir, "$CAMERA_FILE_PREFIX-${System.currentTimeMillis()}.jpg")
+        val authority = "${ctx.packageName}.fileprovider"
+        val uri = try {
+            FileProvider.getUriForFile(ctx, authority, cacheFile)
+        } catch (e: IllegalArgumentException) {
+            aapsLogger.error(LTag.UI, "FileProvider misconfigured for $authority", e)
+            showError(rh.gs(R.string.ai_carbs_image_load_failed, e.message ?: "FileProvider"))
+            return
+        }
+        pendingCameraUri = uri
+        cameraLauncher.launch(uri)
+    }
+
+    private fun bindImage(uri: Uri) {
+        try {
+            binding.imagePreview.setImageURI(uri)
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.UI, "Failed to display image preview", e)
+            showError(rh.gs(R.string.ai_carbs_image_load_failed, e.message ?: e.javaClass.simpleName))
+            return
+        }
+        selectedImageUri = uri
+        binding.imagePreview.visibility = View.VISIBLE
+        binding.imagePlaceholder.visibility = View.GONE
+        binding.imageClearButton.visibility = View.VISIBLE
+    }
+
+    private fun clearImage() {
+        selectedImageUri = null
+        binding.imagePreview.setImageDrawable(null)
+        binding.imagePreview.visibility = View.GONE
+        binding.imagePlaceholder.visibility = View.VISIBLE
+        binding.imageClearButton.visibility = View.GONE
     }
 
     private fun showLoading(loading: Boolean) {

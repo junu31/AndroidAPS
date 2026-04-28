@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 object Versions {
 
     const val appVersion = "3.4.2.2-fork"
-    const val versionCode = 1500
+    const val versionCode = 1501
 
     const val compileSdk = 36
     const val minSdk = 31

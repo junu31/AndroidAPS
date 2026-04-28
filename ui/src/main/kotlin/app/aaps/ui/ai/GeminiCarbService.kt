@@ -2,11 +2,14 @@ package app.aaps.ui.ai
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import okhttp3.OkHttpClient
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -25,9 +28,13 @@ class GeminiCarbService @Inject constructor() {
         private const val BASE_URL = "https://generativelanguage.googleapis.com/"
         const val DEFAULT_MODEL = "gemini-2.5-flash"
 
+        // Retry policy for transient Gemini errors (503/504/502/500/429 + IOException).
+        // Total attempts = MAX_RETRIES + 1 (initial call). Delays: 1s, 4s.
+        private const val MAX_RETRIES = 2
+
         private const val SYSTEM_PROMPT =
             """You are a nutritionist estimating carbohydrate content of foods.
-Given a user's natural-language description of what they are about to eat,
+Given a user's natural-language description (and/or an image) of what they are about to eat,
 return a strict JSON object with this shape:
 
 {
@@ -43,8 +50,18 @@ Rules:
 - Use grams of net digestible carbohydrates (exclude fiber if obvious).
 - If portions are ambiguous, assume a typical adult single serving and list the assumption.
 - Be conservative when unsure; prefer slightly lower carbs and mark confidence "low".
-- Answer in the same language as the user's input (e.g. Korean in -> Korean out).
+- ALL human-readable text MUST be written in Korean (한국어):
+  the "name" field, every "assumption" string (per-item and global). No English words for these.
+- Keep JSON keys (items, name, carbs_g, assumption, total_carbs_g, assumptions, confidence)
+  in English exactly as shown.
+- Keep the "confidence" enum value as one of the literal strings: "low", "medium", "high".
 - Respond ONLY with the JSON object, no prose."""
+    }
+
+    private fun isRetryableError(error: Throwable): Boolean = when (error) {
+        is IOException   -> true                                          // network glitches
+        is HttpException -> error.code() in setOf(429, 500, 502, 503, 504) // transient server states
+        else             -> false
     }
 
     private val gson: Gson = GsonBuilder().setLenient().create()
@@ -121,6 +138,18 @@ Rules:
                     ?: throw RuntimeException("Empty response from Gemini")
 
                 parseCarbJson(text)
+            }
+            .retryWhen { errors ->
+                // Pair each error with an attempt index 1..MAX_RETRIES.
+                // If error is non-retryable, fail immediately.
+                // If we run out of attempts, zip completes -> original error propagates.
+                errors.zipWith(Flowable.range(1, MAX_RETRIES)) { error, attempt ->
+                    if (!isRetryableError(error)) throw error
+                    attempt
+                }.flatMap { attempt ->
+                    val delaySec = (attempt.toLong() * attempt.toLong()) // 1s, 4s
+                    Flowable.timer(delaySec, TimeUnit.SECONDS)
+                }
             }
     }
 

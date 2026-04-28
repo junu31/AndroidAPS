@@ -125,4 +125,38 @@
     <string name="overview_edit_quickwizard_valid">유효한:</string>
     <string name="a11y_drag_and_drop_handle">드래그 앤 드롭 핸들</string>
     <!--    Widget-->
+
+    <!-- AI Carb Estimator (personal fork) -->
+    <string name="ai_carbs_button_label">AI</string>
+    <string name="ai_carbs_button_description">AI로 탄수화물 추정</string>
+    <string name="ai_carbs_title">AI 탄수화물 추정</string>
+    <string name="ai_carbs_warning">참고용 추정치 — 적용 전 반드시 검토하세요.</string>
+    <string name="ai_carbs_food_label">무엇을 드시나요?</string>
+    <string name="ai_carbs_food_hint">예: 김치찌개 1인분, 공깃밥 1공기, 오이소박이 조금</string>
+    <string name="ai_carbs_estimate_button">AI로 추정하기</string>
+    <string name="ai_carbs_result_label">AI 추정 결과</string>
+    <string name="ai_carbs_final_label">적용 값</string>
+    <string name="ai_carbs_apply_button">적용</string>
+    <string name="ai_carbs_total_prefix">합계: %1$s g</string>
+    <string name="ai_carbs_confidence_prefix">신뢰도: %1$s</string>
+    <string name="ai_carbs_no_breakdown">(세부 내역 없음)</string>
+    <string name="ai_carbs_error_no_key">API 키가 설정되지 않았습니다. 설정 → 개요 → 개요 버튼 선택 → Gemini 키 붙여넣기.</string>
+    <string name="ai_carbs_error_empty_food">사진을 첨부하거나 음식 설명을 먼저 입력하세요.</string>
+    <string name="ai_carbs_error_invalid_final">최종 값은 0보다 커야 합니다.</string>
+    <string name="ai_carbs_error_generic">AI 추정 실패: %1$s</string>
+    <string name="ai_carbs_error_overloaded">AI 서버가 혼잡합니다. 잠시 후 다시 시도해주세요.</string>
+    <string name="ai_carbs_error_rate_limited">요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.</string>
+    <string name="ai_carbs_error_auth">API 키 오류입니다. 설정에서 키를 확인해주세요.</string>
+    <string name="ai_carbs_error_network">네트워크 연결을 확인해주세요.</string>
+    <string name="ai_carbs_image_label">사진 (선택)</string>
+    <string name="ai_carbs_image_placeholder">선택된 이미지 없음</string>
+    <string name="ai_carbs_image_preview_description">선택된 음식 사진</string>
+    <string name="ai_carbs_image_camera">카메라</string>
+    <string name="ai_carbs_image_gallery">갤러리</string>
+    <string name="ai_carbs_image_clear">사진 제거</string>
+    <string name="ai_carbs_image_load_failed">사진을 불러올 수 없습니다: %1$s</string>
+    <string name="ai_carbs_camera_permission_denied">카메라 권한이 거부되었습니다. 갤러리에서 선택할 수 있습니다.</string>
+    <string name="ai_carbs_confidence_low">낮음</string>
+    <string name="ai_carbs_confidence_medium">중간</string>
+    <string name="ai_carbs_confidence_high">높음</string>
 </resources>

@@ -31,7 +31,9 @@ import dagger.android.support.DaggerDialogFragment
 import io.reactivex.rxjava3.core.Single
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
+import retrofit2.HttpException
 import java.io.File
+import java.io.IOException
 import javax.inject.Inject
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -180,9 +182,18 @@ class AiCarbsDialog : DaggerDialogFragment() {
                 { error ->
                     showLoading(false)
                     aapsLogger.error(LTag.UI, "AI carb estimation failed", error)
-                    showError(rh.gs(R.string.ai_carbs_error_generic, error.message ?: error.javaClass.simpleName))
+                    showError(mapErrorMessage(error))
                 }
             )
+    }
+
+    private fun mapErrorMessage(error: Throwable): String = when {
+        error is HttpException && error.code() in 500..504 -> rh.gs(R.string.ai_carbs_error_overloaded)
+        error is HttpException && error.code() == 429      -> rh.gs(R.string.ai_carbs_error_rate_limited)
+        error is HttpException && error.code() in setOf(401, 403) -> rh.gs(R.string.ai_carbs_error_auth)
+        error is IOException                               -> rh.gs(R.string.ai_carbs_error_network)
+        else                                               ->
+            rh.gs(R.string.ai_carbs_error_generic, error.message ?: error.javaClass.simpleName)
     }
 
     private data class EncodeResult(val base64: String?, val mimeType: String)
@@ -260,7 +271,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.breakdownText.text = breakdown + "\n" + rh.gs(R.string.ai_carbs_total_prefix, formatG(payload.totalCarbsG))
 
         val extraAssumptions = buildList {
-            if (!payload.confidence.isNullOrBlank()) add(rh.gs(R.string.ai_carbs_confidence_prefix, payload.confidence))
+            if (!payload.confidence.isNullOrBlank()) add(rh.gs(R.string.ai_carbs_confidence_prefix, localizedConfidence(payload.confidence)))
             addAll(payload.assumptions)
         }
         binding.assumptionsText.text = if (extraAssumptions.isEmpty()) ""
@@ -295,4 +306,11 @@ class AiCarbsDialog : DaggerDialogFragment() {
     private fun formatG(value: Double): String =
         if (value % 1.0 == 0.0) value.toInt().toString()
         else "%.1f".format(value)
+
+    private fun localizedConfidence(raw: String): String = when (raw.trim().lowercase()) {
+        "low"    -> rh.gs(R.string.ai_carbs_confidence_low)
+        "medium" -> rh.gs(R.string.ai_carbs_confidence_medium)
+        "high"   -> rh.gs(R.string.ai_carbs_confidence_high)
+        else     -> raw
+    }
 }

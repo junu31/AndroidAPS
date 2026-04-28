@@ -207,5 +207,12 @@
     <string name="ai_carbs_image_clear">Remove image</string>
     <string name="ai_carbs_image_load_failed">Could not load that image: %1$s</string>
     <string name="ai_carbs_camera_permission_denied">Camera permission denied. You can still pick from the gallery.</string>
+    <string name="ai_carbs_error_overloaded">AI server is busy. Please try again in a moment.</string>
+    <string name="ai_carbs_error_rate_limited">Rate limit exceeded. Please try again later.</string>
+    <string name="ai_carbs_error_auth">API key error. Please check the key in Preferences.</string>
+    <string name="ai_carbs_error_network">Please check your network connection.</string>
+    <string name="ai_carbs_confidence_low">low</string>
+    <string name="ai_carbs_confidence_medium">medium</string>
+    <string name="ai_carbs_confidence_high">high</string>
 
 </resources>

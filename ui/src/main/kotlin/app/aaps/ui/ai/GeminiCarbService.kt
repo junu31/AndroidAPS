@@ -11,6 +11,7 @@ import retrofit2.adapter.rxjava3.RxJava3CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -140,15 +141,18 @@ Rules:
                 parseCarbJson(text)
             }
             .retryWhen { errors ->
-                // Pair each error with an attempt index 1..MAX_RETRIES.
-                // If error is non-retryable, fail immediately.
-                // If we run out of attempts, zip completes -> original error propagates.
-                errors.zipWith(Flowable.range(1, MAX_RETRIES)) { error, attempt ->
-                    if (!isRetryableError(error)) throw error
-                    attempt
-                }.flatMap { attempt ->
-                    val delaySec = (attempt.toLong() * attempt.toLong()) // 1s, 4s
-                    Flowable.timer(delaySec, TimeUnit.SECONDS)
+                // Use a counter so the final exhausted attempt explicitly emits the error
+                // instead of completing the inner Flowable empty (which would surface as
+                // NoSuchElementException at the Single layer).
+                val attemptNo = AtomicInteger(0)
+                errors.flatMap { error ->
+                    val attempt = attemptNo.incrementAndGet()
+                    if (!isRetryableError(error) || attempt > MAX_RETRIES) {
+                        Flowable.error(error)
+                    } else {
+                        val delaySec = (attempt.toLong() * attempt.toLong()) // 1s, 4s
+                        Flowable.timer(delaySec, TimeUnit.SECONDS)
+                    }
                 }
             }
     }

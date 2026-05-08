@@ -55,7 +55,8 @@ enum class SourceSensor(val text: String) {
         LIBRE_1_BUBBLE,
         LIBRE_1_ATOM,
         LIBRE_1_GLIMP,
-        UNKNOWN // Better check for FLAT on unknown sources too
+        UNKNOWN, // Better check for FLAT on unknown sources too
+        NSEMULATOR_FOLLOW // Personal-fork: preserve previous UNKNOWN-fallback FLAT behavior for CareSens Air
     ).any { it.text == text }
 
     companion object {

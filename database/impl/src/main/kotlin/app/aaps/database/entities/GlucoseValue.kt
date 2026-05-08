@@ -96,6 +96,7 @@ data class GlucoseValue(
         EVERSENSE,
         AIDEX,
         RANDOM,
+        NSEMULATOR_FOLLOW,
         UNKNOWN,
         OTTAI,
         SIBIONIC,

@@ -66,6 +66,10 @@ class XdripSourcePlugin @Inject constructor(
             SourceSensor.LIBRE_2,
             SourceSensor.LIBRE_2_NATIVE,
             SourceSensor.LIBRE_3,
+            // Personal-fork: CareSens Air (i-SENS) reaches AAPS through xDrip+ NSEmulator
+            // path, which hardcodes source_info="NSEmulator Follow". Treated as reliable
+            // for SMB on this fork only. Tracking AAPS#4583 for upstream support.
+            SourceSensor.NSEMULATOR_FOLLOW,
         ).any { it == glucoseValue.sourceSensor }
     }
 

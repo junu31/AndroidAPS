@@ -33,6 +33,7 @@ enum class SourceSensor(val text: String) {
     AIDEX("GlucoRx Aidex"),
     SYAI_TAG("Syai Tag"),
     RANDOM("Random"),
+    NSEMULATOR_FOLLOW("NSEmulator Follow"),
     UNKNOWN("Unknown"),
 
     IOB_PREDICTION("IOBPrediction"),

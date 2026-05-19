@@ -205,6 +205,14 @@
     <string name="ai_carbs_fpu_label">FPU conversion (Warsaw × 0.5 safety factor)</string>
     <string name="ai_carbs_fpu_format">Fat %1$s g × 0.45 + Protein %2$s g × 0.20 = +%3$s g (estimated delayed carbs)</string>
     <string name="ai_carbs_duration_format">Recommended split window: %1$d h</string>
+    <string name="ai_carbs_split_advisory">Note: Apply enters only the %1$d g immediate carbs. To dose the %2$d g FPU delayed portion as eCarbs over ~%3$d h, add a second entry manually via the Carbs menu.</string>
+    <string name="ai_carbs_history_button">View AI estimate history</string>
+    <string name="ai_carbs_history_title">AI carb estimate history</string>
+    <string name="ai_carbs_history_empty">No applied estimates yet.</string>
+    <string name="ai_carbs_history_image_only">image only</string>
+    <string name="ai_carbs_history_carbs_line">Carbs: %1$s g</string>
+    <string name="ai_carbs_history_fpu_line">FPU: fat %1$s g + protein %2$s g → +%3$s g delayed</string>
+    <string name="ai_carbs_history_applied_line">Applied: %1$d g (immediate)</string>
     <string name="ai_carbs_image_placeholder">No image selected</string>
     <string name="ai_carbs_image_preview_description">Selected food photo</string>
     <string name="ai_carbs_image_camera">Camera</string>

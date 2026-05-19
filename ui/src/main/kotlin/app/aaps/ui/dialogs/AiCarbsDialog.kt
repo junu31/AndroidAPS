@@ -4,11 +4,13 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.text.format.DateFormat
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
+import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -23,6 +25,8 @@ import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.ui.R
+import app.aaps.ui.ai.AiCarbsHistoryEntry
+import app.aaps.ui.ai.AiCarbsHistoryStore
 import app.aaps.ui.ai.CarbEstimatePayload
 import app.aaps.ui.ai.GeminiCarbService
 import app.aaps.ui.ai.ImageProcessor
@@ -160,6 +164,8 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.imageGalleryButton.setOnClickListener { launchGalleryPicker() }
         binding.imageCameraButton.setOnClickListener { ensureCameraPermissionAndLaunch() }
         binding.imageClearButton.setOnClickListener { clearImage() }
+
+        binding.historyButton.setOnClickListener { showHistory() }
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -336,14 +342,33 @@ class AiCarbsDialog : DaggerDialogFragment() {
         if (hasStrategy) binding.strategyText.text = strategy
 
         // Recommended eCarbs split-window duration in hours — populated by Gemini per AAPS
-        // eCarbs guidance ("Pizza: 4-6h" etc.). Surfaced both here and forwarded via
-        // FragmentResult so CarbsDialog can auto-fill its Duration NumberPicker on apply.
+        // eCarbs guidance ("Pizza: 4-6h" etc.). Shown as advisory text only; the apply
+        // button enters only the immediate carbs (S1 policy), so the user has to enter
+        // the eCarbs second stage manually via the Carbs menu.
         val durationH = (payload.durationH ?: 0).coerceIn(0, 8)
         if (durationH > 0) {
             binding.durationText.visibility = View.VISIBLE
             binding.durationText.text = rh.gs(R.string.ai_carbs_duration_format, durationH)
         } else {
             binding.durationText.visibility = View.GONE
+        }
+
+        // S1 advisory note: when FPU or duration is present, tell the user that apply
+        // only inputs the immediate carbs and the delayed portion has to be entered
+        // manually via the Carbs menu.
+        val showSplitAdvisory = hasFpuData || durationH > 0
+        if (showSplitAdvisory) {
+            val immediateG = max(0, payload.totalCarbsG.roundToInt())
+            val delayedG = (proteinG * FPU_PROTEIN_COEFF + fatG * FPU_FAT_COEFF).roundToInt()
+            binding.splitAdvisoryText.visibility = View.VISIBLE
+            binding.splitAdvisoryText.text = rh.gs(
+                R.string.ai_carbs_split_advisory,
+                immediateG,
+                delayedG,
+                if (durationH > 0) durationH else 4
+            )
+        } else {
+            binding.splitAdvisoryText.visibility = View.GONE
         }
 
         val rounded = max(0, payload.totalCarbsG.roundToInt())
@@ -367,10 +392,16 @@ class AiCarbsDialog : DaggerDialogFragment() {
             ToastUtils.warnToast(context, rh.gs(R.string.ai_carbs_error_invalid_final))
             return
         }
-        val durationH = (lastEstimate?.durationH ?: 0).coerceIn(0, 8)
+        // S1 policy: only the immediate carbs portion is auto-applied. Any FPU delayed
+        // equivalent and the recommended split window (duration_h) are surfaced in the
+        // dialog as advisory text, but the user has to enter the eCarbs second-stage
+        // manually via the Carbs menu — same approach as the AAPS Pizza guidance:
+        //   step 1: (partial) immediate bolus / immediate carbs   ← this apply
+        //   step 2: remaining carbs as eCarbs with duration       ← user does manually
+        appendHistoryFromCurrentEstimate(appliedCarbsG = value)
         setFragmentResult(
             REQUEST_KEY,
-            bundleOf(RESULT_CARBS_G to value, RESULT_DURATION_H to durationH)
+            bundleOf(RESULT_CARBS_G to value, RESULT_DURATION_H to 0)
         )
         dismiss()
     }
@@ -378,6 +409,76 @@ class AiCarbsDialog : DaggerDialogFragment() {
     private fun formatG(value: Double): String =
         if (value % 1.0 == 0.0) value.toInt().toString()
         else "%.1f".format(value)
+
+    private fun showHistory() {
+        val ctx = context ?: return
+        val entries = AiCarbsHistoryStore.read(ctx)
+        val message = if (entries.isEmpty()) {
+            rh.gs(R.string.ai_carbs_history_empty)
+        } else {
+            entries.joinToString("\n\n────────\n\n") { formatHistoryEntry(it) }
+        }
+        AlertDialog.Builder(ctx)
+            .setTitle(R.string.ai_carbs_history_title)
+            .setMessage(message)
+            .setPositiveButton(android.R.string.ok, null)
+            .create()
+            .show()
+    }
+
+    private fun formatHistoryEntry(entry: AiCarbsHistoryEntry): String {
+        val timeStr = DateFormat.format("yy-MM-dd HH:mm", entry.timestampMs).toString()
+        val sb = StringBuilder()
+        sb.append("[").append(timeStr).append("]")
+        entry.foodDescription?.takeIf { it.isNotBlank() }?.let { sb.append(" ").append(it) }
+        if (entry.hadImage && entry.foodDescription.isNullOrBlank()) sb.append(" (").append(rh.gs(R.string.ai_carbs_history_image_only)).append(")")
+        sb.append("\n").append(rh.gs(R.string.ai_carbs_history_carbs_line, formatG(entry.totalCarbsG)))
+        val fat = entry.fatG ?: 0.0
+        val protein = entry.proteinG ?: 0.0
+        if (fat > 0.0 || protein > 0.0) {
+            val fpu = entry.fpuCarbG ?: 0.0
+            sb.append("\n").append(rh.gs(R.string.ai_carbs_history_fpu_line, formatG(fat), formatG(protein), formatG(fpu)))
+        }
+        entry.durationH?.takeIf { it > 0 }?.let { sb.append("\n").append(rh.gs(R.string.ai_carbs_duration_format, it)) }
+        entry.confidence?.takeIf { it.isNotBlank() }?.let {
+            sb.append("\n").append(rh.gs(R.string.ai_carbs_confidence_prefix, localizedConfidence(it)))
+        }
+        entry.appliedCarbsG?.let {
+            sb.append("\n").append(rh.gs(R.string.ai_carbs_history_applied_line, it))
+        }
+        return sb.toString()
+    }
+
+    /**
+     * Persist the currently-displayed estimate to local AI-carbs history.
+     * No-op when there is no estimate (apply pressed before a successful estimation
+     * would normally be blocked, but we guard defensively).
+     */
+    private fun appendHistoryFromCurrentEstimate(appliedCarbsG: Int?) {
+        val payload = lastEstimate ?: return
+        val ctx = context?.applicationContext ?: return
+        val fatG = payload.fatG ?: 0.0
+        val proteinG = payload.proteinG ?: 0.0
+        val fpuCarbG = if (fatG > 0.0 || proteinG > 0.0)
+            proteinG * FPU_PROTEIN_COEFF + fatG * FPU_FAT_COEFF
+        else null
+        AiCarbsHistoryStore.append(
+            ctx,
+            AiCarbsHistoryEntry(
+                timestampMs = System.currentTimeMillis(),
+                foodDescription = binding.foodInput.text?.toString()?.trim()?.takeIf { it.isNotEmpty() },
+                hadImage = selectedImageUri != null,
+                totalCarbsG = payload.totalCarbsG,
+                fatG = payload.fatG,
+                proteinG = payload.proteinG,
+                fpuCarbG = fpuCarbG,
+                durationH = payload.durationH,
+                confidence = payload.confidence,
+                inputStrategy = payload.inputStrategy,
+                appliedCarbsG = appliedCarbsG
+            )
+        )
+    }
 
     private fun localizedConfidence(raw: String): String = when (raw.trim().lowercase()) {
         "low"    -> rh.gs(R.string.ai_carbs_confidence_low)

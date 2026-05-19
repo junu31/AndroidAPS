@@ -227,6 +227,21 @@ class CarbsDialog : DialogFragmentWithDate() {
         binding.durationLabel.labelFor = binding.duration.editTextId
         binding.timeLabel.labelFor = binding.time.editTextId
         binding.carbsLabel.labelFor = binding.carbs.editTextId
+
+        // AI carb estimator (personal fork) — launch sub-dialog and receive value via FragmentResult.
+        // Same pattern as WizardDialog: child fragment manager + REQUEST_KEY listener.
+        childFragmentManager.setFragmentResultListener(AiCarbsDialog.REQUEST_KEY, this) { _, bundle ->
+            val carbsG = bundle.getInt(AiCarbsDialog.RESULT_CARBS_G, 0)
+            if (carbsG > 0) {
+                binding.carbs.value = carbsG.toDouble()
+                validateInputs()
+            }
+        }
+        binding.aiCarbsButton.setOnClickListener {
+            if (childFragmentManager.findFragmentByTag("AiCarbsDialog") == null) {
+                AiCarbsDialog().show(childFragmentManager, "AiCarbsDialog")
+            }
+        }
     }
 
     override fun onDestroyView() {

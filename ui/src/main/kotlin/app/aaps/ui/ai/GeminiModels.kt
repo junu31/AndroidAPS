@@ -51,7 +51,9 @@ data class CarbEstimatePayload(
     @SerializedName("total_carbs_g") val totalCarbsG: Double = 0.0,
     val assumptions: List<String> = emptyList(),
     @SerializedName("confidence") val confidence: String? = null,
-    @SerializedName("input_strategy") val inputStrategy: String? = null
+    @SerializedName("input_strategy") val inputStrategy: String? = null,
+    @SerializedName("fat_g") val fatG: Double? = null,
+    @SerializedName("protein_g") val proteinG: Double? = null
 )
 
 data class CarbItem(

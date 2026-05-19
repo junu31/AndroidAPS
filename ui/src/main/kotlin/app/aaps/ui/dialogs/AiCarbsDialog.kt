@@ -58,6 +58,12 @@ class AiCarbsDialog : DaggerDialogFragment() {
         private const val STATE_IMAGE_URI = "state_image_uri"
         private const val STATE_PENDING_CAMERA_URI = "state_pending_camera_uri"
         private const val CAMERA_FILE_PREFIX = "ai_carb_capture"
+
+        // FPU (Fat-Protein Unit) carb-equivalent coefficients (personal-fork policy).
+        // The standard Warsaw FPU formula is (fat_g·9 + protein_g·4) / 100 per FPU; here we use
+        // simpler "grams of delayed carbs per gram of macro" coefficients chosen by the user.
+        private const val FPU_PROTEIN_COEFF = 0.5
+        private const val FPU_FAT_COEFF = 0.1
     }
 
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -289,6 +295,22 @@ class AiCarbsDialog : DaggerDialogFragment() {
         val colorAttr = if (isLowConfidence) app.aaps.core.ui.R.attr.urgentColor
         else app.aaps.core.ui.R.attr.defaultTextColor
         binding.assumptionsText.setTextColor(rh.gac(requireContext(), colorAttr))
+
+        // FPU (Fat-Protein Unit) carb-equivalent — surfaced as advisory, NOT auto-applied.
+        // Coefficients per personal-fork policy: protein × 0.5 + fat × 0.1 grams of delayed carbs.
+        // Section stays GONE unless Gemini extracted at least one of fat_g / protein_g.
+        val fatG = payload.fatG ?: 0.0
+        val proteinG = payload.proteinG ?: 0.0
+        val hasFpuData = (payload.fatG != null && fatG > 0.0) || (payload.proteinG != null && proteinG > 0.0)
+        if (hasFpuData) {
+            val fpuCarbG = proteinG * FPU_PROTEIN_COEFF + fatG * FPU_FAT_COEFF
+            binding.fpuLabel.visibility = View.VISIBLE
+            binding.fpuText.visibility = View.VISIBLE
+            binding.fpuText.text = rh.gs(R.string.ai_carbs_fpu_format, formatG(fatG), formatG(proteinG), formatG(fpuCarbG))
+        } else {
+            binding.fpuLabel.visibility = View.GONE
+            binding.fpuText.visibility = View.GONE
+        }
 
         val strategy = payload.inputStrategy?.trim().orEmpty()
         val hasStrategy = strategy.isNotEmpty()

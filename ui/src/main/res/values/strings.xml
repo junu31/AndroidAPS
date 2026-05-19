@@ -202,6 +202,8 @@
     <string name="ai_carbs_image_label">Photo (food or nutrition label, optional)</string>
     <string name="ai_carbs_low_confidence_warning">Low confidence — please review before applying.</string>
     <string name="ai_carbs_strategy_label">Input strategy (advisory)</string>
+    <string name="ai_carbs_fpu_label">FPU conversion (delayed absorption)</string>
+    <string name="ai_carbs_fpu_format">Fat %1$s g × 0.1 + Protein %2$s g × 0.5 = +%3$s g (estimated delayed carbs)</string>
     <string name="ai_carbs_image_placeholder">No image selected</string>
     <string name="ai_carbs_image_preview_description">Selected food photo</string>
     <string name="ai_carbs_image_camera">Camera</string>

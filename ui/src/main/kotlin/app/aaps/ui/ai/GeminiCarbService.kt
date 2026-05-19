@@ -45,7 +45,9 @@ return a strict JSON object with this shape:
   "total_carbs_g": <number>,
   "assumptions": ["<global assumption>", ...],
   "confidence": "low" | "medium" | "high",
-  "input_strategy": "<2~5줄 한국어 권고 텍스트>"
+  "input_strategy": "<2~5줄 한국어 권고 텍스트>",
+  "fat_g": <number or null>,
+  "protein_g": <number or null>
 }
 
 Rules:
@@ -60,7 +62,12 @@ Rules:
 - ALL human-readable text MUST be written in Korean (한국어):
   the "name" field, every "assumption" string (per-item and global). No English words for these.
 - Keep JSON keys (items, name, carbs_g, assumption, total_carbs_g, assumptions, confidence,
-  input_strategy) in English exactly as shown.
+  input_strategy, fat_g, protein_g) in English exactly as shown.
+- Populate "fat_g" and "protein_g" with the TOTAL grams of fat and protein for the SAME serving
+  basis used for "total_carbs_g" (whole package, single serving, or whatever the user is eating
+  — must match). Read the values straight off a nutrition facts label when one is visible
+  (지방, 단백질). When only a food photo is supplied, estimate from typical composition.
+  Use null when the value is genuinely unknown — do NOT guess zero. Numbers only, no units.
 - Keep the "confidence" enum value as one of the literal strings: "low", "medium", "high".
 - The "input_strategy" field is a Korean natural-language note (2~5 lines, plain text, no JSON
   inside) advising HOW the user should enter the carbs in their insulin pump app:

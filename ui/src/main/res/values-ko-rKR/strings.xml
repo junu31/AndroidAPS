@@ -151,6 +151,8 @@
     <string name="ai_carbs_image_label">사진 (음식 또는 영양성분표, 선택)</string>
     <string name="ai_carbs_low_confidence_warning">신뢰도 낮음 — 적용 전 반드시 검토하세요.</string>
     <string name="ai_carbs_strategy_label">입력 전략 (참고)</string>
+    <string name="ai_carbs_fpu_label">FPU 환산 (지연 흡수 추정)</string>
+    <string name="ai_carbs_fpu_format">지방 %1$s g × 0.1 + 단백질 %2$s g × 0.5 = +%3$s g (지연 흡수 탄수화물 추정)</string>
     <string name="ai_carbs_image_placeholder">선택된 이미지 없음</string>
     <string name="ai_carbs_image_preview_description">선택된 음식 사진</string>
     <string name="ai_carbs_image_camera">카메라</string>

@@ -230,10 +230,15 @@ class CarbsDialog : DialogFragmentWithDate() {
 
         // AI carb estimator (personal fork) — launch sub-dialog and receive value via FragmentResult.
         // Same pattern as WizardDialog: child fragment manager + REQUEST_KEY listener.
+        // Also receives recommended AAPS eCarbs duration (hours) and auto-fills the Duration
+        // NumberPicker so the user can immediately confirm an extended-carb entry.
         childFragmentManager.setFragmentResultListener(AiCarbsDialog.REQUEST_KEY, this) { _, bundle ->
             val carbsG = bundle.getInt(AiCarbsDialog.RESULT_CARBS_G, 0)
             if (carbsG > 0) {
                 binding.carbs.value = carbsG.toDouble()
+                val durationH = bundle.getInt(AiCarbsDialog.RESULT_DURATION_H, 0)
+                    .coerceIn(0, HardLimits.MAX_CARBS_DURATION_HOURS.toInt())
+                if (durationH > 0) binding.duration.value = durationH.toDouble()
                 validateInputs()
             }
         }

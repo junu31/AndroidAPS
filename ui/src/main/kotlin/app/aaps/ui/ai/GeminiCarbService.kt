@@ -47,7 +47,8 @@ return a strict JSON object with this shape:
   "confidence": "low" | "medium" | "high",
   "input_strategy": "<2~5줄 한국어 권고 텍스트>",
   "fat_g": <number or null>,
-  "protein_g": <number or null>
+  "protein_g": <number or null>,
+  "duration_h": <integer 0..8>
 }
 
 Rules:
@@ -68,6 +69,15 @@ Rules:
   — must match). Read the values straight off a nutrition facts label when one is visible
   (지방, 단백질). When only a food photo is supplied, estimate from typical composition.
   Use null when the value is genuinely unknown — do NOT guess zero. Numbers only, no units.
+- "duration_h" is the recommended SPLIT WINDOW in hours for AAPS eCarbs (Extended Carbs).
+  This goes into the AAPS Carbs dialog's "기간/Duration" field. Map by food type:
+    * 0  → simple/fast carbs: white rice, fruit, candy, soft drink, plain bread
+    * 2  → mixed light meal: sandwich, fried rice, regular Korean side dishes
+    * 4  → high-fat OR high-protein meal: pizza, fried chicken, Korean BBQ, ramen with broth
+    * 6  → very-high-fat-AND-protein meal: cheese-stuffed processed meats, fatty cuts,
+           creamy pasta, sausage platters, hamburger combos
+  Always return an integer (0..8). When uncertain, prefer the lower number (safer — user
+  can always extend). Cross-check: if fat_g ≥ 25 OR protein_g ≥ 30, duration_h SHOULD be ≥ 4.
 - Keep the "confidence" enum value as one of the literal strings: "low", "medium", "high".
 - The "input_strategy" field is a Korean natural-language note (2~5 lines, plain text, no JSON
   inside) advising HOW the user should enter the carbs in their insulin pump app:

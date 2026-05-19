@@ -52,6 +52,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
         const val REQUEST_KEY = "AiCarbsDialog.request"
         const val RESULT_CARBS_G = "carbs_g"
+        const val RESULT_DURATION_H = "duration_h"
 
         private const val STATE_FOOD = "state_food"
         private const val STATE_FINAL_CARBS = "state_final_carbs"
@@ -59,11 +60,27 @@ class AiCarbsDialog : DaggerDialogFragment() {
         private const val STATE_PENDING_CAMERA_URI = "state_pending_camera_uri"
         private const val CAMERA_FILE_PREFIX = "ai_carb_capture"
 
-        // FPU (Fat-Protein Unit) carb-equivalent coefficients (personal-fork policy).
-        // The standard Warsaw FPU formula is (fat_g·9 + protein_g·4) / 100 per FPU; here we use
-        // simpler "grams of delayed carbs per gram of macro" coefficients chosen by the user.
-        private const val FPU_PROTEIN_COEFF = 0.5
-        private const val FPU_FAT_COEFF = 0.1
+        // FPU (Fat-Protein Unit) carb-equivalent coefficients.
+        //
+        // Derivation chain (every step traceable to a public source):
+        //   1. Pankowska 2009 (Warsaw method, peer-reviewed):
+        //        1 FPU = 100 kcal from fat+protein ≈ 10 g of carbs (delayed absorption)
+        //   2. Per-gram Atwater-based equivalent (full Warsaw, no safety margin):
+        //        protein:  4 kcal/g × 10/100 = 0.40 g_carb / g_protein
+        //        fat:      9 kcal/g × 10/100 = 0.90 g_carb / g_fat
+        //   3. × 0.5 global safety adjustment (community consensus):
+        //        - iAPS docs: "Override With A Factor Of" default 0.5
+        //        - Juicebox warcal: "Bolus Adjustment Factor" default 0.5
+        //        - Rationale: Lopez 2018 (Diabetic Medicine) showed that strict
+        //          Pankowska dosing increases hypoglycemia rate vs carb-counting;
+        //          halving the result is the established loop-community mitigation.
+        //   4. Final per-gram coefficients used here:
+        //        FPU_PROTEIN_COEFF = 0.40 × 0.5 = 0.20
+        //        FPU_FAT_COEFF     = 0.90 × 0.5 = 0.45
+        //
+        // Result is advisory only — never auto-applied to the bolus/wizard final value.
+        private const val FPU_PROTEIN_COEFF = 0.20
+        private const val FPU_FAT_COEFF = 0.45
     }
 
     @Inject lateinit var aapsLogger: AAPSLogger
@@ -318,6 +335,17 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.strategyText.visibility = if (hasStrategy) View.VISIBLE else View.GONE
         if (hasStrategy) binding.strategyText.text = strategy
 
+        // Recommended eCarbs split-window duration in hours — populated by Gemini per AAPS
+        // eCarbs guidance ("Pizza: 4-6h" etc.). Surfaced both here and forwarded via
+        // FragmentResult so CarbsDialog can auto-fill its Duration NumberPicker on apply.
+        val durationH = (payload.durationH ?: 0).coerceIn(0, 8)
+        if (durationH > 0) {
+            binding.durationText.visibility = View.VISIBLE
+            binding.durationText.text = rh.gs(R.string.ai_carbs_duration_format, durationH)
+        } else {
+            binding.durationText.visibility = View.GONE
+        }
+
         val rounded = max(0, payload.totalCarbsG.roundToInt())
         binding.finalCarbs.setText(rounded.toString())
         binding.resultSection.visibility = View.VISIBLE
@@ -339,7 +367,11 @@ class AiCarbsDialog : DaggerDialogFragment() {
             ToastUtils.warnToast(context, rh.gs(R.string.ai_carbs_error_invalid_final))
             return
         }
-        setFragmentResult(REQUEST_KEY, bundleOf(RESULT_CARBS_G to value))
+        val durationH = (lastEstimate?.durationH ?: 0).coerceIn(0, 8)
+        setFragmentResult(
+            REQUEST_KEY,
+            bundleOf(RESULT_CARBS_G to value, RESULT_DURATION_H to durationH)
+        )
         dismiss()
     }
 

@@ -150,6 +150,7 @@
     <string name="ai_carbs_error_network">네트워크 연결을 확인해주세요.</string>
     <string name="ai_carbs_image_label">사진 (음식 또는 영양성분표, 선택)</string>
     <string name="ai_carbs_low_confidence_warning">신뢰도 낮음 — 적용 전 반드시 검토하세요.</string>
+    <string name="ai_carbs_strategy_label">입력 전략 (참고)</string>
     <string name="ai_carbs_image_placeholder">선택된 이미지 없음</string>
     <string name="ai_carbs_image_preview_description">선택된 음식 사진</string>
     <string name="ai_carbs_image_camera">카메라</string>

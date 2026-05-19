@@ -283,6 +283,12 @@ class AiCarbsDialog : DaggerDialogFragment() {
         else app.aaps.core.ui.R.attr.defaultTextColor
         binding.assumptionsText.setTextColor(rh.gac(requireContext(), colorAttr))
 
+        val strategy = payload.inputStrategy?.trim().orEmpty()
+        val hasStrategy = strategy.isNotEmpty()
+        binding.strategyLabel.visibility = if (hasStrategy) View.VISIBLE else View.GONE
+        binding.strategyText.visibility = if (hasStrategy) View.VISIBLE else View.GONE
+        if (hasStrategy) binding.strategyText.text = strategy
+
         val rounded = max(0, payload.totalCarbsG.roundToInt())
         binding.finalCarbs.setText(rounded.toString())
         binding.resultSection.visibility = View.VISIBLE

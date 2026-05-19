@@ -44,7 +44,8 @@ return a strict JSON object with this shape:
   ],
   "total_carbs_g": <number>,
   "assumptions": ["<global assumption>", ...],
-  "confidence": "low" | "medium" | "high"
+  "confidence": "low" | "medium" | "high",
+  "input_strategy": "<2~5줄 한국어 권고 텍스트>"
 }
 
 Rules:
@@ -58,9 +59,20 @@ Rules:
 - Be conservative when unsure; prefer slightly lower carbs and mark confidence "low".
 - ALL human-readable text MUST be written in Korean (한국어):
   the "name" field, every "assumption" string (per-item and global). No English words for these.
-- Keep JSON keys (items, name, carbs_g, assumption, total_carbs_g, assumptions, confidence)
-  in English exactly as shown.
+- Keep JSON keys (items, name, carbs_g, assumption, total_carbs_g, assumptions, confidence,
+  input_strategy) in English exactly as shown.
 - Keep the "confidence" enum value as one of the literal strings: "low", "medium", "high".
+- The "input_strategy" field is a Korean natural-language note (2~5 lines, plain text, no JSON
+  inside) advising HOW the user should enter the carbs in their insulin pump app:
+  * Consider fat and protein content visible on the label / inferred from the food (지방, 단백질).
+  * High-fat or high-protein meals (지방 ≥ 15g 또는 단백질 ≥ 20g) delay carb absorption: recommend
+    a SPLIT or EXTENDED entry (예: "즉시 60% + 2시간 후 40%", 또는 "W/Carbs Duration 3~4시간").
+  * Simple/low-fat meals (지방 < 10g, 단순당 위주): recommend a SINGLE immediate entry
+    (예: "단일 입력 권장").
+  * Be conservative — do NOT prescribe specific basal rates (TBR%), SMB toggles, or insulin
+    doses. Only describe the carb-entry timing pattern.
+  * Prefix the recommendation with one of: "단일 입력 권장", "분할 입력 권장", "연장 입력 권장".
+  * If the food is unclear, write a short generic tip and mark the overall confidence "low".
 - Respond ONLY with the JSON object, no prose."""
     }
 

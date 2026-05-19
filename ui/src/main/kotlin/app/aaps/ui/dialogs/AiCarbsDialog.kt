@@ -97,7 +97,14 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        dialog?.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+        // Use ~90% of screen height so the ScrollView root can actually scroll when the
+        // result panel (breakdown + assumptions + input_strategy) is tall. With the previous
+        // WRAP_CONTENT height, long results were clipped instead of scrollable.
+        val screenHeight = resources.displayMetrics.heightPixels
+        dialog?.window?.setLayout(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            (screenHeight * 0.9).toInt()
+        )
         aapsLogger.debug(LTag.UI, "Dialog opened: ${this.javaClass.simpleName}")
     }
 

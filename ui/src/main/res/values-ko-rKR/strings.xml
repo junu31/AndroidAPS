@@ -148,7 +148,8 @@
     <string name="ai_carbs_error_rate_limited">요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.</string>
     <string name="ai_carbs_error_auth">API 키 오류입니다. 설정에서 키를 확인해주세요.</string>
     <string name="ai_carbs_error_network">네트워크 연결을 확인해주세요.</string>
-    <string name="ai_carbs_image_label">사진 (선택)</string>
+    <string name="ai_carbs_image_label">사진 (음식 또는 영양성분표, 선택)</string>
+    <string name="ai_carbs_low_confidence_warning">신뢰도 낮음 — 적용 전 반드시 검토하세요.</string>
     <string name="ai_carbs_image_placeholder">선택된 이미지 없음</string>
     <string name="ai_carbs_image_preview_description">선택된 음식 사진</string>
     <string name="ai_carbs_image_camera">카메라</string>

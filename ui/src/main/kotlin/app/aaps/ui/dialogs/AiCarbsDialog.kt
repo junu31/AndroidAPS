@@ -270,13 +270,18 @@ class AiCarbsDialog : DaggerDialogFragment() {
         }
         binding.breakdownText.text = breakdown + "\n" + rh.gs(R.string.ai_carbs_total_prefix, formatG(payload.totalCarbsG))
 
+        val isLowConfidence = payload.confidence?.trim()?.lowercase() == "low"
         val extraAssumptions = buildList {
+            if (isLowConfidence) add(rh.gs(R.string.ai_carbs_low_confidence_warning))
             if (!payload.confidence.isNullOrBlank()) add(rh.gs(R.string.ai_carbs_confidence_prefix, localizedConfidence(payload.confidence)))
             addAll(payload.assumptions)
         }
         binding.assumptionsText.text = if (extraAssumptions.isEmpty()) ""
         else extraAssumptions.joinToString("\n") { "– $it" }
         binding.assumptionsText.visibility = if (extraAssumptions.isEmpty()) View.GONE else View.VISIBLE
+        val colorAttr = if (isLowConfidence) app.aaps.core.ui.R.attr.urgentColor
+        else app.aaps.core.ui.R.attr.defaultTextColor
+        binding.assumptionsText.setTextColor(rh.gac(requireContext(), colorAttr))
 
         val rounded = max(0, payload.totalCarbsG.roundToInt())
         binding.finalCarbs.setText(rounded.toString())

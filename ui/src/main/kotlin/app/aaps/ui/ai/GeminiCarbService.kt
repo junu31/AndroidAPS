@@ -49,6 +49,11 @@ return a strict JSON object with this shape:
 
 Rules:
 - Use grams of net digestible carbohydrates (exclude fiber if obvious).
+- If the input is a nutrition facts label image (영양성분표) and the carbohydrate value is
+  missing, unreadable, or zero while calories are present, derive carbs from Atwater factors:
+  carbs_g ≈ (kcal − 9 × fat_g − 4 × protein_g) / 4 . If the result is negative, treat as 0.
+  Use the serving size shown on the label. Mark such items confidence "low" and explain the
+  derivation in "assumption" (예: "영양성분표에서 탄수화물 미기재 → 칼로리 역산").
 - If portions are ambiguous, assume a typical adult single serving and list the assumption.
 - Be conservative when unsure; prefer slightly lower carbs and mark confidence "low".
 - ALL human-readable text MUST be written in Korean (한국어):

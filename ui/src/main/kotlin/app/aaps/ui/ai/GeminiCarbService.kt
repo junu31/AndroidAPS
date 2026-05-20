@@ -58,6 +58,19 @@ Rules:
   carbs_g ≈ (kcal − 9 × fat_g − 4 × protein_g) / 4 . If the result is negative, treat as 0.
   Use the serving size shown on the label. Mark such items confidence "low" and explain the
   derivation in "assumption" (예: "영양성분표에서 탄수화물 미기재 → 칼로리 역산").
+- If TOTAL FAT is also missing/unreadable, do NOT default to a generic "typical donut/pizza"
+  fat figure. Estimate total fat from SATURATED FAT (포화지방) using the typical processed-food
+  ratio (saturated_fat is usually 20~35% of total fat):
+    * Light/regular processed snacks (cookies, crackers):  total_fat ≈ saturated_fat × 3
+    * Sweet baked goods (donuts, pastries, cake):          total_fat ≈ saturated_fat × 4
+    * High-fat items (chocolate, cheese, fried, pizza):    total_fat ≈ saturated_fat × 5
+  Record the multiplier you used in the "assumption" field (예: "포화지방 3.3g × 4 →
+  총 지방 13.2g 추정 (도넛 류)"). Saturated-fat-only inference is more accurate than guessing
+  a category-average total fat.
+- FLOOR RULE: total_carbs_g MUST be ≥ any listed "당류"/sugars value on the same label.
+  Sugars are a strict subset of carbohydrates, so an Atwater-derived carbs value below the
+  printed sugars number is wrong by construction — raise it to at least the sugars value and
+  note this in "assumption" (예: "당류 14g 하한 적용").
 - If portions are ambiguous, assume a typical adult single serving and list the assumption.
 - Be conservative when unsure; prefer slightly lower carbs and mark confidence "low".
 - ALL human-readable text MUST be written in Korean (한국어):

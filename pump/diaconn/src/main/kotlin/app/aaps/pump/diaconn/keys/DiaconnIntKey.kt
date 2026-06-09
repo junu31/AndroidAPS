@@ -21,4 +21,12 @@ enum class DiaconnIntKey(
 ) : IntPreferenceKey {
 
     BolusSpeed("g8_bolusspeed", 5),
+    BatteryWarningSleepMuteStartHour(
+        "diaconn_g8_batterywarning_sleepmute_start", defaultValue = 23, min = 0, max = 23,
+        dependency = DiaconnBooleanKey.BatteryWarningSleepMute
+    ),
+    BatteryWarningSleepMuteEndHour(
+        "diaconn_g8_batterywarning_sleepmute_end", defaultValue = 7, min = 0, max = 23,
+        dependency = DiaconnBooleanKey.BatteryWarningSleepMute
+    ),
 }

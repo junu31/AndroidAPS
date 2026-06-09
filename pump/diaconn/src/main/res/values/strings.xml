@@ -63,6 +63,10 @@
     <string name="batterywarning">Battery Warning</string>
     <string name="insulinlackwarning">Insulin Lack Warning</string>
     <string name="needbatteryreplace">Battery replacement is required</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_title">Mute battery warning during sleep hours</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_summary">Suppresses the Diaconn G8 battery warning dialog and alarm sound while you are asleep. Critical-level warnings (grade 4) always alarm so the pump never silently runs out.</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_start_title">Sleep start hour (0–23)</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_end_title">Sleep end hour (0–23)</string>
     <string name="needinsullinreplace">Insulin replacement is required</string>
     <string name="diaconn_g8_loginsulinchange_title">Log reservoir change</string>
     <string name="diaconn_g8_loginsulinchange_summary">Add \"Insulin Change\" event to careportal when detected in history</string>

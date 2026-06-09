@@ -22,4 +22,5 @@ enum class DiaconnBooleanKey(
     LogTubeChange("diaconn_g8_logtubechange", true),
     LogBatteryChange("diaconn_g8_logbatterychanges", true),
     SendLogsToCloud("diaconn_g8_cloudsend", true),
+    BatteryWarningSleepMute("diaconn_g8_batterywarning_sleepmute", false),
 }

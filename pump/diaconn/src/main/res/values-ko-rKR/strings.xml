@@ -63,6 +63,10 @@
     <string name="batterywarning">베터리 경고</string>
     <string name="insulinlackwarning">인슐린 부족 경고</string>
     <string name="needbatteryreplace">베터리 교체가 필요합니다.</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_title">수면시간 동안 베터리 경고 음소거</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_summary">설정된 수면시간 동안 Diaconn G8 베터리 경고 다이얼로그와 알람음을 차단합니다. 위급(grade 4) 경고는 항상 울려 펌프가 완전히 방전되는 것을 막습니다.</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_start_title">수면 시작 시각 (0–23시)</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_end_title">수면 종료 시각 (0–23시)</string>
     <string name="needinsullinreplace">인슐린 교체가 필요합니다.</string>
     <string name="diaconn_g8_loginsulinchange_title">인슐린 교체</string>
     <string name="diaconn_g8_loginsulinchange_summary">로그 동기화 시 케어포털 \"인슐린 교체\" 정보 자동 업로드</string>

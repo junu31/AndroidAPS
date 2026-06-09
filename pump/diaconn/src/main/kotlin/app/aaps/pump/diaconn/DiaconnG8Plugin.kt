@@ -49,6 +49,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.ui.toast.ToastUtils
+import app.aaps.core.validators.preferences.AdaptiveIntPreference
 import app.aaps.core.validators.preferences.AdaptiveIntentPreference
 import app.aaps.core.validators.preferences.AdaptiveListIntPreference
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
@@ -553,6 +554,28 @@ class DiaconnG8Plugin @Inject constructor(
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = DiaconnBooleanKey.LogTubeChange, title = R.string.diaconn_g8_logtubechange_title, summary = R.string.diaconn_g8_logtubechange_summary))
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = DiaconnBooleanKey.LogBatteryChange, title = R.string.diaconn_g8_logbatterychange_title, summary = R.string.diaconn_g8_logbatterychange_summary))
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = DiaconnBooleanKey.SendLogsToCloud, title = R.string.diaconn_g8_cloudsend_title, summary = R.string.diaconn_g8_cloudsend_summary))
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context,
+                    booleanKey = DiaconnBooleanKey.BatteryWarningSleepMute,
+                    title = R.string.diaconn_g8_batterywarning_sleepmute_title,
+                    summary = R.string.diaconn_g8_batterywarning_sleepmute_summary
+                )
+            )
+            addPreference(
+                AdaptiveIntPreference(
+                    ctx = context,
+                    intKey = DiaconnIntKey.BatteryWarningSleepMuteStartHour,
+                    title = R.string.diaconn_g8_batterywarning_sleepmute_start_title
+                )
+            )
+            addPreference(
+                AdaptiveIntPreference(
+                    ctx = context,
+                    intKey = DiaconnIntKey.BatteryWarningSleepMuteEndHour,
+                    title = R.string.diaconn_g8_batterywarning_sleepmute_end_title
+                )
+            )
         }
     }
 }

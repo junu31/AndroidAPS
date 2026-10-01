@@ -51,7 +51,7 @@ object DashColors {
     val Card = Color(0xFF171B22)
     val Card2 = Color(0xFF1E232C)
     val Line = Color(0xFF2A303B)
-    val Grid = Color(0xFF232A35)
+    val Grid = Color(0xFF3A4250)
     val Text = Color(0xFFE8ECF2)
     val Sub = Color(0xFF8A93A3)
     val Dim = Color(0xFF5C6575)

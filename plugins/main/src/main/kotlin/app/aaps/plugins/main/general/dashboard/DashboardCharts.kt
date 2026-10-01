@@ -80,7 +80,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         listOf(model.lowMark, model.highMark).forEach {
             drawLine(DashColors.InRange.copy(alpha = 0.35f), Offset(left, y(it)), Offset(right, y(it)), 1.dp.toPx(), pathEffect = dash)
         }
-        // grid (subtle): horizontal every 40 mg/dL (2 mmol/L) like the classic graph, vertical dotted line at each labelled hour
+        // grid: horizontal every 40 mg/dL (2 mmol/L) like the classic graph, vertical dotted line at each labelled hour
         val gridStep = if (model.isMgdl) 40.0 else 2.0
         val markGap = if (model.isMgdl) 12.0 else 0.6
         var g = 0.0

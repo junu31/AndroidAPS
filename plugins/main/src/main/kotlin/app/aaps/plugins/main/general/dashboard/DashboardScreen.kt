@@ -110,7 +110,7 @@ fun DashboardScreen(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = 100.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (state.calcProgressPct != 100)
@@ -603,19 +603,20 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
 
 @Composable
 private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, onClick: () -> Unit) {
-    Row(
+    // icon on top, label below (option A)
+    Column(
         Modifier
             .weight(1f)
-            .height(56.dp)
+            .height(72.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(bg)
             .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(8.dp))
             .clicks(onClick),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Icon(painterResource(icon), contentDescription = null, tint = fg, modifier = Modifier.size(28.dp))
+        Spacer(Modifier.height(5.dp))
+        Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }

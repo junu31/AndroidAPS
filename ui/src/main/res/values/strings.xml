@@ -192,7 +192,7 @@
     <string name="ai_carbs_final_label">Apply as</string>
     <string name="ai_carbs_to_wizard">To calculator</string>
     <string name="ai_carbs_to_carbs">To carbs</string>
-    <string name="ai_carbs_total_prefix">Total: %1$s g</string>
+    <string name="ai_carbs_item_grams">%1$s g</string>
     <string name="ai_carbs_confidence_prefix">Confidence: %1$s</string>
     <string name="ai_carbs_no_breakdown">(no item breakdown returned)</string>
     <string name="ai_carbs_error_no_key">No API key set. Open Preferences → Overview → Overview buttons selection and paste your Gemini key.</string>

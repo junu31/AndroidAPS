@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: AI carbs dialog in the Dashboard card style -->
+<resources>
+    <color name="ai_bg">#0E1116</color>
+    <color name="ai_card">#171B22</color>
+    <color name="ai_card2">#1E232C</color>
+    <color name="ai_line">#2A303B</color>
+    <color name="ai_text">#E8ECF2</color>
+    <color name="ai_sub">#8A93A3</color>
+    <color name="ai_dim">#5C6575</color>
+    <color name="ai_purple">#A78BFA</color>
+    <color name="ai_on_purple">#1B1230</color>
+    <color name="ai_accent">#2DD4BF</color>
+    <color name="ai_on_accent">#062521</color>
+    <color name="ai_carbs">#F59E0B</color>
+    <color name="ai_low">#F87171</color>
+    <color name="ai_high">#FBBF24</color>
+    <color name="ai_ok">#34D399</color>
+
+    <style name="AiCarbs.Label">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textColor">@color/ai_sub</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:layout_marginBottom">8dp</item>
+    </style>
+
+    <style name="AiCarbs.Body">
+        <item name="android:textColor">@color/ai_text</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+
+    <style name="AiCarbs.Note">
+        <item name="android:textColor">@color/ai_sub</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:lineSpacingExtra">3dp</item>
+    </style>
+
+    <style name="AiCarbs.Card">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:background">@drawable/ai_bg_card</item>
+        <item name="android:orientation">vertical</item>
+        <item name="android:padding">12dp</item>
+    </style>
+
+    <!-- MaterialButton: drop the default tint, insets and elevation so the drawable background shows as designed -->
+    <style name="AiCarbs.Button">
+        <item name="backgroundTint">@null</item>
+        <item name="android:background">@drawable/ai_bg_button</item>
+        <item name="android:textColor">@color/ai_button_text</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:minHeight">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:layout_height">48dp</item>
+    </style>
+
+    <style name="AiCarbs.Button.Purple">
+        <item name="android:background">@drawable/ai_bg_button_purple</item>
+        <item name="android:textColor">@color/ai_on_purple</item>
+    </style>
+
+    <style name="AiCarbs.Button.Accent">
+        <item name="android:background">@drawable/ai_bg_button_accent</item>
+        <item name="android:textColor">@color/ai_button_text_accent</item>
+    </style>
+
+    <style name="AiCarbs.Button.Carbs">
+        <item name="android:textColor">@color/ai_button_text_carbs</item>
+    </style>
+</resources>

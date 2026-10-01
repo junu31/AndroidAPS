@@ -1,82 +1,91 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: AI carbs estimator, styled like the Dashboard (dark cards) -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    style="@style/StyleDialog"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/ai_bg_sheet"
     android:focusableInTouchMode="true"
     tools:context=".dialogs.AiCarbsDialog">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
 
-        <RelativeLayout
-            style="@style/StyleDialogHeader"
+        <!-- header -->
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/ai_bg_badge"
+                android:importantForAccessibility="no"
+                android:padding="7dp"
+                android:src="@drawable/ic_ai_sparkle"
+                android:tint="@color/ai_purple" />
 
             <TextView
-                android:layout_width="match_parent"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_centerInParent="true"
                 android:layout_marginStart="10dp"
-                android:layout_marginEnd="48dp"
+                android:layout_weight="1"
                 android:text="@string/ai_carbs_title"
-                android:textAlignment="center"
-                android:textAppearance="?android:attr/textAppearanceLarge" />
+                android:textColor="@color/ai_text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
             <ImageButton
                 android:id="@+id/history_button"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
-                android:layout_alignParentEnd="true"
-                android:layout_centerVertical="true"
-                android:layout_marginEnd="6dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/ai_bg_icon_button"
                 android:contentDescription="@string/ai_carbs_history_button"
-                android:padding="4dp"
+                android:padding="7dp"
                 android:scaleType="fitCenter"
-                android:src="@android:drawable/ic_menu_recent_history" />
-        </RelativeLayout>
+                android:src="@android:drawable/ic_menu_recent_history"
+                android:tint="@color/ai_sub" />
+        </LinearLayout>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginEnd="10dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/ai_bg_warning"
+            android:paddingStart="12dp"
+            android:paddingTop="8dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="8dp"
             android:text="@string/ai_carbs_warning"
-            android:textColor="?attr/urgentColor"
+            android:textColor="@color/ai_low"
+            android:textSize="12sp"
             android:textStyle="bold" />
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_margin="10dp"
-            android:orientation="vertical">
+        <!-- photo -->
+        <LinearLayout style="@style/AiCarbs.Card">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/ai_carbs_image_label"
-                android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                android:textStyle="bold" />
+                style="@style/AiCarbs.Label"
+                android:text="@string/ai_carbs_image_label" />
 
             <FrameLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp">
+                android:layout_height="wrap_content">
 
                 <ImageView
                     android:id="@+id/image_preview"
                     android:layout_width="match_parent"
                     android:layout_height="180dp"
                     android:adjustViewBounds="true"
-                    android:background="?attr/dialogTitleBackground"
+                    android:background="@drawable/ai_bg_field"
                     android:contentDescription="@string/ai_carbs_image_preview_description"
                     android:scaleType="centerCrop"
                     android:visibility="gone" />
@@ -84,77 +93,96 @@
                 <TextView
                     android:id="@+id/image_placeholder"
                     android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:background="?attr/dialogTitleBackground"
+                    android:layout_height="88dp"
+                    android:background="@drawable/ai_bg_photo"
                     android:gravity="center"
                     android:text="@string/ai_carbs_image_placeholder"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Small" />
+                    android:textColor="@color/ai_dim"
+                    android:textSize="13sp" />
 
                 <ImageButton
                     android:id="@+id/image_clear_button"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
+                    android:layout_width="30dp"
+                    android:layout_height="30dp"
                     android:layout_gravity="top|end"
-                    android:layout_margin="4dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:layout_margin="6dp"
+                    android:background="@drawable/ai_bg_icon_button"
                     android:contentDescription="@string/ai_carbs_image_clear"
-                    android:padding="4dp"
+                    android:padding="6dp"
                     android:scaleType="fitCenter"
                     android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="@color/ai_text"
                     android:visibility="gone" />
             </FrameLayout>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="8dp"
                 android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/image_camera_button"
+                    style="@style/AiCarbs.Button"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="40dp"
                     android:layout_weight="1"
                     android:drawableStart="@drawable/ic_photo_camera"
                     android:drawablePadding="6dp"
-                    android:text="@string/ai_carbs_image_camera" />
+                    android:drawableTint="@color/ai_text"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/ai_carbs_image_camera"
+                    android:textSize="13sp" />
 
                 <Button
                     android:id="@+id/image_gallery_button"
+                    style="@style/AiCarbs.Button"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="40dp"
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:drawableStart="@drawable/ic_photo_library"
                     android:drawablePadding="6dp"
-                    android:text="@string/ai_carbs_image_gallery" />
+                    android:drawableTint="@color/ai_text"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    android:text="@string/ai_carbs_image_gallery"
+                    android:textSize="13sp" />
             </LinearLayout>
+        </LinearLayout>
+
+        <!-- food description + estimate -->
+        <LinearLayout style="@style/AiCarbs.Card">
 
             <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:text="@string/ai_carbs_food_label"
-                android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                android:textStyle="bold" />
+                style="@style/AiCarbs.Label"
+                android:text="@string/ai_carbs_food_label" />
 
             <EditText
                 android:id="@+id/food_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
                 android:autofillHints="no"
+                android:background="@drawable/ai_bg_field"
                 android:gravity="top|start"
                 android:hint="@string/ai_carbs_food_hint"
                 android:inputType="textMultiLine|textCapSentences"
-                android:minLines="3"
-                android:padding="8dp" />
+                android:minLines="2"
+                android:padding="12dp"
+                android:textColor="@color/ai_text"
+                android:textColorHint="@color/ai_dim"
+                android:textSize="14sp" />
 
             <Button
                 android:id="@+id/estimate_button"
+                style="@style/AiCarbs.Button.Purple"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
+                android:drawableStart="@drawable/ic_ai_sparkle"
+                android:drawableTint="@color/ai_on_purple"
+                android:paddingStart="96dp"
+                android:paddingEnd="96dp"
                 android:text="@string/ai_carbs_estimate_button" />
 
             <ProgressBar
@@ -162,189 +190,236 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="10dp"
+                android:indeterminateTint="@color/ai_purple"
                 android:visibility="gone" />
 
             <TextView
                 android:id="@+id/error_text"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:textColor="?attr/urgentColor"
+                android:layout_marginTop="10dp"
+                android:textColor="@color/ai_low"
+                android:textSize="13sp"
                 android:visibility="gone" />
+        </LinearLayout>
 
-            <LinearLayout
-                android:id="@+id/result_section"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
-                android:orientation="vertical"
-                android:visibility="gone">
+        <LinearLayout
+            android:id="@+id/result_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- result: total + confidence + breakdown -->
+            <LinearLayout style="@style/AiCarbs.Card">
 
                 <TextView
-                    android:layout_width="wrap_content"
+                    style="@style/AiCarbs.Label"
+                    android:layout_marginBottom="0dp"
+                    android:text="@string/ai_carbs_result_label" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/ai_carbs_result_label"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                    android:textStyle="bold" />
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/breakdown_text"
+                    <TextView
+                        android:id="@+id/total_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/ai_carbs"
+                        android:textSize="40sp"
+                        android:textStyle="bold"
+                        tools:text="78" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:text="@string/shortgramm"
+                        android:textColor="@color/ai_sub"
+                        android:textSize="14sp" />
+
+                    <TextView
+                        android:id="@+id/confidence_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/ai_bg_pill"
+                        android:paddingStart="10dp"
+                        android:paddingTop="4dp"
+                        android:paddingEnd="10dp"
+                        android:paddingBottom="4dp"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:visibility="gone"
+                        tools:text="신뢰도: 높음"
+                        tools:visibility="visible" />
+                </LinearLayout>
+
+                <!-- one row per food item, filled in AiCarbsDialog.bindResult -->
+                <LinearLayout
+                    android:id="@+id/breakdown_list"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall" />
+                    android:orientation="vertical" />
 
                 <TextView
                     android:id="@+id/assumptions_text"
+                    style="@style/AiCarbs.Note"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:layout_marginTop="8dp"
                     android:textStyle="italic" />
+            </LinearLayout>
+
+            <!-- FPU / duration / strategy (advisory only) -->
+            <LinearLayout style="@style/AiCarbs.Card">
 
                 <TextView
                     android:id="@+id/fpu_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    style="@style/AiCarbs.Label"
+                    android:layout_marginBottom="4dp"
                     android:text="@string/ai_carbs_fpu_label"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                    android:textStyle="bold"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/fpu_text"
+                    style="@style/AiCarbs.Note"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/duration_text"
+                    style="@style/AiCarbs.Note"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
+                    android:textColor="@color/ai_text"
                     android:textStyle="bold"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/split_advisory_text"
+                    style="@style/AiCarbs.Note"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
-                    android:textStyle="italic"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/ai_high"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/strategy_label"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
+                    style="@style/AiCarbs.Label"
                     android:layout_marginTop="10dp"
+                    android:layout_marginBottom="4dp"
                     android:text="@string/ai_carbs_strategy_label"
-                    android:textAppearance="@style/TextAppearance.AppCompat.Small"
-                    android:textStyle="bold"
                     android:visibility="gone" />
 
                 <TextView
                     android:id="@+id/strategy_text"
+                    style="@style/AiCarbs.Note"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
-                    android:textAppearance="?android:attr/textAppearanceSmall"
                     android:visibility="gone" />
+            </LinearLayout>
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:layout_marginTop="8dp"
-                    android:background="?attr/dialogTitleBackground" />
+            <!-- final value -->
+            <LinearLayout style="@style/AiCarbs.Card">
+
+                <TextView
+                    style="@style/AiCarbs.Label"
+                    android:text="@string/ai_carbs_final_label" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
 
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/ai_carbs_final_label"
-                        android:textStyle="bold" />
-
                     <Button
                         android:id="@+id/minus_button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        style="@style/AiCarbs.Button"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:minWidth="0dp"
-                        android:minHeight="0dp"
+                        android:padding="0dp"
                         android:text="−"
                         android:textSize="20sp" />
 
                     <EditText
                         android:id="@+id/final_carbs"
-                        android:layout_width="80dp"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:layout_marginEnd="4dp"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="8dp"
+                        android:layout_marginEnd="8dp"
+                        android:layout_weight="1"
                         android:autofillHints="no"
+                        android:background="@drawable/ai_bg_field"
                         android:gravity="center"
                         android:inputType="number"
-                        android:text="0" />
+                        android:text="0"
+                        android:textColor="@color/ai_text"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
 
                     <Button
                         android:id="@+id/plus_button"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
+                        style="@style/AiCarbs.Button"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         android:minWidth="0dp"
-                        android:minHeight="0dp"
+                        android:padding="0dp"
                         android:text="+"
                         android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:text="@string/shortgramm" />
+                        android:layout_marginStart="8dp"
+                        android:text="@string/shortgramm"
+                        android:textColor="@color/ai_sub"
+                        android:textSize="13sp" />
                 </LinearLayout>
             </LinearLayout>
+        </LinearLayout>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="16dp"
-                android:orientation="horizontal">
+        <!-- actions: cancel / to carbs / to calculator (calculator right, like the Dashboard) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:orientation="horizontal">
 
-                <Button
-                    android:id="@+id/cancel_button"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@android:string/cancel" />
+            <Button
+                android:id="@+id/cancel_button"
+                style="@style/AiCarbs.Button"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@android:string/cancel"
+                android:textColor="@color/ai_sub" />
 
-                <Button
-                    android:id="@+id/apply_button"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:enabled="false"
-                    android:text="@string/ai_carbs_to_wizard" />
+            <Button
+                android:id="@+id/apply_carbs_button"
+                style="@style/AiCarbs.Button.Carbs"
+                android:layout_width="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="@string/ai_carbs_to_carbs" />
 
-                <Button
-                    android:id="@+id/apply_carbs_button"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
-                    android:layout_weight="1"
-                    android:enabled="false"
-                    android:text="@string/ai_carbs_to_carbs" />
-            </LinearLayout>
+            <Button
+                android:id="@+id/apply_button"
+                style="@style/AiCarbs.Button.Accent"
+                android:layout_width="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="@string/ai_carbs_to_wizard" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

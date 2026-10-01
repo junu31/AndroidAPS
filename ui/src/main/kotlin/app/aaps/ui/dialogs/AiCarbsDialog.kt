@@ -2,14 +2,19 @@ package app.aaps.ui.dialogs
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.text.format.DateFormat
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.ViewTreeObserver
 import android.view.Window
 import android.view.WindowManager
+import android.widget.LinearLayout
+import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +45,7 @@ import java.io.File
 import java.io.IOException
 import javax.inject.Inject
 import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
@@ -124,11 +130,9 @@ class AiCarbsDialog : DaggerDialogFragment() {
         // Use ~90% of screen height so the ScrollView root can actually scroll when the
         // result panel (breakdown + assumptions + input_strategy) is tall. With the previous
         // WRAP_CONTENT height, long results were clipped instead of scrollable.
-        val screenHeight = resources.displayMetrics.heightPixels
-        dialog?.window?.setLayout(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            (screenHeight * 0.9).toInt()
-        )
+        // Height follows the content (see fitHeightToContent) but is capped at ~90% of the screen.
+        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        fitHeightToContent()
         aapsLogger.debug(LTag.UI, "Dialog opened: ${this.javaClass.simpleName}")
     }
 
@@ -164,6 +168,19 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.imageClearButton.setOnClickListener { clearImage() }
 
         binding.historyButton.setOnClickListener { showHistory() }
+        binding.root.viewTreeObserver.addOnGlobalLayoutListener(fitHeightListener)
+    }
+
+    private val fitHeightListener = ViewTreeObserver.OnGlobalLayoutListener { fitHeightToContent() }
+
+    /** Wrap the dialog around its content (rounded sheet without empty space), but never taller than 90% of the screen. */
+    private fun fitHeightToContent() {
+        val root = _binding?.root ?: return
+        val window = dialog?.window ?: return
+        val content = root.getChildAt(0)?.height ?: return
+        if (content == 0) return
+        val target = min(content, (resources.displayMetrics.heightPixels * 0.9).toInt())
+        if (window.attributes.height != target) window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, target)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -176,6 +193,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
     override fun onDestroyView() {
         disposable.clear()
+        _binding?.root?.viewTreeObserver?.removeOnGlobalLayoutListener(fitHeightListener)
         _binding = null
         super.onDestroyView()
     }
@@ -294,28 +312,19 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
     private fun bindResult(payload: CarbEstimatePayload) {
         lastEstimate = payload
-        val breakdown = if (payload.items.isNotEmpty()) {
-            payload.items.joinToString("\n") { item ->
-                val suffix = item.assumption?.let { " (${it})" } ?: ""
-                "• ${item.name}: ${formatG(item.carbsG)} g$suffix"
-            }
-        } else {
-            rh.gs(R.string.ai_carbs_no_breakdown)
-        }
-        binding.breakdownText.text = breakdown + "\n" + rh.gs(R.string.ai_carbs_total_prefix, formatG(payload.totalCarbsG))
+        binding.totalText.text = formatG(payload.totalCarbsG)
+        bindBreakdown(payload)
+        bindConfidence(payload.confidence)
 
         val isLowConfidence = payload.confidence?.trim()?.lowercase() == "low"
         val extraAssumptions = buildList {
             if (isLowConfidence) add(rh.gs(R.string.ai_carbs_low_confidence_warning))
-            if (!payload.confidence.isNullOrBlank()) add(rh.gs(R.string.ai_carbs_confidence_prefix, localizedConfidence(payload.confidence)))
             addAll(payload.assumptions)
         }
         binding.assumptionsText.text = if (extraAssumptions.isEmpty()) ""
         else extraAssumptions.joinToString("\n") { "– $it" }
         binding.assumptionsText.visibility = if (extraAssumptions.isEmpty()) View.GONE else View.VISIBLE
-        val colorAttr = if (isLowConfidence) app.aaps.core.ui.R.attr.urgentColor
-        else app.aaps.core.ui.R.attr.defaultTextColor
-        binding.assumptionsText.setTextColor(rh.gac(requireContext(), colorAttr))
+        binding.assumptionsText.setTextColor(ContextCompat.getColor(requireContext(), if (isLowConfidence) R.color.ai_low else R.color.ai_sub))
 
         // FPU (Fat-Protein Unit) carb-equivalent — surfaced as advisory, NOT auto-applied.
         // Coefficients per personal-fork policy: protein × 0.5 + fat × 0.1 grams of delayed carbs.
@@ -476,6 +485,64 @@ class AiCarbsDialog : DaggerDialogFragment() {
                 appliedCarbsG = appliedCarbsG
             )
         )
+    }
+
+    /** One row per food item: name (+ assumption underneath) on the left, grams on the right, divider between rows. */
+    private fun bindBreakdown(payload: CarbEstimatePayload) {
+        val ctx = requireContext()
+        val list = binding.breakdownList
+        list.removeAllViews()
+        val text = ContextCompat.getColor(ctx, R.color.ai_text)
+        val sub = ContextCompat.getColor(ctx, R.color.ai_sub)
+        val dp = resources.displayMetrics.density
+        if (payload.items.isEmpty()) {
+            list.addView(TextView(ctx).apply { this.text = rh.gs(R.string.ai_carbs_no_breakdown); setTextColor(sub); textSize = 13f })
+            return
+        }
+        payload.items.forEachIndexed { i, item ->
+            if (i > 0) list.addView(View(ctx).apply {
+                setBackgroundColor(ContextCompat.getColor(ctx, R.color.ai_line))
+                layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp.toInt().coerceAtLeast(1))
+            })
+            val row = LinearLayout(ctx).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(0, (6 * dp).toInt(), 0, (6 * dp).toInt())
+            }
+            val left = LinearLayout(ctx).apply { orientation = LinearLayout.VERTICAL }
+            left.addView(TextView(ctx).apply { this.text = item.name; setTextColor(text); textSize = 13f })
+            item.assumption?.takeIf { it.isNotBlank() }?.let { a ->
+                left.addView(TextView(ctx).apply { this.text = a; setTextColor(sub); textSize = 11f })
+            }
+            row.addView(left, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            row.addView(TextView(ctx).apply {
+                this.text = rh.gs(R.string.ai_carbs_item_grams, formatG(item.carbsG))
+                setTextColor(sub)
+                textSize = 13f
+                setPadding((8 * dp).toInt(), 0, 0, 0)
+            })
+            list.addView(row)
+        }
+    }
+
+    /** Confidence as a coloured pill next to the total (high = green, medium = yellow, low = red). */
+    private fun bindConfidence(raw: String?) {
+        val pill = binding.confidenceText
+        if (raw.isNullOrBlank()) {
+            pill.visibility = View.GONE
+            return
+        }
+        val color = ContextCompat.getColor(
+            requireContext(), when (raw.trim().lowercase()) {
+                "low"    -> R.color.ai_low
+                "medium" -> R.color.ai_high
+                else     -> R.color.ai_ok
+            }
+        )
+        pill.text = rh.gs(R.string.ai_carbs_confidence_prefix, localizedConfidence(raw))
+        pill.setTextColor(color)
+        pill.backgroundTintList = ColorStateList.valueOf((color and 0x00FFFFFF) or 0x1F000000)
+        pill.visibility = View.VISIBLE
     }
 
     private fun localizedConfidence(raw: String): String = when (raw.trim().lowercase()) {

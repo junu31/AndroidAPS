@@ -137,7 +137,7 @@
     <string name="ai_carbs_final_label">적용 값</string>
     <string name="ai_carbs_to_wizard">계산기로</string>
     <string name="ai_carbs_to_carbs">탄수화물로</string>
-    <string name="ai_carbs_total_prefix">합계: %1$s g</string>
+    <string name="ai_carbs_item_grams">%1$s g</string>
     <string name="ai_carbs_confidence_prefix">신뢰도: %1$s</string>
     <string name="ai_carbs_no_breakdown">(세부 내역 없음)</string>
     <string name="ai_carbs_error_no_key">API 키가 설정되지 않았습니다. 설정 → 개요 → 개요 버튼 선택 → Gemini 키 붙여넣기.</string>

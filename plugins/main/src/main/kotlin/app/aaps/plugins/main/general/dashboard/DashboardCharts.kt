@@ -12,7 +12,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -21,6 +20,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -221,8 +221,6 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             close()
         }
         val markerStyle = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold)
-        // labels of treatments close in time would overlap ("2.0" + "1.0" -> "2100"); stack them upwards instead
-        val placedLabels = ArrayList<Rect>()
         model.markers.forEach { m ->
             val mx = x(m.x)
             if (mx < left || mx > right) return@forEach
@@ -232,7 +230,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                     val my = y(m.y)
                     drawPath(triangle(mx, my, 6.dp.toPx()), c)
                     drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
-                    stackedLabel(tm, m.label, Offset(mx + 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), placedLabels)
+                    label45(tm, m.label, mx, my, markerStyle.copy(color = c), right = true)
                 }
 
                 MarkerKind.CARBS   -> {
@@ -240,7 +238,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                     val my = y(m.y)
                     drawPath(triangle(mx, my, 6.dp.toPx()), c)
                     drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
-                    stackedLabel(tm, m.label, Offset(mx - 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), placedLabels, alignRight = true)
+                    label45(tm, m.label, mx, my, markerStyle.copy(color = c), right = false)
                 }
 
                 MarkerKind.SMB     -> drawPath(triangle(mx, y(model.lowMark), 4.dp.toPx()), DashColors.Iob)
@@ -282,20 +280,19 @@ private fun PredictionKind.color(): Color = when (this) {
 private fun fmtValue(v: Double, isMgdl: Boolean): String =
     if (isMgdl) v.toInt().toString() else String.format(Locale.getDefault(), "%.1f", v)
 
-/** Draws a treatment label, moving it up until it no longer overlaps an already placed label. */
-private fun DrawScope.stackedLabel(tm: TextMeasurer, text: String, anchor: Offset, style: TextStyle, placed: MutableList<Rect>, alignRight: Boolean = false) {
+/**
+ * Treatment label rotated 45 degrees like the classic Overview graph (PointsWithLabelGraphSeries):
+ * bolus text runs up-right from the marker, carbs text runs up-right and ends just left of the marker,
+ * so labels of treatments given at nearly the same time do not collide.
+ */
+private fun DrawScope.label45(tm: TextMeasurer, text: String, mx: Float, my: Float, style: TextStyle, right: Boolean) {
     val layout = tm.measure(text, style)
-    val w = layout.size.width.toFloat()
-    val h = layout.size.height.toFloat()
-    val left = ((if (alignRight) anchor.x - w else anchor.x)).coerceIn(0f, (size.width - w).coerceAtLeast(0f))
-    var top = anchor.y - h / 2f
-    var rect = Rect(left, top, left + w, top + h)
-    while (placed.any { it.overlaps(rect) } && top > 0f) {
-        top -= h
-        rect = Rect(left, top, left + w, top + h)
+    val gap = 3.dp.toPx() * 2
+    val pivot = if (right) Offset(mx, my - gap) else Offset(mx, my + gap)
+    val textLeft = if (right) mx + gap else mx - gap - layout.size.width
+    rotate(-45f, pivot) {
+        drawText(layout, topLeft = Offset(textLeft, pivot.y - layout.firstBaseline))
     }
-    placed.add(rect)
-    drawText(layout, topLeft = Offset(left, top))
 }
 
 private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, style: TextStyle, alignRight: Boolean = false, center: Boolean = false) {

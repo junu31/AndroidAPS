@@ -198,7 +198,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
 
         // now line + current point
         drawLine(DashColors.Sub.copy(alpha = 0.5f), Offset(x(model.now), top - 26.dp.toPx()), Offset(x(model.now), bottom), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f)))
-        bg.lastOrNull()?.let { last ->
+        model.bg.maxByOrNull { it.x }?.let { last ->
             val c = when {
                 last.y < model.lowMark  -> DashColors.Low
                 last.y > model.highMark -> DashColors.High

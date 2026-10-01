@@ -39,6 +39,9 @@ import kotlin.math.max
 
 private const val GAP_MS = 15 * 60 * 1000L
 
+/** Bolus / carbs triangle size as in the classic graph (3dp); SMB is drawn twice as large, also like the classic. */
+private val MARKER_SIZE = 3.dp
+
 @Composable
 fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp) {
     val tm = rememberTextMeasurer()
@@ -228,20 +231,18 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                 MarkerKind.BOLUS   -> {
                     val c = if (m.invalid) DashColors.Low else DashColors.Iob
                     val my = y(m.y)
-                    drawPath(triangle(mx, my, 6.dp.toPx()), c)
-                    drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
+                    drawPath(triangle(mx, my, MARKER_SIZE.toPx()), c)
                     label45(tm, m.label, mx, my, markerStyle.copy(color = c), right = true)
                 }
 
                 MarkerKind.CARBS   -> {
                     val c = if (m.invalid) DashColors.Low else DashColors.Cob
                     val my = y(m.y)
-                    drawPath(triangle(mx, my, 6.dp.toPx()), c)
-                    drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
+                    drawPath(triangle(mx, my, MARKER_SIZE.toPx()), c)
                     label45(tm, m.label, mx, my, markerStyle.copy(color = c), right = false)
                 }
 
-                MarkerKind.SMB     -> drawPath(triangle(mx, y(model.lowMark), 4.dp.toPx()), DashColors.Iob)
+                MarkerKind.SMB     -> drawPath(triangle(mx, y(model.lowMark), (MARKER_SIZE * 2).toPx()), DashColors.Iob)
 
                 MarkerKind.PROFILE -> drawCircle(DashColors.Basal, 3.dp.toPx(), Offset(mx, top))
 
@@ -287,7 +288,7 @@ private fun fmtValue(v: Double, isMgdl: Boolean): String =
  */
 private fun DrawScope.label45(tm: TextMeasurer, text: String, mx: Float, my: Float, style: TextStyle, right: Boolean) {
     val layout = tm.measure(text, style)
-    val gap = 3.dp.toPx() * 2
+    val gap = MARKER_SIZE.toPx()
     val pivot = if (right) Offset(mx, my - gap) else Offset(mx, my + gap)
     val textLeft = if (right) mx + gap else mx - gap - layout.size.width
     rotate(-45f, pivot) {

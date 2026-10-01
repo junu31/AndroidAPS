@@ -286,5 +286,7 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, styl
         center     -> -layout.size.width / 2f
         else       -> 0f
     }
-    drawText(layout, topLeft = Offset(anchor.x + dx, anchor.y - layout.size.height / 2f))
+    // keep labels inside the canvas (the graph is edge-to-edge, so the last hour label would otherwise be cut)
+    val left = (anchor.x + dx).coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
+    drawText(layout, topLeft = Offset(left, anchor.y - layout.size.height / 2f))
 }

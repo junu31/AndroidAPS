@@ -299,12 +299,6 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                 }
             }
             HeroStats(state, actions)
-            Text(
-                state.version, color = DashColors.Dim, fontSize = 10.sp,
-                modifier = Modifier
-                    .align(Alignment.End)
-                    .padding(top = 6.dp)
-            )
         }
     }
 }

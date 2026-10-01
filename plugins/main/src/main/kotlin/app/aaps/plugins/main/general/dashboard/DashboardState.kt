@@ -23,7 +23,6 @@ data class DashboardState(
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,
-    val version: String = "",
     val simpleMode: Boolean = false
 )
 

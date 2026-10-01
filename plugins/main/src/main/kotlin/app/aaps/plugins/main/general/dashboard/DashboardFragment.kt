@@ -39,7 +39,6 @@ import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.LastBgData
-import app.aaps.core.interfaces.overview.Overview
 import app.aaps.core.interfaces.overview.OverviewData
 import app.aaps.core.interfaces.overview.OverviewMenus
 import app.aaps.core.interfaces.plugin.ActivePlugin
@@ -141,7 +140,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var persistenceLayer: PersistenceLayer
     @Inject lateinit var glucoseStatusProvider: GlucoseStatusProvider
     @Inject lateinit var overviewData: OverviewData
-    @Inject lateinit var overview: Overview
     @Inject lateinit var lastBgData: LastBgData
     @Inject lateinit var automation: Automation
     @Inject lateinit var bgQualityCheck: BgQualityCheck
@@ -161,7 +159,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     private var notificationsView: RecyclerView? = null
 
     // Off-screen views used to reuse existing helpers that write into TextViews
-    private lateinit var versionView: TextView
     private lateinit var cannulaAge: TextView
     private lateinit var insulinAge: TextView
     private lateinit var reservoirLevel: TextView
@@ -172,7 +169,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val ctx = requireContext()
-        versionView = TextView(ctx)
         cannulaAge = TextView(ctx)
         insulinAge = TextView(ctx)
         reservoirLevel = TextView(ctx)
@@ -540,7 +536,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     private fun updateTimeAndStatusLights() {
         val pump = activePlugin.activePump
         val isPatchPump = pump.pumpDescription.isPatchPump
-        overview.setVersionView(versionView)
         statusLightHandler.updateStatusLights(cannulaAge, null, insulinAge, reservoirLevel, sensorAge, sensorBattery, batteryAge, batteryLevel)
         val lights = ArrayList<StatusLight>()
         if (preferences.get(BooleanKey.OverviewShowStatusLights) || config.AAPSCLIENT) {
@@ -573,7 +568,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                 )
             }
         }
-        state = state.copy(statusLights = lights, version = versionView.text.toString())
+        state = state.copy(statusLights = lights)
     }
 
     // ---------- Today's statistics ----------

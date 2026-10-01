@@ -265,65 +265,6 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
     }
 }
 
-@Composable
-fun SecondaryChart(graph: SecondaryGraph, model: GraphModel, modifier: Modifier = Modifier) {
-    Canvas(
-        modifier
-            .fillMaxWidth()
-            .height(84.dp)
-    ) {
-        if (model.isEmpty) return@Canvas
-        val left = 34.dp.toPx()
-        val right = size.width - 8.dp.toPx()
-        val top = 4.dp.toPx()
-        val bottom = size.height - 4.dp.toPx()
-        val span = (model.endTime - model.fromTime).toFloat()
-        fun x(t: Long) = left + (t - model.fromTime) / span * (right - left)
-
-        val hasNegative = graph.lines.any { l -> l.points.any { it.y < 0 } }
-        val zero = if (hasNegative) (top + bottom) / 2 else bottom
-        val half = if (hasNegative) (bottom - top) / 2 else bottom - top
-        drawLine(DashColors.Line, Offset(left, zero), Offset(right, zero), 1f)
-        drawLine(DashColors.Sub.copy(alpha = 0.4f), Offset(x(model.now), top), Offset(x(model.now), bottom), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f)))
-
-        clipRect(left = left, top = top, right = right, bottom = bottom) {
-        graph.lines.forEach { line ->
-            if (line.points.isEmpty()) return@forEach
-            val maxAbs = line.points.maxOf { abs(it.y) }.takeIf { it > 0 } ?: return@forEach
-            fun y(v: Double) = zero - (v / maxAbs).toFloat() * half * 0.95f
-            val color = Color(line.color)
-            when (line.style) {
-                LineStyle.BARS -> {
-                    val w = max(2f, min(6.dp.toPx(), (right - left) / (span / (5 * 60_000f)) * 0.6f))
-                    line.points.forEach { pt ->
-                        val c = pt.color?.let { Color(it) } ?: color
-                        val yy = y(pt.y)
-                        drawRect(c.copy(alpha = 0.8f), Offset(x(pt.x) - w / 2, min(yy, zero)), Size(w, abs(zero - yy)))
-                    }
-                }
-
-                LineStyle.DOTS -> line.points.forEach { pt -> drawCircle(pt.color?.let { Color(it) } ?: color, 2.dp.toPx(), Offset(x(pt.x), y(pt.y))) }
-
-                else           -> {
-                    val p = Path()
-                    line.points.forEachIndexed { i, pt -> if (i == 0) p.moveTo(x(pt.x), y(pt.y)) else p.lineTo(x(pt.x), y(pt.y)) }
-                    if (line.style == LineStyle.AREA) {
-                        val fill = Path().apply {
-                            addPath(p)
-                            lineTo(x(line.points.last().x), zero)
-                            lineTo(x(line.points.first().x), zero)
-                            close()
-                        }
-                        drawPath(fill, color.copy(alpha = 0.2f))
-                    }
-                    drawPath(p, color, style = Stroke(1.5.dp.toPx()))
-                }
-            }
-        }
-        }
-    }
-}
-
 private fun PredictionKind.color(): Color = when (this) {
     PredictionKind.IOB   -> DashColors.Iob
     PredictionKind.COB   -> DashColors.Cob

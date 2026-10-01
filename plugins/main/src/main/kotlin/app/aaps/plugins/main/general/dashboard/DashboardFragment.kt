@@ -10,8 +10,6 @@ import android.os.HandlerThread
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
-import android.widget.ImageButton
 import android.widget.TextView
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -197,18 +195,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                                 notificationStore.updateNotifications(it)
                             }
                         })
-                    },
-                    chartMenu = {
-                        if (!preferences.simpleMode)
-                            AndroidView(factory = { c ->
-                                ImageButton(c).also {
-                                    it.setImageResource(R.drawable.ic_arrow_drop_down_white_24dp)
-                                    it.setBackgroundColor(android.graphics.Color.TRANSPARENT)
-                                    it.contentDescription = rh.gs(R.string.graph_menu_divider_header)
-                                    // scale is handled by the Compose selector; a detached button keeps the shared menu API happy
-                                    overviewMenus.setupChartMenu(it, Button(c))
-                                }
-                            })
                     }
                 )
             }
@@ -621,15 +607,13 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         if (view == null) return
         val pump = activePlugin.activePump
         graph = GraphModelBuilder.build(
-            context = requireContext(),
             overviewData = overviewData,
             overviewMenus = overviewMenus,
             now = dateUtil.now(),
             lowMark = preferences.get(UnitDoubleKey.OverviewLowMark),
             highMark = preferences.get(UnitDoubleKey.OverviewHighMark),
             isMgdl = profileFunction.getUnits() == GlucoseUnit.MGDL,
-            showBasal = pump.pumpDescription.isTempBasalCapable || config.AAPSCLIENT,
-            isDev = config.isDev()
+            showBasal = pump.pumpDescription.isTempBasalCapable || config.AAPSCLIENT
         )
     }
 

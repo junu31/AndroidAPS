@@ -93,8 +93,7 @@ fun DashboardScreen(
     state: DashboardState,
     graph: GraphModel,
     actions: DashboardActions,
-    notifications: @Composable () -> Unit,
-    chartMenu: @Composable () -> Unit
+    notifications: @Composable () -> Unit
 ) {
     Box(
         Modifier
@@ -120,8 +119,7 @@ fun DashboardScreen(
             Ribbons(state, actions)
             HeroCard(state, actions)
             InfoTiles(state, actions)
-            GraphCard(graph, actions, chartMenu)
-            graph.secondary.forEach { SecondaryCard(it, graph) }
+            GraphCard(graph, actions)
             if (state.statusLights.isNotEmpty()) {
                 SectionTitle(stringResource(R.string.dashboard_supplies))
                 StatusLights(state.statusLights)
@@ -390,13 +388,12 @@ private fun RowScope.Tile(label: String, accent: Color, tile: InfoTile, actions:
 }
 
 @Composable
-private fun GraphCard(graph: GraphModel, actions: DashboardActions, chartMenu: @Composable () -> Unit) {
+private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
     CardBox {
         Column(Modifier.padding(start = 10.dp, end = 6.dp, top = 12.dp, bottom = 10.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, end = 4.dp)) {
                 Text(stringResource(R.string.dashboard_bg), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
                 ScaleSelector(graph.rangeHours, actions)
-                chartMenu()
             }
             BgChart(graph, Modifier.padding(top = 6.dp))
             Row(
@@ -455,16 +452,6 @@ private fun Legend(text: String, color: Color) {
         )
         Spacer(Modifier.width(4.dp))
         Text(text, color = DashColors.Sub, fontSize = 11.sp)
-    }
-}
-
-@Composable
-private fun SecondaryCard(graph: SecondaryGraph, model: GraphModel) {
-    CardBox {
-        Column(Modifier.padding(start = 10.dp, end = 6.dp, top = 10.dp, bottom = 8.dp)) {
-            Text(graph.title, color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 6.dp))
-            SecondaryChart(graph, model)
-        }
     }
 }
 

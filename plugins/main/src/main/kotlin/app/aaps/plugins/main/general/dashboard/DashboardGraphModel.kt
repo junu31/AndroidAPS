@@ -1,16 +1,12 @@
 package app.aaps.plugins.main.general.dashboard
 
-import android.content.Context
 import androidx.compose.runtime.Immutable
 import app.aaps.core.data.model.SourceSensor
-import app.aaps.core.graph.data.BarGraphSeries
 import app.aaps.core.graph.data.BolusDataPoint
 import app.aaps.core.graph.data.CarbsDataPoint
 import app.aaps.core.graph.data.DataPointWithLabelInterface
-import app.aaps.core.graph.data.DeviationDataPoint
 import app.aaps.core.graph.data.EffectiveProfileSwitchDataPoint
 import app.aaps.core.graph.data.GlucoseValueDataPoint
-import app.aaps.core.graph.data.PointsWithLabelGraphSeries
 import app.aaps.core.graph.data.Shape
 import app.aaps.core.interfaces.graph.Scale
 import app.aaps.core.interfaces.graph.SeriesData
@@ -20,7 +16,7 @@ import com.jjoe64.graphview.series.BaseSeries
 import com.jjoe64.graphview.series.DataPointInterface
 
 @Immutable
-data class GraphPoint(val x: Long, val y: Double, val color: Int? = null)
+data class GraphPoint(val x: Long, val y: Double)
 
 enum class PredictionKind { IOB, COB, A_COB, UAM, ZT }
 
@@ -28,14 +24,6 @@ enum class MarkerKind { BOLUS, SMB, CARBS, PROFILE, THERAPY }
 
 @Immutable
 data class GraphMarker(val x: Long, val y: Double, val kind: MarkerKind, val label: String, val invalid: Boolean = false)
-
-enum class LineStyle { LINE, AREA, BARS, DOTS }
-
-@Immutable
-data class SecondaryLine(val color: Int, val style: LineStyle, val points: List<GraphPoint>)
-
-@Immutable
-data class SecondaryGraph(val title: String, val lines: List<SecondaryLine>)
 
 @Immutable
 data class GraphModel(
@@ -53,15 +41,14 @@ data class GraphModel(
     val basal: List<GraphPoint> = emptyList(),
     val basalProfile: List<GraphPoint> = emptyList(),
     val targetLine: List<GraphPoint> = emptyList(),
-    val activity: List<GraphPoint> = emptyList(),
-    val secondary: List<SecondaryGraph> = emptyList()
+    val activity: List<GraphPoint> = emptyList()
 ) {
 
     val isEmpty get() = fromTime == 0L
 }
 
 /**
- * Reads the series OverviewData already prepared for the classic graph
+ * Reads the BG-graph series OverviewData already prepared for the classic graph
  * and turns them into plain lists for Compose rendering.
  *
  * Scales in OverviewData are shared with OverviewFragment, so they are
@@ -70,15 +57,13 @@ data class GraphModel(
 object GraphModelBuilder {
 
     fun build(
-        context: Context,
         overviewData: OverviewData,
         overviewMenus: OverviewMenus,
         now: Long,
         lowMark: Double,
         highMark: Double,
         isMgdl: Boolean,
-        showBasal: Boolean,
-        isDev: Boolean
+        showBasal: Boolean
     ): GraphModel {
         val settings = overviewMenus.setting
         if (settings.isEmpty()) return GraphModel()
@@ -129,30 +114,6 @@ object GraphModelBuilder {
 
         val targetLine = points(overviewData.temporaryTargetSeries, from, to).map { GraphPoint(it.x.toLong(), it.y) }
 
-        val secondary = ArrayList<SecondaryGraph>()
-        for (row in 1 until settings.size) {
-            val s = settings[row]
-            val lines = ArrayList<SecondaryLine>()
-            fun add(type: OverviewMenus.CharType, series: SeriesData, scale: Scale, style: LineStyle) {
-                if (!s[type.ordinal]) return
-                lines.add(unscaled(scale) { line(context, series, from, to, style) })
-            }
-            add(OverviewMenus.CharType.ABS, overviewData.absIobSeries, overviewData.iobScale, LineStyle.LINE)
-            add(OverviewMenus.CharType.IOB, overviewData.iobSeries, overviewData.iobScale, LineStyle.AREA)
-            add(OverviewMenus.CharType.COB, overviewData.cobSeries, overviewData.cobScale, LineStyle.AREA)
-            add(OverviewMenus.CharType.DEV, overviewData.deviationsSeries, overviewData.devScale, LineStyle.BARS)
-            add(OverviewMenus.CharType.BGI, overviewData.minusBgiSeries, overviewData.bgiScale, LineStyle.LINE)
-            add(OverviewMenus.CharType.SEN, overviewData.ratioSeries, overviewData.ratioScale, LineStyle.LINE)
-            add(OverviewMenus.CharType.VAR_SEN, overviewData.varSensSeries, overviewData.varSensScale, LineStyle.LINE)
-            if (isDev) {
-                add(OverviewMenus.CharType.DEVSLOPE, overviewData.dsMaxSeries, overviewData.dsMaxScale, LineStyle.LINE)
-                add(OverviewMenus.CharType.DEVSLOPE, overviewData.dsMinSeries, overviewData.dsMinScale, LineStyle.LINE)
-            }
-            add(OverviewMenus.CharType.HR, overviewData.heartRateGraphSeries, overviewData.heartRateScale, LineStyle.LINE)
-            add(OverviewMenus.CharType.STEPS, overviewData.stepsCountGraphSeries, overviewData.stepsForScale, LineStyle.BARS)
-            if (lines.isNotEmpty()) secondary.add(SecondaryGraph(overviewMenus.enabledTypes(row).trim(), lines))
-        }
-
         // same y range rules as the classic graph (GraphData.addBgReadings / addTreatments / addTherapyEvents / addBasals)
         val baseMaxY = if (overviewData.bgReadingsArray.isEmpty()) (if (isMgdl) 180.0 else 10.0) else overviewData.maxBgValue
         val maxY = maxOf(
@@ -176,8 +137,7 @@ object GraphModelBuilder {
             basal = basal,
             basalProfile = basalProfile,
             targetLine = targetLine,
-            activity = activity,
-            secondary = secondary
+            activity = activity
         )
     }
 
@@ -188,25 +148,6 @@ object GraphModelBuilder {
         SourceSensor.UAM_PREDICTION   -> PredictionKind.UAM
         SourceSensor.ZT_PREDICTION    -> PredictionKind.ZT
         else                          -> null
-    }
-
-    private fun line(context: Context, series: SeriesData, from: Double, to: Double, style: LineStyle): SecondaryLine {
-        @Suppress("UNCHECKED_CAST")
-        val base = series as BaseSeries<DataPointInterface>
-        val pts = points(series, from, to).map {
-            val color = when (it) {
-                is DeviationDataPoint          -> it.color
-                is DataPointWithLabelInterface -> it.color(context)
-                else                           -> null
-            }
-            GraphPoint(it.x.toLong(), it.y, color)
-        }
-        val effectiveStyle = when {
-            series is BarGraphSeries<*>                                      -> LineStyle.BARS
-            series is PointsWithLabelGraphSeries<*> && style != LineStyle.BARS -> LineStyle.DOTS
-            else                                                             -> style
-        }
-        return SecondaryLine(base.color, effectiveStyle, pts)
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -114,14 +114,15 @@ object GraphModelBuilder {
 
         val targetLine = points(overviewData.temporaryTargetSeries, from, to).map { GraphPoint(it.x.toLong(), it.y) }
 
-        // same y range rules as the classic graph (GraphData.addBgReadings / addTreatments / addTherapyEvents / addBasals)
-        val baseMaxY = if (overviewData.bgReadingsArray.isEmpty()) (if (isMgdl) 180.0 else 10.0) else overviewData.maxBgValue
-        val maxY = maxOf(
-            baseMaxY,
-            overviewData.maxTreatmentsValue,
-            if (main[OverviewMenus.CharType.TREAT.ordinal]) overviewData.maxTherapyEventValue else 0.0,
+        // Tighter than the classic graph (which adds +80 mg/dL headroom): highest BG or high mark plus a small margin
+        // for marker labels, rounded up to a 20 mg/dL (1 mmol/L) step. Predictions above it are clipped, as in the classic graph.
+        val step = if (isMgdl) 20.0 else 1.0
+        val dataMax = maxOf(
+            bg.maxOfOrNull { it.y } ?: 0.0,
             highMark
         )
+        val maxY = kotlin.math.ceil((dataMax + step) / step) * step
+
         return GraphModel(
             fromTime = overviewData.fromTime,
             now = now,

@@ -305,11 +305,9 @@ private fun DeltaRow(label: String, value: String) {
             .clip(RoundedCornerShape(10.dp))
             .background(DashColors.Card2)
             .padding(horizontal = 10.dp, vertical = 5.dp),
-        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = DashColors.Dim, fontSize = 11.sp)
-        Spacer(Modifier.width(8.dp))
+        Text(label, color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.weight(1f))
         Text(value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }

@@ -120,10 +120,11 @@ fun DashboardScreen(
                     color = DashColors.Accent,
                     trackColor = DashColors.Card2
                 )
-            notifications()
             if (state.pumpStatus.isNotEmpty()) PumpStatusBanner(state.pumpStatus, actions)
-            // the compact profile/target line belongs to the BG card, so keep it close
+            // notifications (often empty) and the compact profile/target line sit tight above the BG card,
+            // so an empty notification slot does not add a full section gap under the tabs
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                notifications()
                 Ribbons(state, actions)
                 HeroCard(state, actions)
             }

@@ -143,7 +143,8 @@ fun DashboardScreen(
 
 @Composable
 private fun SectionTitle(text: String) {
-    Text(text, color = DashColors.Sub, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+    // same style and left edge as the graph's "BG" title
+    Text(text, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
 }
 
 @Composable

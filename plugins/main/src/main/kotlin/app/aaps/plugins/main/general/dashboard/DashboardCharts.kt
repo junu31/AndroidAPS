@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.sp
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -79,31 +80,34 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         listOf(model.lowMark, model.highMark).forEach {
             drawLine(DashColors.InRange.copy(alpha = 0.35f), Offset(left, y(it)), Offset(right, y(it)), 1.dp.toPx(), pathEffect = dash)
         }
-        // horizontal grid
-        val step = if (model.isMgdl) 50.0 else 2.5
-        var g = step * 2
-        while (g < model.maxY) {
-            if (abs(g - model.lowMark) > step / 2 && abs(g - model.highMark) > step / 2) {
-                drawLine(DashColors.Line, Offset(left, y(g)), Offset(right, y(g)), 1f)
+        // grid (subtle): horizontal every 40 mg/dL (2 mmol/L) like the classic graph, vertical dotted line at each labelled hour
+        val gridStep = if (model.isMgdl) 40.0 else 2.0
+        val markGap = if (model.isMgdl) 12.0 else 0.6
+        var g = 0.0
+        while (g <= model.maxY) {
+            drawLine(DashColors.Grid, Offset(left, y(g)), Offset(right, y(g)), 1f)
+            if (abs(g - model.lowMark) > markGap && abs(g - model.highMark) > markGap)
                 label(tm, fmtValue(g, model.isMgdl), Offset(left - 6.dp.toPx(), y(g)), labelStyle, alignRight = true)
-            }
-            g += step * 2
+            g += gridStep
         }
         listOf(model.lowMark, model.highMark).forEach {
             label(tm, fmtValue(it, model.isMgdl), Offset(left - 6.dp.toPx(), y(it)), labelStyle.copy(color = DashColors.Sub), alignRight = true)
         }
-        // time axis
+        // time axis (local hours)
         val hourStep = when {
             model.rangeHours <= 6  -> 1
             model.rangeHours <= 12 -> 2
             else                   -> 4
         }
         val hourMs = 3600_000L
+        val gridDash = PathEffect.dashPathEffect(floatArrayOf(2.dp.toPx(), 4.dp.toPx()))
         var t = (model.fromTime / hourMs + 1) * hourMs
         while (t <= model.endTime) {
-            val hour = ((t / hourMs) % 24).toInt()
-            if (hour % hourStep == 0)
+            val localHour = (((t + TimeZone.getDefault().getOffset(t)) / hourMs) % 24).toInt()
+            if (localHour % hourStep == 0) {
+                drawLine(DashColors.Grid, Offset(x(t), top), Offset(x(t), bottom), 1f, pathEffect = gridDash)
                 label(tm, hourFmt.format(Date(t)), Offset(x(t), size.height - 8.dp.toPx()), labelStyle, center = true)
+            }
             t += hourMs
         }
 

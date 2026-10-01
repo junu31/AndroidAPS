@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -183,7 +184,8 @@ private fun PumpStatusBanner(text: String, actions: DashboardActions) {
             .background(Color(0xFF14243A))
             .border(1.dp, Color(0xFF1F3B5E), RoundedCornerShape(8.dp))
             .clicks({ actions.onPumpStatusClick() })
-            .padding(horizontal = 12.dp, vertical = 7.dp)
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.Center
     ) {
         Text(text, color = DashColors.Iob, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
@@ -303,9 +305,11 @@ private fun DeltaRow(label: String, value: String) {
             .clip(RoundedCornerShape(10.dp))
             .background(DashColors.Card2)
             .padding(horizontal = 10.dp, vertical = 5.dp),
+        horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.weight(1f))
+        Text(label, color = DashColors.Dim, fontSize = 11.sp)
+        Spacer(Modifier.width(8.dp))
         Text(value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
@@ -345,7 +349,7 @@ private fun HeroStats(state: DashboardState, actions: DashboardActions) {
             .fillMaxWidth()
             .height(IntrinsicSize.Min)
     ) {
-        HeroStat("IOB", DashColors.Iob, state.iob, actions, first = true)
+        HeroStat("IOB", DashColors.Iob, state.iob, actions)
         StatDivider()
         HeroStat("COB", DashColors.Cob, state.cob, actions)
         StatDivider()
@@ -379,12 +383,13 @@ private fun StatDivider() {
 }
 
 @Composable
-private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions, first: Boolean = false) {
+private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions) {
     Column(
         Modifier
             .weight(1f)
             .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
-            .padding(start = if (first) 0.dp else 10.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)
+            .padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -398,6 +403,7 @@ private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, acti
         }
         Text(
             tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = if (tile.value.length > 8) 13.sp else 15.sp, lineHeight = 17.sp,
+            textAlign = TextAlign.Center,
             fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp)
         )
         if (tile.sub.isNotEmpty())

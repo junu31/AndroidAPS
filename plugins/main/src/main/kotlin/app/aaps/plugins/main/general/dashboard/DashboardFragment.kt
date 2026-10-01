@@ -37,7 +37,6 @@ import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.logging.UserEntryLogger
-import app.aaps.core.interfaces.nsclient.NSSettingsStatus
 import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
 import app.aaps.core.interfaces.overview.LastBgData
 import app.aaps.core.interfaces.overview.Overview
@@ -74,11 +73,13 @@ import app.aaps.core.interfaces.rx.events.EventUpdateOverviewIobCob
 import app.aaps.core.interfaces.rx.events.EventUpdateOverviewSensitivity
 import app.aaps.core.interfaces.rx.events.EventWearUpdateTiles
 import app.aaps.core.interfaces.rx.weardata.EventData
+import app.aaps.core.interfaces.stats.TddCalculator
 import app.aaps.core.interfaces.source.DexcomBoyda
 import app.aaps.core.interfaces.source.XDripSource
 import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.interfaces.utils.MidnightTime
 import app.aaps.core.interfaces.utils.TrendCalculator
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
@@ -123,7 +124,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var constraintChecker: ConstraintsChecker
     @Inject lateinit var statusLightHandler: StatusLightHandler
     @Inject lateinit var processedDeviceStatusData: ProcessedDeviceStatusData
-    @Inject lateinit var nsSettingsStatus: NSSettingsStatus
     @Inject lateinit var loop: Loop
     @Inject lateinit var activePlugin: ActivePlugin
     @Inject lateinit var iobCobCalculator: IobCobCalculator
@@ -148,6 +148,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var uiInteraction: UiInteraction
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var commandQueue: CommandQueue
+    @Inject lateinit var tddCalculator: TddCalculator
 
     private val disposable = CompositeDisposable()
     private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
@@ -331,6 +332,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         processAps()
         updateProfile()
         updateTemporaryTarget()
+        updateStats()
     }
 
     private fun scheduleUpdateGUI() {
@@ -510,7 +512,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         post { it.copy(sensitivity = tile) }
     }
 
-    // ---------- Loop / APS / devices ----------
+    // ---------- Loop / APS ----------
 
     private fun processAps() {
         val pump = activePlugin.activePump
@@ -532,34 +534,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             }
         } else null
 
-        val devices = ArrayList<DeviceRow>()
-        if (config.AAPSCLIENT) {
-            // pump / OpenAPS / uploader status from NS, as in the classic NSClient card
-            devices.add(DeviceRow(rh.gs(app.aaps.core.ui.R.string.pump), processedDeviceStatusData.pumpStatus(nsSettingsStatus).toString(), "", processedDeviceStatusData.extendedPumpStatus.toString()))
-            devices.add(DeviceRow(rh.gs(R.string.openaps), processedDeviceStatusData.openApsStatus.toString(), "", processedDeviceStatusData.extendedOpenApsStatus.toString()))
-            devices.add(DeviceRow(rh.gs(R.string.uploader), processedDeviceStatusData.uploaderStatusSpanned.toString(), "", processedDeviceStatusData.extendedUploaderStatus.toString()))
-        } else {
-            val connected = if (pump.isConnected()) rh.gs(R.string.dashboard_connected) else rh.gs(R.string.dashboard_not_connected)
-            devices.add(
-                DeviceRow(
-                    rh.gs(app.aaps.core.ui.R.string.pump),
-                    pump.model().description + " · " + connected,
-                    if (pump.lastDataTime > 0) dateUtil.minAgo(rh, pump.lastDataTime) else "",
-                    pump.model().description + "\n" + pump.serialNumber()
-                )
-            )
-            if (config.APS) loop.lastRun?.let { lastRun ->
-                val result = lastRun.constraintsProcessed?.resultAsString().orEmpty()
-                devices.add(DeviceRow("APS", result.lineSequence().firstOrNull().orEmpty(), dateUtil.minAgo(rh, lastRun.lastAPSRun), result.ifEmpty { null }))
-            }
-            activePlugin.activeNsClient?.let { ns ->
-                if ((ns as? PluginBase)?.isEnabled() == true)
-                    ns.listLog.lastOrNull()?.let { log ->
-                        devices.add(DeviceRow("NSClient", log.action + (log.logText?.let { " " + it }.orEmpty()), dateUtil.minAgo(rh, log.date)))
-                    }
-            }
-        }
-        post { it.copy(loop = loopInfo, devices = devices) }
+        post { it.copy(loop = loopInfo) }
     }
 
     private fun updateTimeAndStatusLights() {
@@ -599,6 +574,36 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             }
         }
         state = state.copy(statusLights = lights, version = versionView.text.toString())
+    }
+
+    // ---------- Today's statistics ----------
+
+    private fun updateStats() {
+        val now = dateUtil.now()
+        val midnight = MidnightTime.calc(now)
+        val units = profileFunction.getUnits()
+        val lowMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewLowMark))
+        val highMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewHighMark))
+        val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(midnight, now, true).map { it.value }
+        val summary = GlucoseStatsCalculator.summarize(readings, lowMgdl, highMgdl, now - midnight)
+        val tdd = tddCalculator.calculateToday()
+        val dash = "–"
+        fun fmt(v: Double, pattern: String) = String.format(Locale.getDefault(), pattern, v)
+        val stats = GlucoseStats(
+            rangePct = summary?.rangePct ?: emptyList(),
+            thresholds = listOf(GlucoseStatsCalculator.VERY_LOW_MGDL, lowMgdl, highMgdl, GlucoseStatsCalculator.VERY_HIGH_MGDL)
+                .map { profileUtil.fromMgdlToStringInUnits(it, units) },
+            unitLabel = units.asText,
+            mean = summary?.let { profileUtil.fromMgdlToStringInUnits(it.meanMgdl, units) } ?: dash,
+            eA1c = summary?.let { fmt(it.eA1cPct, "%.1f") } ?: dash,
+            cv = summary?.let { fmt(it.cvPct, "%.1f") } ?: dash,
+            totalInsulin = tdd?.let { fmt(if (it.totalAmount > 0) it.totalAmount else it.bolusAmount + it.basalAmount, "%.2f") } ?: dash,
+            bolus = tdd?.let { fmt(it.bolusAmount, "%.2f") } ?: dash,
+            basal = tdd?.let { fmt(it.basalAmount, "%.2f") } ?: dash,
+            carbs = tdd?.carbs?.takeIf { it > 0 }?.let { fmt(it, "%.0f") } ?: dash,
+            cgmActive = summary?.let { fmt(it.cgmActivePct, "%.0f") } ?: dash
+        )
+        post { it.copy(stats = stats) }
     }
 
     // ---------- Graph ----------

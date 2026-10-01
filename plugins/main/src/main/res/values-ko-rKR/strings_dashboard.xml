@@ -5,7 +5,6 @@
     <string name="dashboard_shortname">대시보드</string>
     <string name="description_dashboard">홈 화면과 같은 데이터와 기능을 카드형 디자인으로 보여줍니다</string>
     <string name="dashboard_supplies">소모품 상태</string>
-    <string name="dashboard_devices">기기 상태</string>
     <string name="dashboard_profile">프로필</string>
     <string name="dashboard_target">목표</string>
     <string name="dashboard_delta_5">Δ 5분</string>
@@ -19,7 +18,22 @@
     <string name="dashboard_reservoir">리저버</string>
     <string name="dashboard_sensor">센서</string>
     <string name="dashboard_battery">배터리</string>
-    <string name="dashboard_connected">연결됨</string>
-    <string name="dashboard_not_connected">연결 안 됨</string>
     <string name="dashboard_ai">AI</string>
+    <string name="dashboard_glucose_stats">혈당 통계</string>
+    <string name="dashboard_tir_title">목표 혈당 범위 내 시간 비율</string>
+    <string name="dashboard_tir_period_today">오늘 0시~</string>
+    <string name="dashboard_tir_unit">단위 : %1$s</string>
+    <string name="dashboard_tir_very_low">매우낮음</string>
+    <string name="dashboard_tir_low">낮음</string>
+    <string name="dashboard_tir_in_range">정상</string>
+    <string name="dashboard_tir_high">높음</string>
+    <string name="dashboard_tir_very_high">매우높음</string>
+    <string name="dashboard_stat_mean">평균혈당</string>
+    <string name="dashboard_stat_ea1c">추정당화혈색소</string>
+    <string name="dashboard_stat_cv">변동계수</string>
+    <string name="dashboard_stat_total_insulin">총인슐린</string>
+    <string name="dashboard_stat_bolus">볼루스</string>
+    <string name="dashboard_stat_basal">기저</string>
+    <string name="dashboard_stat_carbs">탄수화물</string>
+    <string name="dashboard_stat_cgm_active">CGM활성률</string>
 </resources>

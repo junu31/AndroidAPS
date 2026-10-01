@@ -125,9 +125,9 @@ fun DashboardScreen(
                 SectionTitle(stringResource(R.string.dashboard_supplies))
                 StatusLights(state.statusLights)
             }
-            if (state.devices.isNotEmpty()) {
-                SectionTitle(stringResource(R.string.dashboard_devices))
-                Devices(state.devices, actions)
+            state.stats?.let {
+                SectionTitle(stringResource(R.string.dashboard_glucose_stats))
+                StatsCard(it)
             }
             state.buttons.acceptTemp?.let { AcceptTempButton(it, actions) }
             if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
@@ -479,34 +479,6 @@ private fun StatusLights(items: List<StatusLight>) {
                     // always reserve the sub line so every supply tile has the same height
                     Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun Devices(rows: List<DeviceRow>, actions: DashboardActions) {
-    CardBox {
-        Column(Modifier.padding(horizontal = 16.dp, vertical = 4.dp)) {
-            rows.forEachIndexed { i, row ->
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .clicks({ row.dialogText?.let { actions.showInfo(row.name, it) } })
-                        .padding(vertical = 11.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(row.name, color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.width(76.dp))
-                    Text(row.detail, color = DashColors.Text, fontSize = 13.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    Text(row.time, color = DashColors.Dim, fontSize = 12.sp, modifier = Modifier.padding(start = 8.dp))
-                }
-                if (i < rows.size - 1)
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(DashColors.Line)
-                    )
             }
         }
     }

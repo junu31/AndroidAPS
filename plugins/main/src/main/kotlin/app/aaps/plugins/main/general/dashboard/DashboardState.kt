@@ -19,7 +19,7 @@ data class DashboardState(
     val extended: InfoTile? = null,
     val sensitivity: InfoTile = InfoTile(),
     val statusLights: List<StatusLight> = emptyList(),
-    val devices: List<DeviceRow> = emptyList(),
+    val stats: GlucoseStats? = null,
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,
@@ -77,14 +77,6 @@ data class StatusLight(
     val color: Int?,
     val sub: String = "",
     val subColor: Int? = null
-)
-
-@Immutable
-data class DeviceRow(
-    val name: String,
-    val detail: String,
-    val time: String,
-    val dialogText: String? = null
 )
 
 @Immutable

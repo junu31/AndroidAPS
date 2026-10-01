@@ -5,7 +5,6 @@
     <string name="dashboard_shortname">DASH</string>
     <string name="description_dashboard">Modern card-style home screen with the same data and actions as Overview</string>
     <string name="dashboard_supplies">Supplies</string>
-    <string name="dashboard_devices">Devices</string>
     <string name="dashboard_profile">Profile</string>
     <string name="dashboard_target">Target</string>
     <string name="dashboard_delta_5">Δ 5 min</string>
@@ -19,7 +18,22 @@
     <string name="dashboard_reservoir">Reservoir</string>
     <string name="dashboard_sensor">Sensor</string>
     <string name="dashboard_battery">Battery</string>
-    <string name="dashboard_connected">connected</string>
-    <string name="dashboard_not_connected">not connected</string>
     <string name="dashboard_ai">AI</string>
+    <string name="dashboard_glucose_stats">Glucose statistics</string>
+    <string name="dashboard_tir_title">Time in target range</string>
+    <string name="dashboard_tir_period_today">Today from 00:00</string>
+    <string name="dashboard_tir_unit">Unit: %1$s</string>
+    <string name="dashboard_tir_very_low">Very low</string>
+    <string name="dashboard_tir_low">Low</string>
+    <string name="dashboard_tir_in_range">In range</string>
+    <string name="dashboard_tir_high">High</string>
+    <string name="dashboard_tir_very_high">Very high</string>
+    <string name="dashboard_stat_mean">Mean BG</string>
+    <string name="dashboard_stat_ea1c">Est. HbA1c</string>
+    <string name="dashboard_stat_cv">CV</string>
+    <string name="dashboard_stat_total_insulin">Total insulin</string>
+    <string name="dashboard_stat_bolus">Bolus</string>
+    <string name="dashboard_stat_basal">Basal</string>
+    <string name="dashboard_stat_carbs">Carbs</string>
+    <string name="dashboard_stat_cgm_active">CGM active</string>
 </resources>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -340,11 +341,11 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
 
 @Composable
 private fun InfoTiles(state: DashboardState, actions: DashboardActions) {
-    // fixed height so all four tiles always line up
+    // the row takes the tallest tile's height and every tile fills it, so all four line up without extra space
     Row(
         Modifier
             .fillMaxWidth()
-            .height(76.dp),
+            .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Tile("IOB", DashColors.Iob, state.iob, actions)

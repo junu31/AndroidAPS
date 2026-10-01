@@ -120,7 +120,6 @@ fun DashboardScreen(
             if (state.pumpStatus.isNotEmpty()) PumpStatusBanner(state.pumpStatus, actions)
             Ribbons(state, actions)
             HeroCard(state, actions)
-            InfoTiles(state, actions)
             GraphCard(graph, actions)
             if (state.statusLights.isNotEmpty()) {
                 SectionTitle(stringResource(R.string.dashboard_supplies))
@@ -294,6 +293,7 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                     DeltaRow(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta)
                 }
             }
+            HeroStats(state, actions)
             Text(
                 state.version, color = DashColors.Dim, fontSize = 10.sp,
                 modifier = Modifier
@@ -339,53 +339,78 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
     }
 }
 
+/** IOB / COB / Basal / Sens in one row under a thin divider inside the BG card (option A). */
 @Composable
-private fun InfoTiles(state: DashboardState, actions: DashboardActions) {
-    // the row takes the tallest tile's height and every tile fills it, so all four line up without extra space
+private fun HeroStats(state: DashboardState, actions: DashboardActions) {
+    Box(
+        Modifier
+            .padding(top = 12.dp)
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
     Row(
         Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .height(IntrinsicSize.Min)
     ) {
-        Tile("IOB", DashColors.Iob, state.iob, actions)
-        Tile("COB", DashColors.Cob, state.cob, actions)
-        Tile("Basal", DashColors.Basal, state.basal, actions)
-        Tile(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
+        HeroStat("IOB", DashColors.Iob, state.iob, actions, first = true)
+        StatDivider()
+        HeroStat("COB", DashColors.Cob, state.cob, actions)
+        StatDivider()
+        HeroStat("Basal", DashColors.Basal, state.basal, actions)
+        StatDivider()
+        HeroStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
     }
     state.extended?.let { ext ->
-        Row { Tile(stringResource(app.aaps.core.ui.R.string.extended_bolus), DashColors.Iob, ext, actions) }
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clicks({ if (ext.dialogText.isNotEmpty()) actions.showInfo(ext.dialogTitle, ext.dialogText) })
+                .padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(app.aaps.core.ui.R.string.extended_bolus), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
+            Text(ext.value, color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
     }
 }
 
 @Composable
-private fun RowScope.Tile(label: String, accent: Color, tile: InfoTile, actions: DashboardActions) {
+private fun StatDivider() {
+    Box(
+        Modifier
+            .padding(top = 10.dp)
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions, first: Boolean = false) {
     Column(
         Modifier
             .weight(1f)
-            .fillMaxHeight()
-            .clip(RoundedCornerShape(18.dp))
-            .background(DashColors.Card)
-            .border(1.dp, if (tile.highlight) accent else DashColors.Line, RoundedCornerShape(18.dp))
             .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
-            .padding(horizontal = 10.dp, vertical = 11.dp)
+            .padding(start = if (first) 0.dp else 10.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
                 Modifier
-                    .size(8.dp)
-                    .clip(RoundedCornerShape(3.dp))
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(2.dp))
                     .background(accent)
             )
             Spacer(Modifier.width(5.dp))
             Text(label, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1)
         }
         Text(
-            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = if (tile.value.length > 7) 13.sp else 16.sp, lineHeight = 17.sp,
-            fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp)
+            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = if (tile.value.length > 8) 13.sp else 15.sp, lineHeight = 17.sp,
+            fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp)
         )
         if (tile.sub.isNotEmpty())
-            Text(tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

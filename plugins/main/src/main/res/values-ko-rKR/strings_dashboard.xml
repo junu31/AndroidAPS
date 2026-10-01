@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: Dashboard tab -->
+<resources>
+    <string name="dashboard">대시보드</string>
+    <string name="dashboard_shortname">대시보드</string>
+    <string name="description_dashboard">홈 화면과 같은 데이터와 기능을 카드형 디자인으로 보여줍니다</string>
+    <string name="dashboard_supplies">소모품 상태</string>
+    <string name="dashboard_devices">기기 상태</string>
+    <string name="dashboard_profile">프로필</string>
+    <string name="dashboard_target">목표</string>
+    <string name="dashboard_delta_5">Δ 5분</string>
+    <string name="dashboard_delta_15">Δ 15분</string>
+    <string name="dashboard_delta_40">Δ 40분</string>
+    <string name="dashboard_sens">민감도</string>
+    <string name="dashboard_bg">혈당</string>
+    <string name="dashboard_cannula">캐뉼라</string>
+    <string name="dashboard_patch">패치</string>
+    <string name="dashboard_insulin">인슐린</string>
+    <string name="dashboard_reservoir">리저버</string>
+    <string name="dashboard_sensor">센서</string>
+    <string name="dashboard_battery">배터리</string>
+    <string name="dashboard_connected">연결됨</string>
+    <string name="dashboard_not_connected">연결 안 됨</string>
+</resources>

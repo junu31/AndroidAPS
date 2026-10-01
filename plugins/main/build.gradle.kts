@@ -5,10 +5,14 @@ plugins {
     id("android-module-dependencies")
     id("test-module-dependencies")
     id("jacoco-module-dependencies")
+    alias(libs.plugins.compose.compiler)
 }
 
 android {
     namespace = "app.aaps.plugins.main"
+    buildFeatures {
+        compose = true
+    }
 }
 
 dependencies {
@@ -46,6 +50,13 @@ dependencies {
 
     // Food
     api(libs.androidx.work.runtime)
+
+    // Dashboard (Compose)
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.ui)
+    implementation(libs.androidx.compose.foundation)
+    implementation(libs.androidx.compose.material3)
+    debugImplementation(libs.androidx.ui.tooling)
 
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)

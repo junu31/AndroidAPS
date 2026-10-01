@@ -23,6 +23,7 @@ import app.aaps.plugins.insulin.InsulinOrefUltraRapidActingPlugin
 import app.aaps.plugins.main.general.actions.ActionsPlugin
 import app.aaps.plugins.main.general.food.FoodPlugin
 import app.aaps.plugins.main.general.overview.OverviewPlugin
+import app.aaps.plugins.main.general.dashboard.DashboardPlugin
 import app.aaps.plugins.main.general.persistentNotification.PersistentNotificationPlugin
 import app.aaps.plugins.main.general.smsCommunicator.SmsCommunicatorPlugin
 import app.aaps.plugins.main.general.themes.ThemeSwitcherPlugin
@@ -90,6 +91,13 @@ abstract class PluginsListModule {
     @IntoMap
     @IntKey(5)
     abstract fun bindOverviewPlugin(plugin: OverviewPlugin): PluginBase
+
+    // Personal-fork: Compose dashboard tab right after Overview
+    @Binds
+    @AllConfigs
+    @IntoMap
+    @IntKey(6)
+    abstract fun bindDashboardPlugin(plugin: DashboardPlugin): PluginBase
 
     @Binds
     @AllConfigs

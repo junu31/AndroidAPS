@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: Dashboard tab -->
+<resources>
+    <string name="dashboard">Dashboard</string>
+    <string name="dashboard_shortname">DASH</string>
+    <string name="description_dashboard">Modern card-style home screen with the same data and actions as Overview</string>
+    <string name="dashboard_supplies">Supplies</string>
+    <string name="dashboard_devices">Devices</string>
+    <string name="dashboard_profile">Profile</string>
+    <string name="dashboard_target">Target</string>
+    <string name="dashboard_delta_5">Δ 5 min</string>
+    <string name="dashboard_delta_15">Δ 15 min</string>
+    <string name="dashboard_delta_40">Δ 40 min</string>
+    <string name="dashboard_sens">Sens</string>
+    <string name="dashboard_bg">Glucose</string>
+    <string name="dashboard_cannula">Cannula</string>
+    <string name="dashboard_patch">Patch</string>
+    <string name="dashboard_insulin">Insulin</string>
+    <string name="dashboard_reservoir">Reservoir</string>
+    <string name="dashboard_sensor">Sensor</string>
+    <string name="dashboard_battery">Battery</string>
+    <string name="dashboard_connected">connected</string>
+    <string name="dashboard_not_connected">not connected</string>
+</resources>

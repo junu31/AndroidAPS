@@ -468,7 +468,7 @@ private fun StatusLights(items: List<StatusLight>) {
                         .padding(vertical = 8.dp, horizontal = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(painterResource(item.iconRes), contentDescription = item.label, tint = Color.Unspecified, modifier = Modifier.size(20.dp))
+                    Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Sub, modifier = Modifier.size(20.dp))
                     Text(item.label, color = DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                     Text(
                         item.value.trim().ifEmpty { "–" },

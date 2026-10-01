@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -220,6 +221,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             close()
         }
         val markerStyle = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold)
+        // labels of treatments close in time would overlap ("2.0" + "1.0" -> "2100"); stack them upwards instead
+        val placedLabels = ArrayList<Rect>()
         model.markers.forEach { m ->
             val mx = x(m.x)
             if (mx < left || mx > right) return@forEach
@@ -229,7 +232,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                     val my = y(m.y)
                     drawPath(triangle(mx, my, 6.dp.toPx()), c)
                     drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
-                    label(tm, m.label, Offset(mx + 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c))
+                    stackedLabel(tm, m.label, Offset(mx + 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), placedLabels)
                 }
 
                 MarkerKind.CARBS   -> {
@@ -237,7 +240,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                     val my = y(m.y)
                     drawPath(triangle(mx, my, 6.dp.toPx()), c)
                     drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
-                    label(tm, m.label, Offset(mx - 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), alignRight = true)
+                    stackedLabel(tm, m.label, Offset(mx - 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), placedLabels, alignRight = true)
                 }
 
                 MarkerKind.SMB     -> drawPath(triangle(mx, y(model.lowMark), 4.dp.toPx()), DashColors.Iob)
@@ -278,6 +281,22 @@ private fun PredictionKind.color(): Color = when (this) {
 
 private fun fmtValue(v: Double, isMgdl: Boolean): String =
     if (isMgdl) v.toInt().toString() else String.format(Locale.getDefault(), "%.1f", v)
+
+/** Draws a treatment label, moving it up until it no longer overlaps an already placed label. */
+private fun DrawScope.stackedLabel(tm: TextMeasurer, text: String, anchor: Offset, style: TextStyle, placed: MutableList<Rect>, alignRight: Boolean = false) {
+    val layout = tm.measure(text, style)
+    val w = layout.size.width.toFloat()
+    val h = layout.size.height.toFloat()
+    val left = ((if (alignRight) anchor.x - w else anchor.x)).coerceIn(0f, (size.width - w).coerceAtLeast(0f))
+    var top = anchor.y - h / 2f
+    var rect = Rect(left, top, left + w, top + h)
+    while (placed.any { it.overlaps(rect) } && top > 0f) {
+        top -= h
+        rect = Rect(left, top, left + w, top + h)
+    }
+    placed.add(rect)
+    drawText(layout, topLeft = Offset(left, top))
+}
 
 private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, style: TextStyle, alignRight: Boolean = false, center: Boolean = false) {
     val layout = tm.measure(text, style)

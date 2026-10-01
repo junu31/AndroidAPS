@@ -121,8 +121,11 @@ fun DashboardScreen(
                 )
             notifications()
             if (state.pumpStatus.isNotEmpty()) PumpStatusBanner(state.pumpStatus, actions)
-            Ribbons(state, actions)
-            HeroCard(state, actions)
+            // the compact profile/target line belongs to the BG card, so keep it close
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Ribbons(state, actions)
+                HeroCard(state, actions)
+            }
             GraphCard(graph, actions)
             if (state.statusLights.isNotEmpty()) {
                 SectionTitle(stringResource(R.string.dashboard_supplies))
@@ -191,22 +194,23 @@ private fun PumpStatusBanner(text: String, actions: DashboardActions) {
     }
 }
 
+/** Profile (left) and target (right) as one compact text line above the BG card (option A-1). Same click actions as before. */
 @Composable
 private fun Ribbons(state: DashboardState, actions: DashboardActions) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Ribbon(
-            label = stringResource(R.string.dashboard_profile),
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        CompactRibbon(
+            icon = app.aaps.core.ui.R.drawable.ic_ribbon_profile,
+            description = stringResource(R.string.dashboard_profile),
             info = state.profile,
-            highlight = false,
             modifier = Modifier.weight(1f),
             onClick = { actions.onProfileClick() },
             onLongClick = { actions.onProfileLongClick() }
         )
-        Ribbon(
-            label = stringResource(R.string.dashboard_target),
+        CompactRibbon(
+            icon = R.drawable.ic_crosstarget,
+            description = stringResource(R.string.dashboard_target),
             info = state.target,
-            highlight = state.target.severity == Severity.WARNING,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier,
             onClick = { actions.onTempTargetClick() },
             onLongClick = { actions.onTempTargetClick() }
         )
@@ -214,29 +218,22 @@ private fun Ribbons(state: DashboardState, actions: DashboardActions) {
 }
 
 @Composable
-private fun Ribbon(label: String, info: RibbonInfo, highlight: Boolean, modifier: Modifier, onClick: () -> Unit, onLongClick: () -> Unit) {
-    val border = when (info.severity) {
-        Severity.WARNING  -> Color(0xFF5B4A1E)
-        Severity.CRITICAL -> Color(0xFF5E1F1F)
-        else              -> if (highlight) Color(0xFF1E5B57) else DashColors.Line
-    }
-    val bg = when (info.severity) {
-        Severity.WARNING  -> Color(0xFF2A2414)
-        Severity.CRITICAL -> Color(0xFF2A1414)
-        else              -> DashColors.Card
-    }
-    Column(
+private fun CompactRibbon(@DrawableRes icon: Int, description: String, info: RibbonInfo, modifier: Modifier, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val color = if (info.severity == Severity.NEUTRAL) DashColors.Text else info.severity.color()
+    Row(
         modifier
-            .clip(RoundedCornerShape(999.dp))
-            .background(bg)
-            .border(1.dp, border, RoundedCornerShape(999.dp))
+            .height(36.dp)
+            .clip(RoundedCornerShape(8.dp))
             .clicks(onClick, onLongClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = DashColors.Sub, fontSize = 11.sp)
+        Icon(painterResource(icon), contentDescription = description, tint = DashColors.Sub, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
-            info.text, color = if (info.severity == Severity.NEUTRAL) DashColors.Text else info.severity.color(),
-            fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            info.text, color = color, fontSize = 13.sp,
+            fontWeight = if (info.severity == Severity.NEUTRAL) FontWeight.SemiBold else FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
         )
     }
 }

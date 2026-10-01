@@ -17,7 +17,7 @@
     <color name="ai_high">#FBBF24</color>
     <color name="ai_ok">#34D399</color>
 
-    <style name="AiCarbs.Label">
+    <style name="AiCarbs.Label" parent="">
         <item name="android:layout_width">wrap_content</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:textColor">@color/ai_sub</item>
@@ -26,19 +26,19 @@
         <item name="android:layout_marginBottom">8dp</item>
     </style>
 
-    <style name="AiCarbs.Body">
+    <style name="AiCarbs.Body" parent="">
         <item name="android:textColor">@color/ai_text</item>
         <item name="android:textSize">13sp</item>
         <item name="android:lineSpacingExtra">3dp</item>
     </style>
 
-    <style name="AiCarbs.Note">
+    <style name="AiCarbs.Note" parent="">
         <item name="android:textColor">@color/ai_sub</item>
         <item name="android:textSize">12sp</item>
         <item name="android:lineSpacingExtra">3dp</item>
     </style>
 
-    <style name="AiCarbs.Card">
+    <style name="AiCarbs.Card" parent="">
         <item name="android:layout_width">match_parent</item>
         <item name="android:layout_height">wrap_content</item>
         <item name="android:layout_marginTop">10dp</item>
@@ -48,7 +48,7 @@
     </style>
 
     <!-- MaterialButton: drop the default tint, insets and elevation so the drawable background shows as designed -->
-    <style name="AiCarbs.Button">
+    <style name="AiCarbs.Button" parent="">
         <item name="backgroundTint">@null</item>
         <item name="android:background">@drawable/ai_bg_button</item>
         <item name="android:textColor">@color/ai_button_text</item>

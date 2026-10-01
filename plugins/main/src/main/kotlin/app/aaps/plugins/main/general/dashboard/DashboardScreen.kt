@@ -10,9 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -338,12 +336,11 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
 
 @Composable
 private fun InfoTiles(state: DashboardState, actions: DashboardActions) {
-    // equal height: the row takes the tallest tile, every tile fills it
+    // fixed height so all four tiles always line up
     Row(
         Modifier
             .fillMaxWidth()
-            .height(IntrinsicSize.Min)
-            .heightIn(min = 92.dp),
+            .height(100.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Tile("IOB", DashColors.Iob, state.iob, actions)
@@ -383,7 +380,7 @@ private fun RowScope.Tile(label: String, accent: Color, tile: InfoTile, actions:
             fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 5.dp)
         )
         if (tile.sub.isNotEmpty())
-            Text(tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.5.sp, maxLines = 2, lineHeight = 13.sp)
+            Text(tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -479,15 +476,15 @@ private fun StatusLights(items: List<StatusLight>) {
                         .padding(vertical = 8.dp, horizontal = 2.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Sub, modifier = Modifier.size(20.dp))
+                    Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Text.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
                     Text(item.label, color = DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                     Text(
                         item.value.trim().ifEmpty { "–" },
                         color = item.color?.let { Color(it) } ?: DashColors.Text,
                         fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
-                    if (item.sub.isNotBlank())
-                        Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    // always reserve the sub line so every supply tile has the same height
+                    Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
         }

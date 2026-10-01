@@ -576,7 +576,7 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
         if (buttons.carbs)
             ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, 1f) { actions.onCarbs() }
         if (buttons.wizard)
-            ActionButton(stringResource(app.aaps.core.ui.R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent, 1.25f) { actions.onWizard() }
+            ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent, 1.25f) { actions.onWizard() }
     }
 }
 

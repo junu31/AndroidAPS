@@ -426,21 +426,19 @@ private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
             ScaleSelector(graph.rangeHours, actions)
         }
         BgChart(graph, Modifier.padding(top = 6.dp))
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            modifier = Modifier
-                .padding(start = 18.dp, top = 4.dp)
-                .horizontalScroll(rememberScrollState())
-        ) {
-            Legend(stringResource(R.string.dashboard_bg), DashColors.InRange)
-            if (graph.predictions.isNotEmpty()) {
+        // only the prediction lines need a legend (BG and basal are self-explanatory)
+        if (graph.predictions.isNotEmpty())
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .padding(start = 18.dp, top = 4.dp)
+                    .horizontalScroll(rememberScrollState())
+            ) {
                 if (graph.predictions.containsKey(PredictionKind.IOB)) Legend("IOB", DashColors.Iob)
                 if (graph.predictions.containsKey(PredictionKind.COB)) Legend("COB", DashColors.Cob)
                 if (graph.predictions.containsKey(PredictionKind.UAM)) Legend("UAM", DashColors.Uam)
                 if (graph.predictions.containsKey(PredictionKind.ZT)) Legend("ZT", DashColors.Zt)
             }
-            if (graph.basal.isNotEmpty()) Legend("Basal", DashColors.Basal)
-        }
     }
     SectionDivider()
 }

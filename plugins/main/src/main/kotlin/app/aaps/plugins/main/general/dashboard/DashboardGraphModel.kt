@@ -27,7 +27,7 @@ enum class PredictionKind { IOB, COB, A_COB, UAM, ZT }
 enum class MarkerKind { BOLUS, SMB, CARBS, PROFILE, THERAPY }
 
 @Immutable
-data class GraphMarker(val x: Long, val kind: MarkerKind, val label: String, val invalid: Boolean = false)
+data class GraphMarker(val x: Long, val y: Double, val kind: MarkerKind, val label: String, val invalid: Boolean = false)
 
 enum class LineStyle { LINE, AREA, BARS, DOTS }
 
@@ -100,15 +100,16 @@ object GraphModelBuilder {
         val markers = ArrayList<GraphMarker>()
         points(overviewData.treatmentsSeries, from, to).forEach { p ->
             when (p) {
-                is BolusDataPoint  -> markers.add(GraphMarker(p.x.toLong(), if (p.shape == Shape.SMB) MarkerKind.SMB else MarkerKind.BOLUS, p.label, !p.data.isValid))
-                is CarbsDataPoint  -> markers.add(GraphMarker(p.x.toLong(), MarkerKind.CARBS, p.label, !p.data.isValid))
+                // y is the nearest BG (SMB: low mark), set by PrepareTreatmentsDataWorker like the classic graph
+                is BolusDataPoint  -> markers.add(GraphMarker(p.x.toLong(), p.y, if (p.shape == Shape.SMB) MarkerKind.SMB else MarkerKind.BOLUS, p.label, !p.data.isValid))
+                is CarbsDataPoint  -> markers.add(GraphMarker(p.x.toLong(), p.y, MarkerKind.CARBS, p.label, !p.data.isValid))
             }
         }
         points(overviewData.epsSeries, from, to).filterIsInstance<EffectiveProfileSwitchDataPoint>()
-            .forEach { markers.add(GraphMarker(it.x.toLong(), MarkerKind.PROFILE, it.label)) }
+            .forEach { markers.add(GraphMarker(it.x.toLong(), 0.0, MarkerKind.PROFILE, it.label)) }
         if (main[OverviewMenus.CharType.TREAT.ordinal])
             points(overviewData.therapyEventSeries, from, to).filterIsInstance<DataPointWithLabelInterface>()
-                .forEach { markers.add(GraphMarker(it.x.toLong(), MarkerKind.THERAPY, it.label)) }
+                .forEach { markers.add(GraphMarker(it.x.toLong(), it.y, MarkerKind.THERAPY, it.label)) }
 
         var basal = emptyList<GraphPoint>()
         var basalProfile = emptyList<GraphPoint>()
@@ -152,8 +153,14 @@ object GraphModelBuilder {
             if (lines.isNotEmpty()) secondary.add(SecondaryGraph(overviewMenus.enabledTypes(row).trim(), lines))
         }
 
+        // same y range rules as the classic graph (GraphData.addBgReadings / addTreatments / addTherapyEvents / addBasals)
         val baseMaxY = if (overviewData.bgReadingsArray.isEmpty()) (if (isMgdl) 180.0 else 10.0) else overviewData.maxBgValue
-        val maxY = maxOf(baseMaxY, highMark) * 1.1
+        val maxY = maxOf(
+            baseMaxY,
+            overviewData.maxTreatmentsValue,
+            if (main[OverviewMenus.CharType.TREAT.ordinal]) overviewData.maxTherapyEventValue else 0.0,
+            highMark
+        )
         return GraphModel(
             fromTime = overviewData.fromTime,
             now = now,

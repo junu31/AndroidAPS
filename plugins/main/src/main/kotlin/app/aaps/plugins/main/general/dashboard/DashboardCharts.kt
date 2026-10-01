@@ -61,7 +61,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         if (model.isEmpty) return@Canvas
         val left = 34.dp.toPx()
         val right = size.width - 8.dp.toPx()
-        val top = 34.dp.toPx()
+        val top = 14.dp.toPx()
         val bottom = size.height - 20.dp.toPx()
         val span = (model.endTime - model.fromTime).toFloat()
         fun x(t: Long) = left + (t - model.fromTime) / span * (right - left)
@@ -197,7 +197,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         }
 
         // now line + current point
-        drawLine(DashColors.Sub.copy(alpha = 0.5f), Offset(x(model.now), top - 26.dp.toPx()), Offset(x(model.now), bottom), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f)))
+        drawLine(DashColors.Sub.copy(alpha = 0.5f), Offset(x(model.now), top), Offset(x(model.now), bottom), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f)))
         model.bg.maxByOrNull { it.x }?.let { last ->
             val c = when {
                 last.y < model.lowMark  -> DashColors.Low
@@ -209,34 +209,42 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             drawCircle(c, 4.dp.toPx(), Offset(x(last.x), y(last.y)))
         }
 
-        // treatment markers above the plot
-        val bolusRow = top - 10.dp.toPx()
-        val carbRow = top - 26.dp.toPx()
+        // treatment markers, drawn like the classic graph: ▲ on the BG curve, SMB ▲ on the low mark line
+        fun triangle(cx: Float, cy: Float, size: Float) = Path().apply {
+            moveTo(cx, cy - size)
+            lineTo(cx + size, cy + size * 0.67f)
+            lineTo(cx - size, cy + size * 0.67f)
+            close()
+        }
+        val markerStyle = TextStyle(fontSize = 10.sp, fontWeight = FontWeight.Bold)
         model.markers.forEach { m ->
             val mx = x(m.x)
             if (mx < left || mx > right) return@forEach
             when (m.kind) {
                 MarkerKind.BOLUS   -> {
                     val c = if (m.invalid) DashColors.Low else DashColors.Iob
-                    val s = 5.dp.toPx()
-                    drawPath(Path().apply { moveTo(mx - s, bolusRow); lineTo(mx + s, bolusRow); lineTo(mx, bolusRow + s * 1.5f); close() }, c)
-                    label(tm, m.label, Offset(mx + 7.dp.toPx(), bolusRow + 2.dp.toPx()), TextStyle(color = c, fontSize = 10.sp, fontWeight = FontWeight.Bold))
-                }
-
-                MarkerKind.SMB     -> {
-                    val s = 3.dp.toPx()
-                    val sy = y(model.lowMark)
-                    drawPath(Path().apply { moveTo(mx - s, sy - s * 2); lineTo(mx + s, sy - s * 2); lineTo(mx, sy); close() }, DashColors.Iob.copy(alpha = 0.8f))
+                    val my = y(m.y)
+                    drawPath(triangle(mx, my, 6.dp.toPx()), c)
+                    drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
+                    label(tm, m.label, Offset(mx + 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c))
                 }
 
                 MarkerKind.CARBS   -> {
                     val c = if (m.invalid) DashColors.Low else DashColors.Cob
-                    drawCircle(c, 4.dp.toPx(), Offset(mx, carbRow))
-                    label(tm, m.label, Offset(mx + 7.dp.toPx(), carbRow), TextStyle(color = c, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+                    val my = y(m.y)
+                    drawPath(triangle(mx, my, 6.dp.toPx()), c)
+                    drawPath(triangle(mx, my, 6.dp.toPx()), DashColors.Bg, style = Stroke(1.dp.toPx()))
+                    label(tm, m.label, Offset(mx - 8.dp.toPx(), my - 10.dp.toPx()), markerStyle.copy(color = c), alignRight = true)
                 }
 
+                MarkerKind.SMB     -> drawPath(triangle(mx, y(model.lowMark), 4.dp.toPx()), DashColors.Iob)
+
                 MarkerKind.PROFILE -> drawCircle(DashColors.Basal, 3.dp.toPx(), Offset(mx, top))
-                MarkerKind.THERAPY -> drawCircle(DashColors.Sub, 2.5.dp.toPx(), Offset(mx, top + 6.dp.toPx()))
+
+                MarkerKind.THERAPY -> {
+                    val my = y(m.y)
+                    drawCircle(DashColors.Sub, 4.dp.toPx(), Offset(mx, my), style = Stroke(1.5.dp.toPx()))
+                }
             }
         }
 

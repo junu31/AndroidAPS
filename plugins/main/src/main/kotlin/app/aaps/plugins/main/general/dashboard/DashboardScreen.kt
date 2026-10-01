@@ -114,13 +114,6 @@ fun DashboardScreen(
                 .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = if (state.pumpStatus.isNotEmpty()) 156.dp else 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            if (state.calcProgressPct != 100)
-                LinearProgressIndicator(
-                    progress = { state.calcProgressPct / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = DashColors.Accent,
-                    trackColor = DashColors.Card2
-                )
             // notifications (often empty) and the compact profile/target line sit tight above the BG card,
             // so an empty notification slot does not add a full section gap under the tabs
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -587,9 +580,20 @@ private fun BottomActions(state: DashboardState, actions: DashboardActions, modi
             .background(Brush.verticalGradient(listOf(Color.Transparent, DashColors.Bg, DashColors.Bg)))
             .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 12.dp)
     ) {
-        // pump communication status (connecting, bolusing ...) right above the buttons, like the classic Overview
+        // pump communication status and calculation progress right above the buttons, like the classic Overview
         if (state.pumpStatus.isNotEmpty()) {
             PumpStatusBanner(state.pumpStatus, actions)
+            Spacer(Modifier.height(8.dp))
+        }
+        if (state.calcProgressPct != 100) {
+            LinearProgressIndicator(
+                progress = { state.calcProgressPct / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp),
+                color = DashColors.Accent,
+                trackColor = DashColors.Card2
+            )
             Spacer(Modifier.height(8.dp))
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

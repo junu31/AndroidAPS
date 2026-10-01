@@ -439,7 +439,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             rh.gs(app.aaps.core.ui.R.string.basal) + ": " + rh.gs(app.aaps.core.ui.R.string.format_insulin_units, basalIob.basaliob)
         val iob = InfoTile(
             value = total,
-            sub = rh.gs(app.aaps.core.ui.R.string.bolus) + " " + decimalFormatter.to2Decimal(bolusIob.iob),
             dialogTitle = rh.gs(app.aaps.core.ui.R.string.iob),
             dialogText = iobDialog
         )

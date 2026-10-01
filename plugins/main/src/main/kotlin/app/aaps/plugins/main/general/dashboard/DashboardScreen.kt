@@ -251,44 +251,47 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                 Text(bg.timeAgo, color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.weight(1f))
                 state.loop?.let { LoopPill(it, actions) }
             }
-            Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = 4.dp)) {
-                Text(
-                    bg.value,
-                    color = color,
-                    fontSize = 72.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = (-2).sp,
-                    textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
-                )
-                Spacer(Modifier.width(12.dp))
-                bg.arrowRes?.let {
-                    Box(
-                        Modifier
-                            .padding(bottom = 14.dp)
-                            .size(44.dp)
-                            .clip(CircleShape)
-                            .background(color.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(30.dp))
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+                // left: BG value + trend arrow
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    Text(
+                        bg.value,
+                        color = color,
+                        fontSize = 72.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-2).sp,
+                        maxLines = 1,
+                        textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
+                    )
+                    Spacer(Modifier.width(10.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        bg.arrowRes?.let {
+                            Box(
+                                Modifier
+                                    .size(44.dp)
+                                    .clip(CircleShape)
+                                    .background(color.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(30.dp))
+                            }
+                        }
+                        if (bg.qualityIcon != 0)
+                            Icon(
+                                painterResource(bg.qualityIcon), contentDescription = bg.qualityMessage, tint = Color.Unspecified,
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .size(20.dp)
+                                    .clicks({ actions.onBgQualityClick() })
+                            )
                     }
                 }
-                Spacer(Modifier.width(10.dp))
-                Column(Modifier.padding(bottom = 16.dp)) {
-                    if (bg.delta.isNotEmpty()) Text(bg.delta, color = DashColors.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                    if (bg.qualityIcon != 0)
-                        Icon(
-                            painterResource(bg.qualityIcon), contentDescription = bg.qualityMessage, tint = Color.Unspecified,
-                            modifier = Modifier
-                                .size(20.dp)
-                                .clicks({ actions.onBgQualityClick() })
-                        )
+                // right: Δ 5 / 15 / 40 min stacked
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.width(108.dp)) {
+                    DeltaRow(stringResource(R.string.dashboard_delta_5), bg.delta)
+                    DeltaRow(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta)
+                    DeltaRow(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta)
                 }
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 10.dp)) {
-                DeltaBox(stringResource(R.string.dashboard_delta_5), bg.delta)
-                DeltaBox(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta)
-                DeltaBox(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta)
             }
             Text(
                 state.version, color = DashColors.Dim, fontSize = 10.sp,
@@ -301,16 +304,17 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
 }
 
 @Composable
-private fun RowScope.DeltaBox(label: String, value: String) {
-    Column(
+private fun DeltaRow(label: String, value: String) {
+    Row(
         Modifier
-            .weight(1f)
-            .clip(RoundedCornerShape(12.dp))
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
             .background(DashColors.Card2)
-            .padding(horizontal = 10.dp, vertical = 7.dp)
+            .padding(horizontal = 10.dp, vertical = 5.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = DashColors.Dim, fontSize = 11.sp)
-        Text(value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.weight(1f))
+        Text(value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
     }
 }
 
@@ -340,7 +344,7 @@ private fun InfoTiles(state: DashboardState, actions: DashboardActions) {
     Row(
         Modifier
             .fillMaxWidth()
-            .height(100.dp),
+            .height(76.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Tile("IOB", DashColors.Iob, state.iob, actions)

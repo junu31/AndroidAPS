@@ -1,6 +1,7 @@
 package app.aaps.plugins.main.general.dashboard
 
 import androidx.annotation.DrawableRes
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -34,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -286,10 +289,10 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                     }
                 }
                 // right: Δ 5 / 15 / 40 min stacked
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.width(108.dp)) {
-                    DeltaRow(stringResource(R.string.dashboard_delta_5), bg.delta)
-                    DeltaRow(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta)
-                    DeltaRow(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta)
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.width(132.dp)) {
+                    DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
+                    DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
+                    DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
                 }
             }
             HeroStats(state, actions)
@@ -297,20 +300,36 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
     }
 }
 
+/** Full bar = this change in mg/dL per 5 minutes. */
+private const val DELTA_FULL_SCALE_MGDL = 10.0
+
+/** Delta as a bar from a centre zero line (option A): rising goes right in yellow, falling goes left in blue. */
 @Composable
-private fun DeltaRow(label: String, value: String) {
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .background(DashColors.Card2)
-            .padding(horizontal = 10.dp, vertical = 5.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(label, color = DashColors.Dim, fontSize = 11.sp)
+private fun DeltaBar(label: String, value: String, mgdl: Double?) {
+    val color = when {
+        mgdl == null || mgdl == 0.0 -> DashColors.Sub
+        mgdl > 0                    -> DashColors.High
+        else                        -> DashColors.Iob
+    }
+    val fraction = ((mgdl ?: 0.0) / DELTA_FULL_SCALE_MGDL).coerceIn(-1.0, 1.0).toFloat()
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = DashColors.Dim, fontSize = 10.5.sp, maxLines = 1, modifier = Modifier.width(40.dp))
+        Canvas(
+            Modifier
+                .weight(1f)
+                .height(10.dp)
+        ) {
+            val r = CornerRadius(size.height / 2)
+            drawRoundRect(DashColors.Card2, cornerRadius = r)
+            val mid = size.width / 2
+            val w = mid * kotlin.math.abs(fraction)
+            if (w > 0f)
+                drawRoundRect(color, topLeft = Offset(if (fraction > 0) mid else mid - w, 0f), size = Size(w, size.height), cornerRadius = r)
+            drawLine(DashColors.Sub.copy(alpha = 0.6f), Offset(mid, -3.dp.toPx()), Offset(mid, size.height + 3.dp.toPx()), 1.dp.toPx())
+        }
         Text(
-            value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center, modifier = Modifier.weight(1f)
+            value.ifEmpty { "–" }, color = color, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+            textAlign = TextAlign.End, modifier = Modifier.width(34.dp)
         )
     }
 }

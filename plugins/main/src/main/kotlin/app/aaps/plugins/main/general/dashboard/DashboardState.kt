@@ -38,6 +38,8 @@ data class BgInfo(
     val delta: String = "",
     val shortAvgDelta: String = "",
     val longAvgDelta: String = "",
+    /** delta, short avg and long avg delta in mg/dL per 5 min (for the bar chart), null when unknown */
+    val deltasMgdl: List<Double?> = listOf(null, null, null),
     val timeAgo: String = "",
     @DrawableRes val qualityIcon: Int = 0,
     val qualityMessage: String = ""

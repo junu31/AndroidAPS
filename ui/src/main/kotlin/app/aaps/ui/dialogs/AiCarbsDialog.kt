@@ -179,8 +179,10 @@ class AiCarbsDialog : DaggerDialogFragment() {
         val window = dialog?.window ?: return
         val content = root.getChildAt(0)?.height ?: return
         if (content == 0) return
-        val target = min(content, (resources.displayMetrics.heightPixels * 0.9).toInt())
-        if (window.attributes.height != target) window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, target)
+        val metrics = resources.displayMetrics
+        val width = metrics.widthPixels - (24 * metrics.density).toInt() // 12dp side margins around the rounded sheet
+        val target = min(content, (metrics.heightPixels * 0.9).toInt())
+        if (window.attributes.height != target || window.attributes.width != width) window.setLayout(width, target)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

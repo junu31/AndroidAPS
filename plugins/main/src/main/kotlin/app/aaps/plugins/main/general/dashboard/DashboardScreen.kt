@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -335,7 +338,14 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
 
 @Composable
 private fun InfoTiles(state: DashboardState, actions: DashboardActions) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+    // equal height: the row takes the tallest tile, every tile fills it
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+            .heightIn(min = 92.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         Tile("IOB", DashColors.Iob, state.iob, actions)
         Tile("COB", DashColors.Cob, state.cob, actions)
         Tile("Basal", DashColors.Basal, state.basal, actions)
@@ -351,6 +361,7 @@ private fun RowScope.Tile(label: String, accent: Color, tile: InfoTile, actions:
     Column(
         Modifier
             .weight(1f)
+            .fillMaxHeight()
             .clip(RoundedCornerShape(18.dp))
             .background(DashColors.Card)
             .border(1.dp, if (tile.highlight) accent else DashColors.Line, RoundedCornerShape(18.dp))

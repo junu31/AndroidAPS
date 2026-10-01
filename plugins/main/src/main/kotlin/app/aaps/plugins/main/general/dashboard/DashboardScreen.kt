@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -66,6 +67,8 @@ object DashColors {
     val Activity = Color(0xFFFDE68A)
     val Accent = Color(0xFF2DD4BF)
 }
+
+private val ScreenPadding = 14.dp
 
 interface DashboardActions {
 
@@ -106,7 +109,7 @@ fun DashboardScreen(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 100.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (state.calcProgressPct != 100)
@@ -414,32 +417,45 @@ private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, acti
     }
 }
 
+/** Edge-to-edge graph (no card): breaks out of the screen's 14dp side padding so the plot uses the full width. */
 @Composable
 private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
-    CardBox {
-        Column(Modifier.padding(start = 10.dp, end = 6.dp, top = 12.dp, bottom = 10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 6.dp, end = 4.dp)) {
-                Text(stringResource(R.string.dashboard_bg), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                ScaleSelector(graph.rangeHours, actions)
+    Column(
+        Modifier.layout { measurable, constraints ->
+            val extra = (ScreenPadding * 2).roundToPx()
+            val width = constraints.maxWidth + extra
+            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+        }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 14.dp)) {
+            Text(stringResource(R.string.dashboard_bg), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            ScaleSelector(graph.rangeHours, actions)
+        }
+        BgChart(graph, Modifier.padding(top = 6.dp))
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            modifier = Modifier
+                .padding(start = 18.dp, top = 4.dp)
+                .horizontalScroll(rememberScrollState())
+        ) {
+            Legend(stringResource(R.string.dashboard_bg), DashColors.InRange)
+            if (graph.predictions.isNotEmpty()) {
+                if (graph.predictions.containsKey(PredictionKind.IOB)) Legend("IOB", DashColors.Iob)
+                if (graph.predictions.containsKey(PredictionKind.COB)) Legend("COB", DashColors.Cob)
+                if (graph.predictions.containsKey(PredictionKind.UAM)) Legend("UAM", DashColors.Uam)
+                if (graph.predictions.containsKey(PredictionKind.ZT)) Legend("ZT", DashColors.Zt)
             }
-            BgChart(graph, Modifier.padding(top = 6.dp))
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                modifier = Modifier
-                    .padding(start = 6.dp, top = 4.dp)
-                    .horizontalScroll(rememberScrollState())
-            ) {
-                Legend(stringResource(R.string.dashboard_bg), DashColors.InRange)
-                if (graph.predictions.isNotEmpty()) {
-                    if (graph.predictions.containsKey(PredictionKind.IOB)) Legend("IOB", DashColors.Iob)
-                    if (graph.predictions.containsKey(PredictionKind.COB)) Legend("COB", DashColors.Cob)
-                    if (graph.predictions.containsKey(PredictionKind.UAM)) Legend("UAM", DashColors.Uam)
-                    if (graph.predictions.containsKey(PredictionKind.ZT)) Legend("ZT", DashColors.Zt)
-                }
-                if (graph.basal.isNotEmpty()) Legend("Basal", DashColors.Basal)
-            }
+            if (graph.basal.isNotEmpty()) Legend("Basal", DashColors.Basal)
         }
     }
+    // thin separator to the next section
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
 }
 
 @Composable

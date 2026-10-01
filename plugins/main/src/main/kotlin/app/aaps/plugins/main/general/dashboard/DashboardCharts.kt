@@ -50,8 +50,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             .height(height)
             .pointerInput(model) {
                 detectTapGestures { off ->
-                    val left = 34.dp.toPx()
-                    val right = size.width - 8.dp.toPx()
+                    val left = 30.dp.toPx()
+                    val right = size.width - 4.dp.toPx()
                     val t = model.fromTime + ((off.x - left) / (right - left) * (model.endTime - model.fromTime)).toLong()
                     val nearest = model.bg.minByOrNull { abs(it.x - t) }
                     selected = if (nearest != null && abs(nearest.x - t) < (model.endTime - model.fromTime) / 30) nearest else null
@@ -59,8 +59,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             }
     ) {
         if (model.isEmpty) return@Canvas
-        val left = 34.dp.toPx()
-        val right = size.width - 8.dp.toPx()
+        val left = 30.dp.toPx()
+        val right = size.width - 4.dp.toPx()
         val top = 14.dp.toPx()
         val bottom = size.height - 20.dp.toPx()
         val span = (model.endTime - model.fromTime).toFloat()

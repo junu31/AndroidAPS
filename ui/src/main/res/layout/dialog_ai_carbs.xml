@@ -334,7 +334,16 @@
                     android:layout_marginStart="8dp"
                     android:layout_weight="1"
                     android:enabled="false"
-                    android:text="@string/ai_carbs_apply_button" />
+                    android:text="@string/ai_carbs_to_wizard" />
+
+                <Button
+                    android:id="@+id/apply_carbs_button"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:enabled="false"
+                    android:text="@string/ai_carbs_to_carbs" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

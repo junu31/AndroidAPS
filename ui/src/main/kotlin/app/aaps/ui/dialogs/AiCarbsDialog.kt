@@ -16,11 +16,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.content.FileProvider
 import androidx.core.os.bundleOf
-import androidx.fragment.app.setFragmentResult
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.toast.ToastUtils
@@ -47,16 +47,12 @@ import kotlin.math.roundToInt
  *
  * Dialog that asks the user to describe the food they are about to eat, calls Gemini,
  * shows an estimated carbohydrate total with a breakdown, and lets the user fine-tune the
- * number with ± buttons before confirming. On confirm, the final value is returned to
- * the caller via FragmentResult under key [RESULT_KEY] (bundle field [RESULT_CARBS_G]).
+ * number with ± buttons before confirming. Opened from the Dashboard AI button; on confirm the
+ * Wizard or Carbs dialog is opened prefilled with the final value.
  */
 class AiCarbsDialog : DaggerDialogFragment() {
 
     companion object {
-
-        const val REQUEST_KEY = "AiCarbsDialog.request"
-        const val RESULT_CARBS_G = "carbs_g"
-        const val RESULT_DURATION_H = "duration_h"
 
         private const val STATE_FOOD = "state_food"
         private const val STATE_FINAL_CARBS = "state_final_carbs"
@@ -92,6 +88,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var geminiCarbService: GeminiCarbService
+    @Inject lateinit var uiInteraction: UiInteraction
 
     private var _binding: DialogAiCarbsBinding? = null
     private val binding get() = _binding!!
@@ -159,7 +156,8 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.plusButton.setOnClickListener { adjustFinal(+1) }
 
         binding.cancelButton.setOnClickListener { dismiss() }
-        binding.applyButton.setOnClickListener { applyAndDismiss() }
+        binding.applyButton.setOnClickListener { handOver(toWizard = true) }
+        binding.applyCarbsButton.setOnClickListener { handOver(toWizard = false) }
 
         binding.imageGalleryButton.setOnClickListener { launchGalleryPicker() }
         binding.imageCameraButton.setOnClickListener { ensureCameraPermissionAndLaunch() }
@@ -375,6 +373,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.finalCarbs.setText(rounded.toString())
         binding.resultSection.visibility = View.VISIBLE
         binding.applyButton.isEnabled = true
+        binding.applyCarbsButton.isEnabled = true
     }
 
     private fun adjustFinal(delta: Int) {
@@ -386,24 +385,23 @@ class AiCarbsDialog : DaggerDialogFragment() {
     private fun readFinalCarbs(): Int =
         binding.finalCarbs.text?.toString()?.toIntOrNull()?.coerceAtLeast(0) ?: 0
 
-    private fun applyAndDismiss() {
+    /**
+     * Open the Wizard or Carbs dialog prefilled with the immediate carbs only (S1 policy: FPU delayed
+     * carbs and the recommended split window stay advisory text; the user enters eCarbs manually).
+     */
+    private fun handOver(toWizard: Boolean) {
         val value = readFinalCarbs()
         if (value <= 0) {
             ToastUtils.warnToast(context, rh.gs(R.string.ai_carbs_error_invalid_final))
             return
         }
-        // S1 policy: only the immediate carbs portion is auto-applied. Any FPU delayed
-        // equivalent and the recommended split window (duration_h) are surfaced in the
-        // dialog as advisory text, but the user has to enter the eCarbs second-stage
-        // manually via the Carbs menu — same approach as the AAPS Pizza guidance:
-        //   step 1: (partial) immediate bolus / immediate carbs   ← this apply
-        //   step 2: remaining carbs as eCarbs with duration       ← user does manually
         appendHistoryFromCurrentEstimate(appliedCarbsG = value)
-        setFragmentResult(
-            REQUEST_KEY,
-            bundleOf(RESULT_CARBS_G to value, RESULT_DURATION_H to 0)
-        )
+        val fm = parentFragmentManager
         dismiss()
+        if (toWizard) uiInteraction.runWizardDialog(fm, value)
+        else CarbsDialog()
+            .also { it.arguments = bundleOf(CarbsDialog.ARG_CARBS to value.toDouble()) }
+            .show(fm, "CarbsDialog")
     }
 
     private fun formatG(value: Double): String =

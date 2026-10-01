@@ -673,6 +673,8 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             insulin = profile != null && preferences.get(BooleanKey.OverviewShowInsulinButton),
             insulinWarning = !pumpUsable,
             carbs = profile != null && preferences.get(BooleanKey.OverviewShowCarbsButton),
+            // AI hands over to the Wizard or Carbs dialog, so offer it whenever one of them is available
+            aiCarbs = profile != null && (preferences.get(BooleanKey.OverviewShowCarbsButton) || preferences.get(BooleanKey.OverviewShowWizardButton)),
             wizard = pumpUsable && profile != null && preferences.get(BooleanKey.OverviewShowWizardButton),
             treatment = pumpUsable && profile != null && preferences.get(BooleanKey.OverviewShowTreatmentButton),
             calibration = xDripIsBgSource && actualBG != null && preferences.get(BooleanKey.OverviewShowCalibrationButton),
@@ -695,6 +697,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     override fun onInsulin() = withBolusProtection { uiInteraction.runInsulinDialog(childFragmentManager) }
     override fun onCarbs() = withBolusProtection { uiInteraction.runCarbsDialog(childFragmentManager) }
     override fun onWizard() = withBolusProtection { uiInteraction.runWizardDialog(childFragmentManager) }
+    override fun onAiCarbs() = withBolusProtection { uiInteraction.runAiCarbsDialog(childFragmentManager) }
     override fun onTreatment() = withBolusProtection { uiInteraction.runTreatmentDialog(childFragmentManager) }
     override fun onQuickWizard() = withBolusProtection { onClickQuickWizard() }
     override fun onTempTargetClick() = withBolusProtection { uiInteraction.runTempTargetDialog(childFragmentManager) }

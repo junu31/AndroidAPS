@@ -59,6 +59,9 @@ interface UiInteraction {
     fun runInsulinDialog(fragmentManager: FragmentManager)
     fun runCalibrationDialog(fragmentManager: FragmentManager)
     fun runCarbsDialog(fragmentManager: FragmentManager)
+
+    /** Personal-fork: open the AI carb estimator on its own; the result is handed to the Wizard or Carbs dialog. */
+    fun runAiCarbsDialog(fragmentManager: FragmentManager)
     fun runTempTargetDialog(fragmentManager: FragmentManager)
     fun runExtendedBolusDialog(fragmentManager: FragmentManager)
     fun runFillDialog(fragmentManager: FragmentManager)

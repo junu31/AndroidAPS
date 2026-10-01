@@ -99,6 +99,7 @@ data class Buttons(
     val insulin: Boolean = false,
     val insulinWarning: Boolean = false,
     val carbs: Boolean = false,
+    val aiCarbs: Boolean = false,
     val wizard: Boolean = false,
     val treatment: Boolean = false,
     val calibration: Boolean = false,

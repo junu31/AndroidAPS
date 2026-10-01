@@ -128,7 +128,6 @@
 
     <!-- AI Carb Estimator (personal fork) -->
     <string name="ai_carbs_button_label">AI</string>
-    <string name="ai_carbs_button_description">AI로 탄수화물 추정</string>
     <string name="ai_carbs_title">AI 탄수화물 추정</string>
     <string name="ai_carbs_warning">참고용 추정치 — 적용 전 반드시 검토하세요.</string>
     <string name="ai_carbs_food_label">무엇을 드시나요?</string>
@@ -136,7 +135,8 @@
     <string name="ai_carbs_estimate_button">AI로 추정하기</string>
     <string name="ai_carbs_result_label">AI 추정 결과</string>
     <string name="ai_carbs_final_label">적용 값</string>
-    <string name="ai_carbs_apply_button">적용</string>
+    <string name="ai_carbs_to_wizard">계산기로</string>
+    <string name="ai_carbs_to_carbs">탄수화물로</string>
     <string name="ai_carbs_total_prefix">합계: %1$s g</string>
     <string name="ai_carbs_confidence_prefix">신뢰도: %1$s</string>
     <string name="ai_carbs_no_breakdown">(세부 내역 없음)</string>

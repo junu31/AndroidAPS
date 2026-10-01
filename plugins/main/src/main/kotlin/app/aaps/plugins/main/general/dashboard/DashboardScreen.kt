@@ -78,6 +78,7 @@ interface DashboardActions {
     fun onInsulin()
     fun onCarbs()
     fun onWizard()
+    fun onAiCarbs()
     fun onTreatment()
     fun onQuickWizard()
     fun onQuickWizardLong()
@@ -575,6 +576,8 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
             ) { actions.onInsulin() }
         if (buttons.carbs)
             ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card) { actions.onCarbs() }
+        if (buttons.aiCarbs)
+            ActionButton(stringResource(R.string.dashboard_ai), R.drawable.ic_dashboard_ai, DashColors.Basal, DashColors.Card) { actions.onAiCarbs() }
         if (buttons.wizard)
             ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
     }

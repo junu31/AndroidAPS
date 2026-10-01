@@ -24,6 +24,7 @@ import app.aaps.ui.activities.BolusProgressHelperActivity
 import app.aaps.ui.activities.ErrorHelperActivity
 import app.aaps.ui.activities.QuickWizardListActivity
 import app.aaps.ui.activities.TDDStatsActivity
+import app.aaps.ui.dialogs.AiCarbsDialog
 import app.aaps.ui.dialogs.BolusProgressDialog
 import app.aaps.ui.dialogs.CalibrationDialog
 import app.aaps.ui.dialogs.CarbsDialog
@@ -125,6 +126,11 @@ class UiInteractionImpl @Inject constructor(
     override fun runCarbsDialog(fragmentManager: FragmentManager) {
         CarbsDialog()
             .show(fragmentManager, "CarbsDialog")
+    }
+
+    override fun runAiCarbsDialog(fragmentManager: FragmentManager) {
+        AiCarbsDialog()
+            .show(fragmentManager, "AiCarbsDialog")
     }
 
     override fun runTempTargetDialog(fragmentManager: FragmentManager) {

@@ -21,4 +21,5 @@
     <string name="dashboard_battery">Battery</string>
     <string name="dashboard_connected">connected</string>
     <string name="dashboard_not_connected">not connected</string>
+    <string name="dashboard_ai">AI</string>
 </resources>

@@ -571,24 +571,24 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
         if (buttons.insulin)
             ActionButton(
                 stringResource(app.aaps.core.ui.R.string.overview_insulin_label), app.aaps.core.objects.R.drawable.ic_bolus,
-                if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card, 1f
+                if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
             ) { actions.onInsulin() }
         if (buttons.carbs)
-            ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, 1f) { actions.onCarbs() }
+            ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card) { actions.onCarbs() }
         if (buttons.wizard)
-            ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent, 1.25f) { actions.onWizard() }
+            ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
     }
 }
 
 @Composable
-private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, weight: Float, onClick: () -> Unit) {
+private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, onClick: () -> Unit) {
     Row(
         Modifier
-            .weight(weight)
+            .weight(1f)
             .height(56.dp)
-            .clip(RoundedCornerShape(18.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(bg)
-            .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(18.dp))
+            .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(8.dp))
             .clicks(onClick),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically

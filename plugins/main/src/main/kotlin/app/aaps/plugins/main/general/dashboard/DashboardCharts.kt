@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -107,6 +108,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             t += hourMs
         }
 
+        clipRect(left = left - 2f, top = 0f, right = right + 2f, bottom = bottom) {
         // activity (scaled to 80% of chart)
         if (model.activity.size > 1) {
             val maxAct = model.activity.maxOf { abs(it.y) }.takeIf { it > 0 } ?: 1.0
@@ -122,7 +124,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         val basalMax = (model.basal + model.basalProfile).maxOfOrNull { it.y }?.takeIf { it > 0 }
         if (basalMax != null) {
             val bandH = (bottom - top) * 0.14f
-            fun by(v: Double) = bottom - (v / basalMax).toFloat() * bandH
+            fun by(v: Double) = bottom - (v.coerceAtLeast(0.0) / basalMax).toFloat() * bandH
             if (model.basal.size > 1) {
                 val p = Path().apply {
                     moveTo(x(model.basal.first().x), bottom)
@@ -190,6 +192,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             val p = Path()
             pts.forEachIndexed { i, pt -> if (i == 0) p.moveTo(x(pt.x), y(pt.y)) else p.lineTo(x(pt.x), y(pt.y)) }
             drawPath(p, kind.color(), style = Stroke(1.8.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))))
+        }
+
         }
 
         // now line + current point
@@ -274,6 +278,7 @@ fun SecondaryChart(graph: SecondaryGraph, model: GraphModel, modifier: Modifier 
         drawLine(DashColors.Line, Offset(left, zero), Offset(right, zero), 1f)
         drawLine(DashColors.Sub.copy(alpha = 0.4f), Offset(x(model.now), top), Offset(x(model.now), bottom), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4f, 6f)))
 
+        clipRect(left = left, top = top, right = right, bottom = bottom) {
         graph.lines.forEach { line ->
             if (line.points.isEmpty()) return@forEach
             val maxAbs = line.points.maxOf { abs(it.y) }.takeIf { it > 0 } ?: return@forEach
@@ -306,6 +311,7 @@ fun SecondaryChart(graph: SecondaryGraph, model: GraphModel, modifier: Modifier 
                     drawPath(p, color, style = Stroke(1.5.dp.toPx()))
                 }
             }
+        }
         }
     }
 }

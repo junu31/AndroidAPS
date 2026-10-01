@@ -274,7 +274,7 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                 }
                 Spacer(Modifier.width(10.dp))
                 Column(Modifier.padding(bottom = 16.dp)) {
-                    Text(bg.delta, color = DashColors.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    if (bg.delta.isNotEmpty()) Text(bg.delta, color = DashColors.Text, fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     if (bg.qualityIcon != 0)
                         Icon(
                             painterResource(bg.qualityIcon), contentDescription = bg.qualityMessage, tint = Color.Unspecified,

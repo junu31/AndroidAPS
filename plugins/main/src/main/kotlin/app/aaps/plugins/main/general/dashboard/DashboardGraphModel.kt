@@ -152,7 +152,8 @@ object GraphModelBuilder {
             if (lines.isNotEmpty()) secondary.add(SecondaryGraph(overviewMenus.enabledTypes(row).trim(), lines))
         }
 
-        val maxY = maxOf(overviewData.maxBgValue, highMark * 1.15, if (isMgdl) 180.0 else 10.0)
+        val baseMaxY = if (overviewData.bgReadingsArray.isEmpty()) (if (isMgdl) 180.0 else 10.0) else overviewData.maxBgValue
+        val maxY = maxOf(baseMaxY, highMark) * 1.1
         return GraphModel(
             fromTime = overviewData.fromTime,
             now = now,

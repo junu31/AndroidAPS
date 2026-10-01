@@ -375,15 +375,18 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         }
         val qualityIcon = bgQualityCheck.icon()
         val info = BgInfo(
-            value = profileUtil.fromMgdlToStringInUnits(lastBg?.recalculated),
+            value = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) } ?: "--",
             range = range,
             isActual = isActualBg,
             arrowRes = trendArrow?.directionToIcon(),
             arrowDescription = lastBgDescription + " " + rh.gs(app.aaps.core.ui.R.string.and) + " " + trendDescription,
-            delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: ("Δ " + rh.gs(app.aaps.core.ui.R.string.value_unavailable_short)),
+            delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: "",
             shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",
             longAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.longAvgDelta) } ?: "",
-            timeAgo = dateUtil.minOrSecAgo(rh, lastBg?.timestamp) + (activePlugin.activeBgSource as? PluginBase)?.let { " · " + it.name }.orEmpty(),
+            timeAgo = listOfNotNull(
+                lastBg?.let { dateUtil.minOrSecAgo(rh, it.timestamp) },
+                (activePlugin.activeBgSource as? PluginBase)?.name
+            ).joinToString(" · "),
             qualityIcon = qualityIcon,
             qualityMessage = if (qualityIcon != 0) bgQualityCheck.stateDescription() else ""
         )

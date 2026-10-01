@@ -307,8 +307,11 @@ private fun DeltaRow(label: String, value: String) {
             .padding(horizontal = 10.dp, vertical = 5.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(label, color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.weight(1f))
-        Text(value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Text(label, color = DashColors.Dim, fontSize = 11.sp)
+        Text(
+            value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center, modifier = Modifier.weight(1f)
+        )
     }
 }
 
@@ -386,8 +389,7 @@ private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, acti
         Modifier
             .weight(1f)
             .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
-            .padding(start = 4.dp, end = 4.dp, top = 10.dp, bottom = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+            .padding(start = 10.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(
@@ -402,10 +404,16 @@ private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, acti
         Text(
             tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = if (tile.value.length > 8) 13.sp else 15.sp, lineHeight = 17.sp,
             textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp)
+            fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 3.dp)
         )
         if (tile.sub.isNotEmpty())
-            Text(tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+            )
     }
 }
 

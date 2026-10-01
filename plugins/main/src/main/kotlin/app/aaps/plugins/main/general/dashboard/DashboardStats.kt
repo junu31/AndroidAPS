@@ -107,13 +107,11 @@ private val RangeColors = listOf(DashColors.Low, DashColors.Low, DashColors.Acce
 
 @Composable
 fun StatsCard(stats: GlucoseStats) {
+    // no card: sits directly on the screen background (option B)
     Column(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(22.dp))
-            .background(DashColors.Card)
-            .border(1.dp, DashColors.Line, RoundedCornerShape(22.dp))
-            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 6.dp)
+            .padding(start = 4.dp, end = 4.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Droplet()

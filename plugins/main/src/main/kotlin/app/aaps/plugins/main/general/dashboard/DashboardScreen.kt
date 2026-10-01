@@ -127,6 +127,7 @@ fun DashboardScreen(
             if (state.statusLights.isNotEmpty()) {
                 SectionTitle(stringResource(R.string.dashboard_supplies))
                 StatusLights(state.statusLights)
+                if (state.stats != null) SectionDivider()
             }
             state.stats?.let {
                 SectionTitle(stringResource(R.string.dashboard_glucose_stats))
@@ -449,7 +450,12 @@ private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
             if (graph.basal.isNotEmpty()) Legend("Basal", DashColors.Basal)
         }
     }
-    // thin separator to the next section
+    SectionDivider()
+}
+
+/** Thin line between card-less sections (option B: only the BG card keeps a card). */
+@Composable
+private fun SectionDivider() {
     Box(
         Modifier
             .fillMaxWidth()
@@ -500,27 +506,26 @@ private fun Legend(text: String, color: Color) {
 
 @Composable
 private fun StatusLights(items: List<StatusLight>) {
-    CardBox {
-        Row(Modifier.padding(10.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            items.forEach { item ->
-                Column(
-                    Modifier
-                        .weight(1f)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(DashColors.Card2)
-                        .padding(vertical = 8.dp, horizontal = 2.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Text.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
-                    Text(item.label, color = DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
-                    Text(
-                        item.value.trim().ifEmpty { "–" },
-                        color = item.color?.let { Color(it) } ?: DashColors.Text,
-                        fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
-                    )
-                    // always reserve the sub line so every supply tile has the same height
-                    Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
+    // no surrounding card; the tiles keep their own background
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { item ->
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(DashColors.Card2)
+                    .padding(vertical = 8.dp, horizontal = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Text.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
+                Text(item.label, color = DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                Text(
+                    item.value.trim().ifEmpty { "–" },
+                    color = item.color?.let { Color(it) } ?: DashColors.Text,
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                // always reserve the sub line so every supply tile has the same height
+                Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

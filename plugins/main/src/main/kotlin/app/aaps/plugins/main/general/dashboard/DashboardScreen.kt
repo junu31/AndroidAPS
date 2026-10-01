@@ -457,7 +457,7 @@ private fun ScaleSelector(current: Int, actions: DashboardActions) {
             .background(DashColors.Card2)
             .padding(3.dp)
     ) {
-        listOf(6, 12, 18, 24).forEach { h ->
+        listOf(3, 6, 12, 18, 24).forEach { h ->
             val on = h == current
             Text(
                 "${h}h",

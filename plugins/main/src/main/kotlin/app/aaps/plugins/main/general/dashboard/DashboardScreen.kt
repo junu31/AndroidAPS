@@ -32,6 +32,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -593,7 +594,8 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
                 if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
             ) { actions.onInsulin() }
         if (buttons.carbs)
-            ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card) { actions.onCarbs() }
+            // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
+            ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
         if (buttons.aiCarbs)
             ActionButton(stringResource(R.string.dashboard_ai), R.drawable.ic_dashboard_ai, DashColors.Basal, DashColors.Card) { actions.onAiCarbs() }
         if (buttons.wizard)
@@ -602,7 +604,7 @@ private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier:
 }
 
 @Composable
-private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, onClick: () -> Unit) {
+private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, iconScale: Float = 1f, onClick: () -> Unit) {
     // icon on top, label below (option A)
     Column(
         Modifier
@@ -615,7 +617,12 @@ private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Colo
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(painterResource(icon), contentDescription = null, tint = fg, modifier = Modifier.size(28.dp))
+        Icon(
+            painterResource(icon), contentDescription = null, tint = fg,
+            modifier = Modifier
+                .size(28.dp)
+                .scale(iconScale)
+        )
         Spacer(Modifier.height(5.dp))
         Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }

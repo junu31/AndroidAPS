@@ -111,7 +111,7 @@ fun DashboardScreen(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = 116.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = if (state.pumpStatus.isNotEmpty()) 156.dp else 116.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (state.calcProgressPct != 100)
@@ -121,7 +121,6 @@ fun DashboardScreen(
                     color = DashColors.Accent,
                     trackColor = DashColors.Card2
                 )
-            if (state.pumpStatus.isNotEmpty()) PumpStatusBanner(state.pumpStatus, actions)
             // notifications (often empty) and the compact profile/target line sit tight above the BG card,
             // so an empty notification slot does not add a full section gap under the tabs
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
@@ -143,7 +142,7 @@ fun DashboardScreen(
             if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
                 SecondaryActions(state.buttons, actions)
         }
-        BottomActions(state.buttons, actions, Modifier.align(Alignment.BottomCenter))
+        BottomActions(state, actions, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -187,13 +186,13 @@ private fun PumpStatusBanner(text: String, actions: DashboardActions) {
     Row(
         Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(Color(0xFF14243A))
-            .border(1.dp, Color(0xFF1F3B5E), RoundedCornerShape(14.dp))
+            .border(1.dp, Color(0xFF1F3B5E), RoundedCornerShape(8.dp))
             .clicks({ actions.onPumpStatusClick() })
-            .padding(horizontal = 14.dp, vertical = 10.dp)
+            .padding(horizontal = 12.dp, vertical = 7.dp)
     ) {
-        Text(text, color = DashColors.Iob, fontSize = 13.sp)
+        Text(text, color = DashColors.Iob, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
@@ -580,26 +579,33 @@ private fun ChipButton(text: String, @DrawableRes icon: Int, color: Color, onCli
 }
 
 @Composable
-private fun BottomActions(buttons: Buttons, actions: DashboardActions, modifier: Modifier) {
-    Row(
+private fun BottomActions(state: DashboardState, actions: DashboardActions, modifier: Modifier) {
+    val buttons = state.buttons
+    Column(
         modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color.Transparent, DashColors.Bg, DashColors.Bg)))
-            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 12.dp)
     ) {
-        if (buttons.insulin)
-            ActionButton(
-                stringResource(app.aaps.core.ui.R.string.overview_insulin_label), app.aaps.core.objects.R.drawable.ic_bolus,
-                if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
-            ) { actions.onInsulin() }
-        if (buttons.carbs)
-            // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
-            ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
-        if (buttons.aiCarbs)
-            ActionButton(stringResource(R.string.dashboard_ai), R.drawable.ic_dashboard_ai, DashColors.Basal, DashColors.Card) { actions.onAiCarbs() }
-        if (buttons.wizard)
-            ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
+        // pump communication status (connecting, bolusing ...) right above the buttons, like the classic Overview
+        if (state.pumpStatus.isNotEmpty()) {
+            PumpStatusBanner(state.pumpStatus, actions)
+            Spacer(Modifier.height(8.dp))
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (buttons.insulin)
+                ActionButton(
+                    stringResource(app.aaps.core.ui.R.string.overview_insulin_label), app.aaps.core.objects.R.drawable.ic_bolus,
+                    if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
+                ) { actions.onInsulin() }
+            if (buttons.carbs)
+                // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
+                ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
+            if (buttons.aiCarbs)
+                ActionButton(stringResource(R.string.dashboard_ai), R.drawable.ic_dashboard_ai, DashColors.Basal, DashColors.Card) { actions.onAiCarbs() }
+            if (buttons.wizard)
+                ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
+        }
     }
 }
 

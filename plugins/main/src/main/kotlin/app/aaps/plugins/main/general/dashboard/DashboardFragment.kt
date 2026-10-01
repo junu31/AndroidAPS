@@ -538,6 +538,15 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val isPatchPump = pump.pumpDescription.isPatchPump
         statusLightHandler.updateStatusLights(cannulaAge, null, insulinAge, reservoirLevel, sensorAge, sensorBattery, batteryAge, batteryLevel)
         val lights = ArrayList<StatusLight>()
+        // WarnColors paints urgent/old items with urgentColor/lowColor and warnings with warnColor/highColor
+        val ctx = requireContext()
+        val critical = setOf(rh.gac(ctx, app.aaps.core.ui.R.attr.urgentColor), rh.gac(ctx, app.aaps.core.ui.R.attr.lowColor))
+        val warning = setOf(rh.gac(ctx, app.aaps.core.ui.R.attr.warnColor), rh.gac(ctx, app.aaps.core.ui.R.attr.highColor))
+        fun severityOf(vararg colors: Int?): Severity = when {
+            colors.any { it in critical } -> Severity.CRITICAL
+            colors.any { it in warning }  -> Severity.WARNING
+            else                          -> Severity.NEUTRAL
+        }
         if (preferences.get(BooleanKey.OverviewShowStatusLights) || config.AAPSCLIENT) {
             lights.add(
                 StatusLight(
@@ -568,7 +577,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                 )
             }
         }
-        state = state.copy(statusLights = lights)
+        state = state.copy(statusLights = lights.map { it.copy(severity = severityOf(it.color, it.subColor)) })
     }
 
     // ---------- Today's statistics ----------

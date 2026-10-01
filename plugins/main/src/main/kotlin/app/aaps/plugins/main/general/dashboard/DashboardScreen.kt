@@ -52,6 +52,7 @@ object DashColors {
     val Card2 = Color(0xFF1E232C)
     val Line = Color(0xFF2A303B)
     val Grid = Color(0xFF3A4250)
+    val Warn = Color(0xFFFDE047)
     val Text = Color(0xFFE8ECF2)
     val Sub = Color(0xFF8A93A3)
     val Dim = Color(0xFF5C6575)
@@ -109,7 +110,7 @@ fun DashboardScreen(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 8.dp, bottom = 100.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = 100.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             if (state.calcProgressPct != 100)
@@ -222,7 +223,7 @@ private fun CompactRibbon(@DrawableRes icon: Int, description: String, info: Rib
     val color = if (info.severity == Severity.NEUTRAL) DashColors.Text else info.severity.color()
     Row(
         modifier
-            .height(36.dp)
+            .height(32.dp)
             .clip(RoundedCornerShape(8.dp))
             .clicks(onClick, onLongClick)
             .padding(horizontal = 4.dp),
@@ -499,11 +500,18 @@ private fun StatusLights(items: List<StatusLight>) {
     // no surrounding card; the tiles keep their own background
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
         items.forEach { item ->
+            // neutral tiles: subtle outline; items that need attention get a tinted background and border
+            val (tileBg, tileBorder) = when (item.severity) {
+                Severity.CRITICAL -> DashColors.Low.copy(alpha = 0.10f) to DashColors.Low.copy(alpha = 0.45f)
+                Severity.WARNING  -> DashColors.Warn.copy(alpha = 0.08f) to DashColors.Warn.copy(alpha = 0.35f)
+                else              -> DashColors.Card to DashColors.Line
+            }
             Column(
                 Modifier
                     .weight(1f)
                     .clip(RoundedCornerShape(14.dp))
-                    .background(DashColors.Card2)
+                    .background(tileBg)
+                    .border(1.dp, tileBorder, RoundedCornerShape(14.dp))
                     .padding(vertical = 8.dp, horizontal = 2.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {

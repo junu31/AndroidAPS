@@ -75,7 +75,8 @@ data class StatusLight(
     val value: String,
     val color: Int?,
     val sub: String = "",
-    val subColor: Int? = null
+    val subColor: Int? = null,
+    val severity: Severity = Severity.NEUTRAL
 )
 
 @Immutable

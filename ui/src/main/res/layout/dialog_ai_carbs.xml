@@ -388,7 +388,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- actions: cancel / to carbs / to calculator (calculator right, like the Dashboard) -->
+        <!-- actions: to carbs / to calculator / cancel (cancel on the far right) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -396,18 +396,9 @@
             android:orientation="horizontal">
 
             <Button
-                android:id="@+id/cancel_button"
-                style="@style/AiCarbs.Button"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:text="@android:string/cancel"
-                android:textColor="@color/ai_sub" />
-
-            <Button
                 android:id="@+id/apply_carbs_button"
                 style="@style/AiCarbs.Button.Carbs"
                 android:layout_width="0dp"
-                android:layout_marginStart="8dp"
                 android:layout_weight="1"
                 android:enabled="false"
                 android:text="@string/ai_carbs_to_carbs" />
@@ -420,6 +411,15 @@
                 android:layout_weight="1"
                 android:enabled="false"
                 android:text="@string/ai_carbs_to_wizard" />
+
+            <Button
+                android:id="@+id/cancel_button"
+                style="@style/AiCarbs.Button"
+                android:layout_width="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@android:string/cancel"
+                android:textColor="@color/ai_sub" />
         </LinearLayout>
     </LinearLayout>
 </ScrollView>

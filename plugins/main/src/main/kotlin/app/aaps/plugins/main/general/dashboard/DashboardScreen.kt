@@ -248,18 +248,19 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                 .matchParentSize()
                 .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(900f, 0f)))
         )
-        Column(Modifier.padding(horizontal = 20.dp, vertical = 16.dp)) {
+        // compact layout (option A): smaller BG / arrow, tighter paddings
+        Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(bg.timeAgo, color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.weight(1f))
                 state.loop?.let { LoopPill(it, actions) }
             }
-            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 4.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                 // left: BG value + trend arrow
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     Text(
                         bg.value,
                         color = color,
-                        fontSize = 72.sp,
+                        fontSize = 58.sp,
                         fontWeight = FontWeight.ExtraBold,
                         letterSpacing = (-2).sp,
                         maxLines = 1,
@@ -270,12 +271,12 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                         bg.arrowRes?.let {
                             Box(
                                 Modifier
-                                    .size(44.dp)
+                                    .size(36.dp)
                                     .clip(CircleShape)
                                     .background(color.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(30.dp))
+                                Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(24.dp))
                             }
                         }
                         if (bg.qualityIcon != 0)
@@ -289,7 +290,7 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                     }
                 }
                 // right: Δ 5 / 15 / 40 min stacked
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.width(132.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.width(132.dp)) {
                     DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
                     DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
@@ -342,10 +343,10 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
             .clip(RoundedCornerShape(999.dp))
             .background(c.copy(alpha = 0.12f))
             .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
-            .padding(horizontal = 10.dp, vertical = 5.dp),
+            .padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painterResource(loop.iconRes), contentDescription = loop.label, tint = Color.Unspecified, modifier = Modifier.size(18.dp))
+        Icon(painterResource(loop.iconRes), contentDescription = loop.label, tint = Color.Unspecified, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(6.dp))
         Text(
             if (loop.extra.isNotEmpty()) "${loop.label} · ${loop.extra}" else loop.label,
@@ -359,7 +360,7 @@ private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
 private fun HeroStats(state: DashboardState, actions: DashboardActions) {
     Box(
         Modifier
-            .padding(top = 12.dp)
+            .padding(top = 8.dp)
             .fillMaxWidth()
             .height(1.dp)
             .background(DashColors.Line)
@@ -408,7 +409,7 @@ private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, acti
         Modifier
             .weight(1f)
             .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
-            .padding(start = 10.dp, end = 4.dp, top = 10.dp, bottom = 2.dp)
+            .padding(start = 10.dp, end = 4.dp, top = 8.dp, bottom = 2.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Box(

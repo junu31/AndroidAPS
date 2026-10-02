@@ -54,6 +54,7 @@ import app.aaps.core.interfaces.versionChecker.VersionCheckerUtils
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.objects.crypto.CryptoUtil
+import app.aaps.core.ui.ModernTheme
 import app.aaps.core.ui.UIRunnable
 import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.core.ui.locale.LocaleHelper
@@ -205,7 +206,7 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                         message += rh.gs(app.aaps.core.ui.R.string.about_link_urls)
                         val messageSpanned = SpannableString(message)
                         Linkify.addLinks(messageSpanned, Linkify.WEB_URLS)
-                        MaterialAlertDialogBuilder(this@MainActivity, app.aaps.core.ui.R.style.DialogTheme)
+                        MaterialAlertDialogBuilder(this@MainActivity, ModernTheme.dialogTheme)
                             .setTitle(rh.gs(R.string.app_name) + " " + config.VERSION)
                             .setIcon(iconsProvider.getIcon())
                             .setMessage(messageSpanned)

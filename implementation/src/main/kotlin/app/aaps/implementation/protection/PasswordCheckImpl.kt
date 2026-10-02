@@ -17,6 +17,7 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.keys.interfaces.StringPreferenceKey
 import app.aaps.core.objects.R
 import app.aaps.core.objects.crypto.CryptoUtil
+import app.aaps.core.ui.ModernTheme
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.core.ui.toast.ToastUtils
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -46,7 +47,7 @@ class PasswordCheckImpl @Inject constructor(
             return
         }
         val promptsView = LayoutInflater.from(context).inflate(R.layout.passwordprompt, null)
-        val alertDialogBuilder = MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
+        val alertDialogBuilder = MaterialAlertDialogBuilder(context, ModernTheme.dialogTheme)
         alertDialogBuilder.setView(promptsView)
 
         val userInput = promptsView.findViewById<View>(R.id.password_prompt_pass) as EditText
@@ -102,7 +103,7 @@ class PasswordCheckImpl @Inject constructor(
     @SuppressLint("InflateParams")
     override fun setPassword(context: Context, @StringRes labelId: Int, preference: StringPreferenceKey, ok: ((String) -> Unit)?, cancel: (() -> Unit)?, clear: (() -> Unit)?, pinInput: Boolean) {
         val promptsView = LayoutInflater.from(context).inflate(R.layout.passwordprompt, null)
-        val alertDialogBuilder = MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
+        val alertDialogBuilder = MaterialAlertDialogBuilder(context, ModernTheme.dialogTheme)
         alertDialogBuilder.setView(promptsView)
 
         val userInput = promptsView.findViewById<View>(R.id.password_prompt_pass) as EditText
@@ -169,7 +170,7 @@ class PasswordCheckImpl @Inject constructor(
     ) {
 
         val promptsView = LayoutInflater.from(context).inflate(R.layout.passwordprompt, null)
-        val alertDialogBuilder = MaterialAlertDialogBuilder(context, app.aaps.core.ui.R.style.DialogTheme)
+        val alertDialogBuilder = MaterialAlertDialogBuilder(context, ModernTheme.dialogTheme)
         alertDialogBuilder.setView(promptsView)
         passwordExplanation?.let { alertDialogBuilder.setMessage(it) }
 

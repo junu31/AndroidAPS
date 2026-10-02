@@ -44,6 +44,9 @@ object ModernTheme {
         })
     }
 
+    /** Theme for MaterialAlertDialogBuilder calls that pass DialogTheme explicitly. */
+    val dialogTheme: Int get() = if (enabled) R.style.DialogTheme_Modern else R.style.DialogTheme
+
     /** For contexts wrapped with AppTheme again (AlertDialogHelper), which would drop the activity overlay. */
     fun applyTo(context: Context) {
         if (enabled) context.theme.applyStyle(R.style.ThemeOverlay_Aaps_Modern, true)

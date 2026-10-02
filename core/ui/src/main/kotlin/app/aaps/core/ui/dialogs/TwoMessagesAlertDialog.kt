@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.widget.TextView
 import androidx.annotation.DrawableRes
+import app.aaps.core.ui.ModernTheme
 import app.aaps.core.ui.R
 import app.aaps.core.ui.extensions.runOnUiThread
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -20,7 +21,7 @@ object TwoMessagesAlertDialog {
         val secondMessageLayout = LayoutInflater.from(context).inflate(R.layout.dialog_alert_two_messages, null)
         (secondMessageLayout.findViewById<View>(R.id.password_prompt_title) as TextView).text = secondMessage
 
-        MaterialAlertDialogBuilder(context, R.style.DialogTheme)
+        MaterialAlertDialogBuilder(context, ModernTheme.dialogTheme)
             .setMessage(message)
             .setCustomTitle(
                 AlertDialogHelper.buildCustomTitle(

@@ -1,5 +1,6 @@
 package app.aaps.ui.dialogs
 
+import android.content.Context
 import android.os.Bundle
 import android.view.Gravity
 import android.view.LayoutInflater
@@ -54,8 +55,11 @@ class WeeklyReviewDialog : DaggerDialogFragment() {
 
         const val DAYS = 7
 
-        /** AI explanations by Autotune run time, so reopening the dialog does not call the API again. */
-        private val aiCache = LinkedHashMap<Long, String>()
+        // The AI explanation of the last Autotune run is stored, so reopening the dialog or restarting
+        // the app shows it again without another API call. A new Autotune run replaces it.
+        private const val PREFS = "weekly_review"
+        private const val KEY_AI_RUN = "ai_run_time"
+        private const val KEY_AI_TEXT = "ai_text"
 
         private const val SYSTEM_PROMPT =
             """You explain the result of AndroidAPS Autotune to the user in Korean.
@@ -234,7 +238,7 @@ Rules:
         renderRatios(summary)
         binding.overwriteButton.visibility = if (summary.canUpdate) View.VISIBLE else View.GONE
         binding.revertButton.visibility = if (summary.canRevert) View.VISIBLE else View.GONE
-        val cached = synchronized(aiCache) { aiCache[summary.runTime] }
+        val cached = storedExplanation(summary.runTime)
         binding.aiText.text = cached.orEmpty()
         binding.aiText.visibility = if (cached == null) View.GONE else View.VISIBLE
         binding.aiButton.visibility = if (cached == null) View.VISIBLE else View.GONE
@@ -303,7 +307,7 @@ Rules:
     // ---------- AI explanation ----------
 
     private fun explain(summary: AutotuneSummary) {
-        synchronized(aiCache) { aiCache[summary.runTime] }?.let { showAi(it, done = true); return }
+        storedExplanation(summary.runTime)?.let { showAi(it, done = true); return }
         val apiKey = preferences.get(StringKey.OverviewAiCarbsApiKey).trim()
         if (apiKey.isEmpty()) {
             showAi(rh.gs(R.string.ai_carbs_error_no_key), done = false)
@@ -317,10 +321,7 @@ Rules:
             .observeOn(aapsSchedulers.main)
             .subscribe({ text ->
                            val cleaned = text.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim().replaceFirst(Regex("^[-*•]\\s*"), "• ") }
-                           synchronized(aiCache) {
-                               aiCache[summary.runTime] = cleaned
-                               while (aiCache.size > 5) aiCache.remove(aiCache.keys.first())
-                           }
+                           storeExplanation(summary.runTime, cleaned)
                            showAi(cleaned, done = true)
                        }, { error ->
                            aapsLogger.error(LTag.UI, "Weekly review AI", error)
@@ -330,6 +331,15 @@ Rules:
     }
 
     /** [done] = explanation received (hide the button); otherwise keep the button for a retry */
+    private val aiPrefs by lazy { requireContext().getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
+
+    private fun storedExplanation(runTime: Long): String? =
+        if (aiPrefs.getLong(KEY_AI_RUN, 0L) == runTime) aiPrefs.getString(KEY_AI_TEXT, null) else null
+
+    private fun storeExplanation(runTime: Long, text: String) {
+        aiPrefs.edit().putLong(KEY_AI_RUN, runTime).putString(KEY_AI_TEXT, text).apply()
+    }
+
     private fun showAi(text: String, done: Boolean) {
         _binding ?: return
         binding.aiText.visibility = View.VISIBLE

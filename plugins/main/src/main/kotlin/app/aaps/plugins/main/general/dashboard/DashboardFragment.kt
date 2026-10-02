@@ -11,6 +11,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.annotation.AttrRes
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -372,6 +373,15 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                 TrendArrow.FORTY_FIVE_UP, TrendArrow.FORTY_FIVE_DOWN                                       -> 1
                 else                                                                                       -> 0
             },
+            trendAngle = when (trendArrow) {
+                TrendArrow.TRIPLE_UP, TrendArrow.DOUBLE_UP, TrendArrow.SINGLE_UP       -> 90f
+                TrendArrow.FORTY_FIVE_UP                                               -> 45f
+                TrendArrow.FLAT                                                        -> 0f
+                TrendArrow.FORTY_FIVE_DOWN                                             -> -45f
+                TrendArrow.SINGLE_DOWN, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_DOWN -> -90f
+                else                                                                   -> null
+            },
+            trendFast = trendArrow in listOf(TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN),
             arrowDescription = lastBgDescription + " " + rh.gs(app.aaps.core.ui.R.string.and) + " " + trendDescription,
             delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: "",
             shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",
@@ -527,15 +537,15 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val lastRunAgo = loop.lastRun?.lastAPSRun?.let { dateUtil.minAgo(rh, it) } ?: ""
         val loopInfo = if (pump.pumpDescription.isTempBasalCapable) {
             when (mode) {
-                RM.Mode.SUPER_BOLUS       -> LoopInfo(R.drawable.ic_loop_superbolus, rh.gs(app.aaps.core.ui.R.string.superbolus), suspendEnd, Severity.WARNING)
+                RM.Mode.SUPER_BOLUS       -> LoopInfo(R.drawable.ic_loop_superbolus, rh.gs(app.aaps.core.ui.R.string.superbolus), suspendEnd, Severity.WARNING).withRing(app.aaps.core.ui.R.attr.loopSuperBolus)
                 RM.Mode.DISCONNECTED_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disconnected, rh.gs(app.aaps.core.ui.R.string.disconnected), suspendEnd, Severity.CRITICAL)
-                RM.Mode.SUSPENDED_BY_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.pumpsuspended), "", Severity.CRITICAL)
-                RM.Mode.SUSPENDED_BY_USER -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loopsuspended), suspendEnd, Severity.CRITICAL)
-                RM.Mode.SUSPENDED_BY_DST  -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loop_suspended_by_dst), suspendEnd, Severity.CRITICAL)
+                RM.Mode.SUSPENDED_BY_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.pumpsuspended), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
+                RM.Mode.SUSPENDED_BY_USER -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loopsuspended), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
+                RM.Mode.SUSPENDED_BY_DST  -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loop_suspended_by_dst), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
                 RM.Mode.CLOSED_LOOP_LGS   -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_lgs, rh.gs(app.aaps.core.ui.R.string.uel_lgs_loop_mode), lastRunAgo, Severity.WARNING)
                 RM.Mode.CLOSED_LOOP       -> LoopInfo(app.aaps.core.objects.R.drawable.ic_loop_closed, rh.gs(app.aaps.core.ui.R.string.closedloop), lastRunAgo, Severity.OK)
                 RM.Mode.OPEN_LOOP         -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_open, rh.gs(app.aaps.core.ui.R.string.openloop), lastRunAgo, Severity.WARNING)
-                RM.Mode.DISABLED_LOOP     -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disabled, rh.gs(R.string.disabled_loop), "", Severity.CRITICAL)
+                RM.Mode.DISABLED_LOOP     -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disabled, rh.gs(R.string.disabled_loop), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.CROSS)
                 RM.Mode.RESUME            -> error("Invalid mode")
             }
         } else null
@@ -543,6 +553,10 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val decision = loop.lastRun?.let { buildLoopDecision(it) }
         post { it.copy(loop = loopInfo, loopDecision = decision) }
     }
+
+    /** Ring card: icons with a symbol in the middle are drawn as the plain loop ring in their color, the symbol goes under the BG value. */
+    private fun LoopInfo.withRing(@AttrRes colorAttr: Int, glyph: LoopGlyph = LoopGlyph.NONE) =
+        copy(ringIconRes = app.aaps.core.objects.R.drawable.ic_loop_closed, ringTint = rh.gac(context, colorAttr), ringGlyph = glyph)
 
     /** Local, API-free summary of the last loop run for the floating button. */
     private fun buildLoopDecision(lastRun: Loop.LastRun): LoopDecision? {

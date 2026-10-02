@@ -40,6 +40,10 @@ data class BgInfo(
     val arrowDescription: String = "",
     /** 0 = flat/none, 1 = 45 degrees, 2 = single, 3 = double / triple (drives the arrow tile intensity) */
     val trendLevel: Int = 0,
+    /** trend direction for the ring card: 0 = flat (right), 90 = up, -90 = down; null = unknown */
+    val trendAngle: Float? = null,
+    /** double / triple arrows: the ring card shows two triangles */
+    val trendFast: Boolean = false,
     val delta: String = "",
     val shortAvgDelta: String = "",
     val longAvgDelta: String = "",
@@ -57,8 +61,16 @@ data class LoopInfo(
     @DrawableRes val iconRes: Int,
     val label: String,
     val extra: String,
-    val severity: Severity
+    val severity: Severity,
+    /** ring card: icon drawn around the BG value; icons with a symbol in the middle use the plain loop ring + [ringTint] */
+    @DrawableRes val ringIconRes: Int = iconRes,
+    /** ARGB tint for [ringIconRes], null = the icon's own colors */
+    val ringTint: Int? = null,
+    /** symbol shown small under the BG value (the middle of the original icon) */
+    val ringGlyph: LoopGlyph = LoopGlyph.NONE
 )
+
+enum class LoopGlyph { NONE, PAUSE, CROSS }
 
 @Immutable
 data class RibbonInfo(

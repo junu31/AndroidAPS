@@ -1,6 +1,19 @@
 package app.aaps.plugins.main.general.dashboard
 
 import androidx.annotation.DrawableRes
+import android.content.Context
+import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.content.edit
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -128,7 +141,7 @@ fun DashboardScreen(
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 notifications()
                 Ribbons(state, actions)
-                HeroCard(state, actions)
+                HeroPager(state, actions)
             }
             GraphCard(graph, actions)
             if (state.statusLights.isNotEmpty()) {
@@ -314,6 +327,102 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                     DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
                     DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
+                }
+            }
+            HeroStats(state, actions)
+        }
+    }
+}
+
+private const val PREFS_UI = "dashboard_ui"
+private const val KEY_HERO_PAGE = "hero_page"
+
+/** BG card and the ring card side by side; swipe to switch, the last shown card is kept across restarts. */
+@Composable
+private fun HeroPager(state: DashboardState, actions: DashboardActions) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PREFS_UI, Context.MODE_PRIVATE) }
+    val pagerState = rememberPagerState(initialPage = prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, 1)) { 2 }
+    LaunchedEffect(pagerState) {
+        snapshotFlow { pagerState.settledPage }.collect { prefs.edit { putInt(KEY_HERO_PAGE, it) } }
+    }
+    // the main tabs are a ViewPager2: keep it from taking the swipe while the finger is on the card
+    val view = LocalView.current
+    Column(Modifier.animateContentSize()) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            verticalAlignment = Alignment.Top,
+            modifier = Modifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+            }
+        ) { page ->
+            if (page == 0) HeroCard(state, actions) else RingCard(state, actions)
+        }
+        PageDots(pagerState.currentPage, 2)
+    }
+}
+
+@Composable
+private fun PageDots(current: Int, count: Int) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+    ) {
+        repeat(count) { i ->
+            Box(
+                Modifier
+                    .height(6.dp)
+                    .width(if (i == current) 16.dp else 6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(if (i == current) DashColors.Accent else DashColors.Dim)
+            )
+        }
+    }
+}
+
+/** Second card: BG inside the loop icon with the trend circle (option B, colors follow the BG range). */
+@Composable
+private fun RingCard(state: DashboardState, actions: DashboardActions) {
+    val bg = state.bg
+    val color = bg.range.color()
+    CardBox {
+        Box(
+            Modifier
+                .matchParentSize()
+                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(900f, 0f)))
+        )
+        Column(Modifier.padding(start = 12.dp, end = 18.dp, top = 6.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // tapping the BG opens the last loop decision, like on the first card
+                var showDecision by remember { mutableStateOf(false) }
+                Box(
+                    Modifier
+                        .clip(RoundedCornerShape(75.dp))
+                        .clickable { showDecision = true }
+                ) {
+                    BgRing(bg, color, state.loop, 150.dp)
+                    LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 8.dp, top = 8.dp))
+                }
+                if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
+                Spacer(Modifier.width(10.dp))
+                Column(
+                    Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    state.loop?.let { LoopPill(it, actions) }
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
+                        DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
+                        DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
+                    }
+                    Text(bg.timeAgo, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             HeroStats(state, actions)

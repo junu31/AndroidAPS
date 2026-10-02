@@ -7,6 +7,10 @@
     <color name="modern_line">#2A303B</color>
     <color name="modern_text">#E8ECF2</color>
     <color name="modern_sub">#8A93A3</color>
+    <!-- popups one step lighter than the cards behind them -->
+    <color name="modern_dialog">#222833</color>
+    <color name="modern_dialog_line">#3A4250</color>
+    <color name="modern_dialog_control">#2A303B</color>
     <color name="modern_accent">#2DD4BF</color>
     <color name="modern_on_accent">#062521</color>
 </resources>

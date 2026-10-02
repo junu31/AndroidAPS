@@ -11,6 +11,8 @@ import android.graphics.drawable.RippleDrawable
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.View
+import android.widget.LinearLayout
+import android.widget.ScrollView
 import androidx.appcompat.app.AppCompatViewInflater
 import androidx.appcompat.widget.AppCompatButton
 import androidx.appcompat.widget.AppCompatCheckBox
@@ -77,13 +79,18 @@ class ModernViewInflater : AppCompatViewInflater() {
         when (name) {
             SingleClickButton::class.java.name -> SingleClickButton(context, attrs).also { restyle(it, context, attrs) }
             MaterialButton::class.java.name    -> MaterialButton(context, attrs).also { restyle(it, context, attrs) }
+            // root of the XML dialogs (StyleDialog): lighter popup with a border so it stands out from the screen behind
+            "ScrollView", "LinearLayout"       ->
+                if (attrs.styleAttribute == R.style.StyleDialog)
+                    (if (name == "ScrollView") ScrollView(context, attrs) else LinearLayout(context, attrs)).also { setDialogBackground(it, context) }
+                else super.createView(context, name, attrs)
             else                               -> super.createView(context, name, attrs)
         }
 
     private fun restyle(button: AppCompatButton, context: Context, attrs: AttributeSet) {
         val dp = context.resources.displayMetrics.density
         val accent = ContextCompat.getColor(context, R.color.modern_accent)
-        val card = ContextCompat.getColor(context, R.color.modern_card2)
+        val card = ContextCompat.getColor(context, if (isDialog(context)) R.color.modern_dialog_control else R.color.modern_card2)
         val line = ContextCompat.getColor(context, R.color.modern_line)
         when {
             attrs.styleAttribute == R.style.OkCancelButton_Text -> {
@@ -108,6 +115,22 @@ class ModernViewInflater : AppCompatViewInflater() {
                 button.letterSpacing = 0f
             }
         }
+    }
+
+    private fun setDialogBackground(view: View, context: Context) {
+        val dp = context.resources.displayMetrics.density
+        val padding = intArrayOf(view.paddingLeft, view.paddingTop, view.paddingRight, view.paddingBottom)
+        view.background = GradientDrawable().apply {
+            cornerRadius = 22 * dp
+            setColor(ContextCompat.getColor(context, R.color.modern_dialog))
+            setStroke((1 * dp).toInt(), ContextCompat.getColor(context, R.color.modern_dialog_line))
+        }
+        view.setPadding(padding[0], padding[1], padding[2], padding[3])
+    }
+
+    private fun isDialog(context: Context): Boolean {
+        val a = context.obtainStyledAttributes(intArrayOf(android.R.attr.windowIsFloating))
+        return a.getBoolean(0, false).also { a.recycle() }
     }
 
     private fun setRoundedBackground(button: AppCompatButton, dp: Float, fill: Int, stroke: Int?, insetDp: Int) {

@@ -13,7 +13,8 @@
         <!-- number picker +/- and other ImageButtons -->
         <item name="colorButtonNormal">@color/modern_card2</item>
         <item name="colorSurface">@color/modern_card</item>
-        <item name="backgroundColor">@color/modern_card</item>
+        <item name="backgroundColor">@color/modern_dialog</item>
+        <item name="android:backgroundDimAmount">0.75</item>
         <!-- flat cards in the dashboard palette instead of elevation-lightened gray -->
         <item name="elevationOverlayEnabled">false</item>
         <item name="defaultBackground">@color/modern_bg</item>
@@ -30,7 +31,8 @@
     </style>
 
     <style name="DialogTheme.Modern">
-        <item name="colorSurface">@color/modern_card</item>
+        <item name="colorSurface">@color/modern_dialog</item>
+        <item name="android:backgroundDimAmount">0.75</item>
         <item name="colorPrimary">@color/modern_accent</item>
         <item name="colorAccent">@color/modern_accent</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Aaps.Modern.Dialog</item>

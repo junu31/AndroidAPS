@@ -29,6 +29,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
+import app.aaps.core.interfaces.autotune.Autotune
 import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
@@ -148,6 +149,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var decimalFormatter: DecimalFormatter
     @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var tddCalculator: TddCalculator
+    @Inject lateinit var autotune: Autotune
 
     private val disposable = CompositeDisposable()
     private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
@@ -666,7 +668,11 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             carbs = tdd?.carbs?.takeIf { it > 0 }?.let { fmt(it, "%.0f") } ?: dash,
             cgmActive = summary?.let { fmt(it.cgmActivePct, "%.0f") } ?: dash
         )
-        post { it.copy(stats = stats) }
+        // weekly review card only when the (hidden by default) Autotune plugin is enabled
+        val reviewLast = if ((autotune as? PluginBase)?.isEnabled() == true)
+            autotune.lastResultSummary()?.let { dateUtil.dateStringRelative(it.runTime, rh) } ?: ""
+        else null
+        post { it.copy(stats = stats, weeklyReviewLast = reviewLast) }
     }
 
     // ---------- Graph ----------
@@ -841,6 +847,8 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
 
     // floating button position survives tab switches and restarts
     private val fabPrefs by lazy { requireContext().getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE) }
+
+    override fun onWeeklyReview() = withBolusProtection { uiInteraction.runWeeklyReviewDialog(childFragmentManager) }
 
     override fun onFabMoved(x: Float, y: Float) {
         fabPrefs.edit().putFloat("fab_x", x).putFloat("fab_y", y).apply()

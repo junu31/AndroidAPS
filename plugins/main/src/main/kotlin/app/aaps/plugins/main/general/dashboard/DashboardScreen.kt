@@ -97,6 +97,7 @@ interface DashboardActions {
     fun onScale(hours: Int)
     fun showInfo(title: String, text: String)
     fun onFabMoved(x: Float, y: Float)
+    fun onWeeklyReview()
 }
 
 @Composable
@@ -135,6 +136,7 @@ fun DashboardScreen(
                 SectionTitle(stringResource(R.string.dashboard_glucose_stats))
                 StatsCard(it)
             }
+            state.weeklyReviewLast?.let { WeeklyReviewCard(it, actions) }
             state.buttons.acceptTemp?.let { AcceptTempButton(it, actions) }
             if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
                 SecondaryActions(state.buttons, actions)
@@ -556,6 +558,48 @@ private fun StatusLights(items: List<StatusLight>) {
                 Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+    }
+}
+
+/** Entry to the weekly AI review (Autotune of the last 7 days), shown only when Autotune is enabled. */
+@Composable
+private fun WeeklyReviewCard(last: String, actions: DashboardActions) {
+    val purple = Color(0xFFA78BFA)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Brush.linearGradient(listOf(purple.copy(alpha = 0.14f), DashColors.Accent.copy(alpha = 0.08f))))
+            .border(1.dp, purple.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
+            .clicks({ actions.onWeeklyReview() })
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(38.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(purple.copy(alpha = 0.18f)),
+            contentAlignment = Alignment.Center
+        ) { Icon(painterResource(R.drawable.ic_dashboard_ai), contentDescription = null, tint = purple, modifier = Modifier.size(20.dp)) }
+        Column(
+            Modifier
+                .weight(1f)
+                .padding(start = 12.dp)
+        ) {
+            Text(stringResource(R.string.dashboard_weekly_review), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Text(
+                if (last.isEmpty()) stringResource(R.string.dashboard_weekly_review_never) else stringResource(R.string.dashboard_weekly_review_last, last),
+                color = DashColors.Sub, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+            )
+        }
+        Text(
+            stringResource(R.string.dashboard_weekly_review_open), color = Color(0xFF1B1230), fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .background(purple)
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        )
     }
 }
 

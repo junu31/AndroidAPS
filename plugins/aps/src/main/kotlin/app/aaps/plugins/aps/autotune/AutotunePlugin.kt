@@ -13,6 +13,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.autotune.Autotune
+import app.aaps.core.interfaces.autotune.AutotuneSummary
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.insulin.Insulin
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -384,6 +385,65 @@ class AutotunePlugin @Inject constructor(
         profilePlugin.currentProfile()?.ic = newProfile.ic(circadian)
         profilePlugin.currentProfile()?.isf = newProfile.isf(circadian)
         profilePlugin.storeSettings(timestamp = dateUtil.now())
+    }
+
+    // ---- Personal-fork: Dashboard weekly review ----
+
+    override fun lastResultSummary(): AutotuneSummary? {
+        if (!calculationRunning && tunedProfile == null) loadLastRun()
+        val tuned = tunedProfile ?: return null
+        if (!::pumpProfile.isInitialized) return null
+        return AutotuneSummary(
+            runTime = lastRun,
+            days = lastNbDays.toIntOrNull() ?: 0,
+            profileName = pumpProfile.profileName,
+            currentBasal = pumpProfile.basal.toList(),
+            tunedBasal = tuned.basal.toList(),
+            currentIsfMgdl = pumpProfile.isf,
+            tunedIsfMgdl = tuned.isf,
+            currentIc = pumpProfile.ic,
+            tunedIc = tuned.ic,
+            canUpdate = updateButtonVisibility == View.VISIBLE,
+            canRevert = updateButtonVisibility != View.VISIBLE
+        )
+    }
+
+    override fun copyTunedToNewProfile(baseName: String): String? {
+        val tuned = tunedProfile ?: return null
+        val profilePlugin = activePlugin.activeProfileSource
+        val existing = profilePlugin.profile?.getProfileList()?.map { it.toString() }?.toSet() ?: emptySet()
+        var name = baseName
+        var n = 2
+        while (name in existing) name = baseName + "_" + n++
+        profilePlugin.addProfile(profilePlugin.copyFrom(tuned.getProfile(preferences.get(BooleanKey.AutotuneCircadianIcIsf)), name))
+        rxBus.send(EventLocalProfileChanged())
+        uel.log(action = Action.NEW_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(name))
+        return name
+    }
+
+    override fun updateInputProfileWithTuned(): Boolean {
+        val tuned = tunedProfile ?: return false
+        if (!::pumpProfile.isInitialized) return false
+        val localName = pumpProfile.profileName
+        tuned.profileName = localName
+        updateProfile(tuned)
+        updateButtonVisibility = View.GONE
+        saveLastRun()
+        rxBus.send(EventLocalProfileChanged())
+        uel.log(action = Action.STORE_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(localName))
+        return true
+    }
+
+    override fun revertInputProfile(): Boolean {
+        if (!::pumpProfile.isInitialized) return false
+        val localName = pumpProfile.profileName
+        tunedProfile?.profileName = ""
+        updateProfile(pumpProfile)
+        updateButtonVisibility = View.VISIBLE
+        saveLastRun()
+        rxBus.send(EventLocalProfileChanged())
+        uel.log(action = Action.STORE_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(localName))
+        return true
     }
 
     fun saveLastRun() {

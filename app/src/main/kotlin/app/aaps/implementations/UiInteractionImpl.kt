@@ -39,6 +39,7 @@ import app.aaps.ui.dialogs.SiteRotationDialog
 import app.aaps.ui.dialogs.TempBasalDialog
 import app.aaps.ui.dialogs.TempTargetDialog
 import app.aaps.ui.dialogs.TreatmentDialog
+import app.aaps.ui.dialogs.WeeklyReviewDialog
 import app.aaps.ui.dialogs.WizardDialog
 import app.aaps.ui.services.AlarmSoundService
 import app.aaps.ui.services.AlarmSoundServiceHelper
@@ -126,6 +127,10 @@ class UiInteractionImpl @Inject constructor(
     override fun runCarbsDialog(fragmentManager: FragmentManager) {
         CarbsDialog()
             .show(fragmentManager, "CarbsDialog")
+    }
+
+    override fun runWeeklyReviewDialog(fragmentManager: FragmentManager) {
+        WeeklyReviewDialog().show(fragmentManager, "WeeklyReviewDialog")
     }
 
     override fun runAiCarbsDialog(fragmentManager: FragmentManager) {

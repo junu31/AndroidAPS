@@ -16,6 +16,7 @@
     <color name="ai_low">#F87171</color>
     <color name="ai_high">#FBBF24</color>
     <color name="ai_ok">#34D399</color>
+    <color name="ai_blue">#60A5FA</color>
 
     <style name="AiCarbs.Label" parent="">
         <item name="android:layout_width">wrap_content</item>

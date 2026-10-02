@@ -21,6 +21,8 @@ data class DashboardState(
     val statusLights: List<StatusLight> = emptyList(),
     val stats: GlucoseStats? = null,
     val loopDecision: LoopDecision? = null,
+    /** null = Autotune not enabled (card hidden); "" = never reviewed; otherwise e.g. "6 days ago" */
+    val weeklyReviewLast: String? = null,
     /** floating button position as fraction of the free area (x, y); null = default (bottom right) */
     val fabPosition: Pair<Float, Float>? = null,
     val buttons: Buttons = Buttons(),

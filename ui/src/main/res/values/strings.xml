@@ -228,4 +228,35 @@
     <string name="ai_carbs_confidence_medium">medium</string>
     <string name="ai_carbs_confidence_high">high</string>
 
+    <string name="weekly_review_title">Weekly AI review</string>
+    <string name="weekly_review_quality">Data check (last 7 days)</string>
+    <string name="weekly_review_quality_ok">All 7 days OK</string>
+    <string name="weekly_review_quality_bad">%2$d of %1$d days need attention</string>
+    <string name="weekly_review_quality_sensor">sensor gaps (%1$d readings)</string>
+    <string name="weekly_review_quality_carbs">no carbs logged</string>
+    <string name="weekly_review_basal">Basal (U/h) · current → suggested</string>
+    <string name="weekly_review_isf_ic">ISF · IC · current → suggested</string>
+    <string name="weekly_review_ai">AI explanation</string>
+    <string name="weekly_review_ai_button">✦ Explain with AI</string>
+    <string name="weekly_review_ai_loading">Asking AI…</string>
+    <string name="weekly_review_warning">Suggestion for reference only. Nothing is applied automatically; talk to your care team before changing settings.</string>
+    <string name="weekly_review_save_new">Save as new profile</string>
+    <string name="weekly_review_overwrite">Overwrite profile</string>
+    <string name="weekly_review_revert">Revert</string>
+    <string name="weekly_review_save_note">These only store the profile. To use it, do a profile switch (also after overwriting the active profile).</string>
+    <string name="weekly_review_run">Run review (7 days)</string>
+    <string name="weekly_review_close">Close</string>
+    <string name="weekly_review_run_confirm">Run Autotune for the last 7 days with the current profile? This replaces the last Autotune result.</string>
+    <string name="weekly_review_run_confirm_reverted">%1$s was overwritten with the last suggestion. If you run a new review, 'Revert' will no longer restore the values from before that overwrite. Continue?</string>
+    <string name="weekly_review_running">Running Autotune… this can take a minute.</string>
+    <string name="weekly_review_failed">Autotune did not produce a result. Check the Autotune log.</string>
+    <string name="weekly_review_none">No review yet. Tap 'Run review' to analyse the last 7 days.</string>
+    <string name="weekly_review_meta">%1$d days · %2$s · %3$s</string>
+    <string name="weekly_review_save_new_confirm">Store the suggestion as a new local profile?
+%1$s
+The profile in use is not changed.</string>
+    <string name="weekly_review_saved">Saved as %1$s. Use a profile switch to activate it.</string>
+    <string name="weekly_review_overwrite_confirm">Replace basal, ISF and IC of %1$s with the suggested values?
+You can undo it with 'Revert'.</string>
+    <string name="weekly_review_revert_confirm">Restore %1$s to the values from before the overwrite?</string>
 </resources>

@@ -62,6 +62,9 @@ interface UiInteraction {
 
     /** Personal-fork: open the AI carb estimator on its own; the result is handed to the Wizard or Carbs dialog. */
     fun runAiCarbsDialog(fragmentManager: FragmentManager)
+
+    /** Personal-fork: weekly review (Autotune of the last 7 days + AI explanation + profile actions). */
+    fun runWeeklyReviewDialog(fragmentManager: FragmentManager)
     fun runTempTargetDialog(fragmentManager: FragmentManager)
     fun runExtendedBolusDialog(fragmentManager: FragmentManager)
     fun runFillDialog(fragmentManager: FragmentManager)

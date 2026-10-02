@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: Dashboard weekly review (Autotune + AI explanation), dark card style like the AI carbs dialog -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/ai_bg_sheet"
+    tools:context=".dialogs.WeeklyReviewDialog">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingTop="18dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="34dp"
+                android:layout_height="34dp"
+                android:background="@drawable/ai_bg_badge"
+                android:importantForAccessibility="no"
+                android:padding="7dp"
+                android:src="@drawable/ic_ai_sparkle"
+                android:tint="@color/ai_purple" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:layout_weight="1"
+                android:text="@string/weekly_review_title"
+                android:textColor="@color/ai_text"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/meta"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/ai_sub"
+                android:textSize="11sp"
+                tools:text="7일 · default" />
+        </LinearLayout>
+
+        <!-- data quality of the last 7 days -->
+        <LinearLayout style="@style/AiCarbs.Card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <TextView
+                    style="@style/AiCarbs.Label"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/weekly_review_quality" />
+
+                <TextView
+                    android:id="@+id/quality_summary"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    tools:text="7일 중 1일 주의" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/quality_days"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal" />
+
+            <TextView
+                android:id="@+id/quality_note"
+                style="@style/AiCarbs.Note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- status: no result yet / running / error -->
+        <LinearLayout
+            android:id="@+id/status_card"
+            style="@style/AiCarbs.Card"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:layout_marginEnd="10dp"
+                android:indeterminateTint="@color/ai_purple"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/status_text"
+                style="@style/AiCarbs.Body"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/result_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <LinearLayout style="@style/AiCarbs.Card">
+
+                <TextView
+                    style="@style/AiCarbs.Label"
+                    android:text="@string/weekly_review_basal" />
+
+                <LinearLayout
+                    android:id="@+id/basal_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <LinearLayout style="@style/AiCarbs.Card">
+
+                <TextView
+                    style="@style/AiCarbs.Label"
+                    android:text="@string/weekly_review_isf_ic" />
+
+                <LinearLayout
+                    android:id="@+id/ratio_rows"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </LinearLayout>
+
+            <!-- AI explanation -->
+            <LinearLayout
+                style="@style/AiCarbs.Card"
+                android:background="@drawable/ai_bg_explain">
+
+                <TextView
+                    style="@style/AiCarbs.Label"
+                    android:layout_marginBottom="6dp"
+                    android:text="@string/weekly_review_ai"
+                    android:textColor="@color/ai_purple" />
+
+                <TextView
+                    android:id="@+id/ai_text"
+                    style="@style/AiCarbs.Body"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="5dp"
+                    android:textSize="13.5sp" />
+
+                <Button
+                    android:id="@+id/ai_button"
+                    style="@style/AiCarbs.Button"
+                    android:layout_width="match_parent"
+                    android:layout_height="40dp"
+                    android:layout_marginTop="6dp"
+                    android:text="@string/weekly_review_ai_button"
+                    android:textColor="@color/ai_purple"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/ai_bg_warning"
+                android:paddingStart="12dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="8dp"
+                android:text="@string/weekly_review_warning"
+                android:textColor="@color/ai_low"
+                android:textSize="11.5sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/save_new_button"
+                    style="@style/AiCarbs.Button.Accent"
+                    android:layout_width="0dp"
+                    android:layout_weight="1"
+                    android:text="@string/weekly_review_save_new" />
+
+                <Button
+                    android:id="@+id/overwrite_button"
+                    style="@style/AiCarbs.Button"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/weekly_review_overwrite"
+                    android:textColor="@color/ai_high" />
+
+                <Button
+                    android:id="@+id/revert_button"
+                    style="@style/AiCarbs.Button"
+                    android:layout_width="0dp"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/weekly_review_revert"
+                    android:textColor="@color/ai_high"
+                    android:visibility="gone" />
+            </LinearLayout>
+
+            <TextView
+                style="@style/AiCarbs.Note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/weekly_review_save_note"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/run_button"
+                style="@style/AiCarbs.Button.Purple"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:text="@string/weekly_review_run" />
+
+            <Button
+                android:id="@+id/close_button"
+                style="@style/AiCarbs.Button"
+                android:layout_width="0dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/weekly_review_close"
+                android:textColor="@color/ai_sub" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

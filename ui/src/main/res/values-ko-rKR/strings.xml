@@ -172,4 +172,35 @@
     <string name="ai_carbs_confidence_low">낮음</string>
     <string name="ai_carbs_confidence_medium">중간</string>
     <string name="ai_carbs_confidence_high">높음</string>
+    <string name="weekly_review_title">주간 AI 검토</string>
+    <string name="weekly_review_quality">기록 점검 (최근 7일)</string>
+    <string name="weekly_review_quality_ok">7일 모두 양호</string>
+    <string name="weekly_review_quality_bad">%1$d일 중 %2$d일 주의</string>
+    <string name="weekly_review_quality_sensor">센서 끊김 (혈당 %1$d개)</string>
+    <string name="weekly_review_quality_carbs">탄수화물 기록 없음</string>
+    <string name="weekly_review_basal">기저 (U/h) · 현재 → 제안</string>
+    <string name="weekly_review_isf_ic">ISF · IC · 현재 → 제안</string>
+    <string name="weekly_review_ai">AI 설명</string>
+    <string name="weekly_review_ai_button">✦ AI로 설명 보기</string>
+    <string name="weekly_review_ai_loading">AI에게 물어보는 중…</string>
+    <string name="weekly_review_warning">참고용 제안이에요. 자동으로 적용되지 않으며, 바꾸기 전에 담당 의료진과 상의하세요.</string>
+    <string name="weekly_review_save_new">새 프로필로 저장</string>
+    <string name="weekly_review_overwrite">현재 프로필 덮어쓰기</string>
+    <string name="weekly_review_revert">되돌리기</string>
+    <string name="weekly_review_save_note">저장만 해요. 실제로 쓰려면 프로필 전환이 필요해요. 지금 쓰는 프로필을 덮어쓴 경우도 전환해야 반영돼요.</string>
+    <string name="weekly_review_run">검토하기 (7일)</string>
+    <string name="weekly_review_close">닫기</string>
+    <string name="weekly_review_run_confirm">지금 프로필로 최근 7일 Autotune을 실행할까요? 마지막 Autotune 결과가 이번 결과로 바뀌어요.</string>
+    <string name="weekly_review_run_confirm_reverted">%1$s 프로필은 지난 제안으로 덮어쓴 상태예요. 새로 검토하면 '되돌리기'로 덮어쓰기 전 값으로 돌아갈 수 없게 돼요. 계속할까요?</string>
+    <string name="weekly_review_running">Autotune 계산 중… 1분 정도 걸릴 수 있어요.</string>
+    <string name="weekly_review_failed">Autotune 결과가 나오지 않았어요. AT 로그를 확인해 주세요.</string>
+    <string name="weekly_review_none">아직 검토 결과가 없어요. '검토하기'를 누르면 최근 7일을 분석해요.</string>
+    <string name="weekly_review_meta">%1$d일 · %2$s · %3$s</string>
+    <string name="weekly_review_save_new_confirm">조정안을 새 로컬 프로필로 저장할까요?
+%1$s
+지금 쓰는 프로필은 그대로예요.</string>
+    <string name="weekly_review_saved">%1$s(으)로 저장했어요. 쓰려면 프로필 전환을 해 주세요.</string>
+    <string name="weekly_review_overwrite_confirm">%1$s 프로필의 기저·ISF·IC를 조정안 값으로 바꿀까요?
+'되돌리기'로 이전 값으로 돌릴 수 있어요.</string>
+    <string name="weekly_review_revert_confirm">%1$s 프로필을 덮어쓰기 전 값으로 되돌릴까요?</string>
 </resources>

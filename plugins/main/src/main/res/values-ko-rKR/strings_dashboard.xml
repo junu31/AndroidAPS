@@ -50,4 +50,8 @@
     <string name="dashboard_loop_min_pred">예측 최저</string>
     <string name="dashboard_loop_eventual">예상</string>
     <string name="dashboard_loop_none">아직 루프 실행 기록이 없어요</string>
+    <string name="dashboard_weekly_review">주간 AI 검토</string>
+    <string name="dashboard_weekly_review_never">최근 7일 기록으로 프로필 조정안 보기</string>
+    <string name="dashboard_weekly_review_last">마지막 검토 %1$s</string>
+    <string name="dashboard_weekly_review_open">검토하기</string>
 </resources>

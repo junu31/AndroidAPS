@@ -50,4 +50,8 @@
     <string name="dashboard_loop_min_pred">Lowest pred.</string>
     <string name="dashboard_loop_eventual">Eventual</string>
     <string name="dashboard_loop_none">No loop run yet</string>
+    <string name="dashboard_weekly_review">Weekly AI review</string>
+    <string name="dashboard_weekly_review_never">Suggested profile changes from the last 7 days</string>
+    <string name="dashboard_weekly_review_last">Last review: %1$s</string>
+    <string name="dashboard_weekly_review_open">Review</string>
 </resources>

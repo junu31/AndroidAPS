@@ -434,12 +434,18 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .clip(RoundedCornerShape(78.dp))
                         .clickable { showDecision = true }
                 )
-                // top left stays free: the trend triangles never point there
+                // age of the last BG top left, like on the first card; the decision badge in the other corner
+                Text(
+                    bg.age, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 2.dp)
+                )
                 LoopDecisionBadge(
                     state.loopDecision,
                     Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 8.dp)
+                        .align(Alignment.TopEnd)
+                        .padding(end = 8.dp)
                 )
             }
             if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }

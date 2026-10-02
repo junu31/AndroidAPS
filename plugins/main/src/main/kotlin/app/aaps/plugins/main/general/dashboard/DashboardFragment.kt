@@ -387,6 +387,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",
             longAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.longAvgDelta) } ?: "",
             deltasMgdl = listOf(glucoseStatus?.delta, glucoseStatus?.shortAvgDelta, glucoseStatus?.longAvgDelta),
+            age = lastBg?.let { dateUtil.minOrSecAgo(rh, it.timestamp) } ?: "",
             timeAgo = listOfNotNull(
                 lastBg?.let { dateUtil.minOrSecAgo(rh, it.timestamp) },
                 (activePlugin.activeBgSource as? PluginBase)?.name

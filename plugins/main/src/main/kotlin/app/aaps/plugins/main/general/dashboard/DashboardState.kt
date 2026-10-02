@@ -50,6 +50,8 @@ data class BgInfo(
     /** delta, short avg and long avg delta in mg/dL per 5 min (for the bar chart), null when unknown */
     val deltasMgdl: List<Double?> = listOf(null, null, null),
     val timeAgo: String = "",
+    /** only the age of the last BG, e.g. "2m ago" (ring card) */
+    val age: String = "",
     @DrawableRes val qualityIcon: Int = 0,
     val qualityMessage: String = ""
 )

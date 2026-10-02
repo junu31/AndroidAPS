@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -71,8 +72,11 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
         val marginPx = with(density) { FabMargin.toPx() }
         val maxX = with(density) { (maxWidth - FabSize - FabMargin * 2).toPx() }.coerceAtLeast(1f)
         val maxY = with(density) { (maxHeight - FabSize - BottomReserve - FabMargin).toPx() }.coerceAtLeast(1f)
-        var offset by remember(position, maxX, maxY) {
-            mutableStateOf(Offset((position?.first ?: 1f) * maxX, (position?.second ?: 1f) * maxY))
+        // one state object for the whole lifetime: the drag handlers capture it, so it must not be re-created
+        // when the stored position changes; the stored position is copied into it instead
+        var offset by remember { mutableStateOf(Offset((position?.first ?: 1f) * maxX, (position?.second ?: 1f) * maxY)) }
+        LaunchedEffect(position, maxX, maxY) {
+            offset = Offset((position?.first ?: 1f) * maxX, (position?.second ?: 1f) * maxY)
         }
         var open by remember { mutableStateOf(false) }
         val fabCoords = remember { arrayOfNulls<LayoutCoordinates>(1) }

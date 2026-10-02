@@ -175,13 +175,7 @@ private fun SectionTitle(text: String) {
 @Composable
 private fun CardBox(modifier: Modifier = Modifier, plain: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     Box(
-        // without the card the content spreads to the screen edges like the graph below
-        if (plain) modifier.layout { measurable, constraints ->
-            val extra = (ScreenPadding * 2).roundToPx()
-            val width = constraints.maxWidth + extra
-            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
-            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
-        }
+        if (plain) modifier.fillMaxWidth()
         else modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
@@ -372,7 +366,16 @@ private fun HeroPager(state: DashboardState, actions: DashboardActions) {
         val f = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
         Modifier.height(with(LocalDensity.current) { (h0 + (h1 - h0) * f).toDp() })
     } else Modifier
-    Column {
+    // without the card background the cards spread to the screen edges like the graph below
+    Column(
+        if (state.bgCardBackground) Modifier
+        else Modifier.layout { measurable, constraints ->
+            val extra = (ScreenPadding * 2).roundToPx()
+            val width = constraints.maxWidth + extra
+            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+        }
+    ) {
         HorizontalPager(
             state = pagerState,
             pageSpacing = 12.dp,

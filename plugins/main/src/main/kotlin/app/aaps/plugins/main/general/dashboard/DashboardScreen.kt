@@ -96,7 +96,6 @@ interface DashboardActions {
     fun onAcceptTemp()
     fun onScale(hours: Int)
     fun showInfo(title: String, text: String)
-    fun onLoopExplain()
     fun onFabMoved(x: Float, y: Float)
 }
 

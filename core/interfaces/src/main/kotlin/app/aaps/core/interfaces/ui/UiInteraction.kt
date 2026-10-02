@@ -62,12 +62,6 @@ interface UiInteraction {
 
     /** Personal-fork: open the AI carb estimator on its own; the result is handed to the Wizard or Carbs dialog. */
     fun runAiCarbsDialog(fragmentManager: FragmentManager)
-
-    /**
-     * Personal-fork: AI explanation of one loop decision.
-     * [runTime] identifies the loop run (explanations are cached per run), [facts] are the values sent to the AI.
-     */
-    fun runLoopExplainDialog(fragmentManager: FragmentManager, runTime: Long, decision: String, reason: String, facts: String)
     fun runTempTargetDialog(fragmentManager: FragmentManager)
     fun runExtendedBolusDialog(fragmentManager: FragmentManager)
     fun runFillDialog(fragmentManager: FragmentManager)

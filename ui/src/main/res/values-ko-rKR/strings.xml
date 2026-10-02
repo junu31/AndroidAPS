@@ -172,11 +172,4 @@
     <string name="ai_carbs_confidence_low">낮음</string>
     <string name="ai_carbs_confidence_medium">중간</string>
     <string name="ai_carbs_confidence_high">높음</string>
-    <string name="loop_explain_title">이번 루프 판단</string>
-    <string name="loop_explain_decision">결정</string>
-    <string name="loop_explain_ai">쉽게 설명하면</string>
-    <string name="loop_explain_loading">AI에게 물어보는 중…</string>
-    <string name="loop_explain_raw">원문</string>
-    <string name="loop_explain_note">AI 설명은 참고용이에요. 실제 결정은 위의 루프 결과예요. Gemini로 보낸 데이터: 결정, 아래 숫자, 원문.</string>
-    <string name="loop_explain_close">닫기</string>
 </resources>

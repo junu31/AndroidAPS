@@ -32,7 +32,6 @@ import app.aaps.ui.dialogs.CareDialog
 import app.aaps.ui.dialogs.ExtendedBolusDialog
 import app.aaps.ui.dialogs.FillDialog
 import app.aaps.ui.dialogs.InsulinDialog
-import app.aaps.ui.dialogs.LoopExplainDialog
 import app.aaps.ui.dialogs.LoopDialog
 import app.aaps.ui.dialogs.ProfileSwitchDialog
 import app.aaps.ui.dialogs.ProfileViewerDialog
@@ -127,10 +126,6 @@ class UiInteractionImpl @Inject constructor(
     override fun runCarbsDialog(fragmentManager: FragmentManager) {
         CarbsDialog()
             .show(fragmentManager, "CarbsDialog")
-    }
-
-    override fun runLoopExplainDialog(fragmentManager: FragmentManager, runTime: Long, decision: String, reason: String, facts: String) {
-        LoopExplainDialog.newInstance(runTime, decision, reason, facts).show(fragmentManager, "LoopExplainDialog")
     }
 
     override fun runAiCarbsDialog(fragmentManager: FragmentManager) {

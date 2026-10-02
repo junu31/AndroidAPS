@@ -37,7 +37,6 @@
     <string name="dashboard_stat_carbs">Carbs</string>
     <string name="dashboard_stat_cgm_active">CGM active</string>
     <string name="dashboard_loop_title">Loop decision</string>
-    <string name="dashboard_loop_why">Why? AI explanation</string>
     <string name="dashboard_loop_close">Close</string>
     <string name="dashboard_loop_tbr">Temp basal %1$s U/h (%2$d min)</string>
     <string name="dashboard_loop_tbr_none">Basal unchanged</string>

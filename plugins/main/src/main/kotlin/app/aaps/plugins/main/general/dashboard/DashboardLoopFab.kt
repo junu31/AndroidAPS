@@ -3,6 +3,8 @@ package app.aaps.plugins.main.general.dashboard
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -37,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +49,7 @@ import androidx.compose.ui.unit.sp
 import app.aaps.plugins.main.R
 import kotlin.math.roundToInt
 
-private val FabSize = 52.dp
+private val FabSize = 44.dp
 private val FabMargin = 12.dp
 
 /** Space kept free for the bottom action bar, so the button can't be dropped behind it. */
@@ -56,13 +59,13 @@ private val AiPurple = Color(0xFFA78BFA)
 
 /**
  * Draggable floating button for the last loop decision (Dashboard).
- * Tap: local summary popover (no API). Popover "Why?": AI explanation dialog.
- * Drag: move; the position is stored as fractions via [DashboardActions.onFabMoved].
+ * Tap: local summary popover (no API call). Drag: move; the position is stored as fractions via [DashboardActions.onFabMoved].
  */
 @Composable
 fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actions: DashboardActions) {
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val density = LocalDensity.current
+        val view = LocalView.current
         val marginPx = with(density) { FabMargin.toPx() }
         val maxX = with(density) { (maxWidth - FabSize - FabMargin * 2).toPx() }.coerceAtLeast(1f)
         val maxY = with(density) { (maxHeight - FabSize - BottomReserve - FabMargin).toPx() }.coerceAtLeast(1f)
@@ -91,14 +94,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
                     ),
                 contentAlignment = if (above) Alignment.BottomCenter else Alignment.TopCenter
             ) {
-                LoopPopover(
-                    decision,
-                    onClose = { open = false },
-                    onWhy = {
-                        open = false
-                        actions.onLoopExplain()
-                    }
-                )
+                LoopPopover(decision, onClose = { open = false })
             }
         }
 
@@ -116,10 +112,17 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
             Box(
                 Modifier
                     .size(FabSize)
-                    .shadow(8.dp, RoundedCornerShape(16.dp))
-                    .clip(RoundedCornerShape(16.dp))
+                    .shadow(8.dp, RoundedCornerShape(13.dp))
+                    .clip(RoundedCornerShape(13.dp))
                     .background(Color(0xFF13302C))
-                    .border(1.dp, DashColors.Accent.copy(alpha = 0.55f), RoundedCornerShape(16.dp))
+                    .border(1.dp, DashColors.Accent.copy(alpha = 0.55f), RoundedCornerShape(13.dp))
+                    // the tab pager would otherwise steal the drag; keep it from intercepting as soon as the button is touched
+                    .pointerInput(Unit) {
+                        awaitEachGesture {
+                            awaitFirstDown(requireUnconsumed = false)
+                            view.parent?.requestDisallowInterceptTouchEvent(true)
+                        }
+                    }
                     .pointerInput(maxX, maxY) {
                         detectDragGestures(onDragEnd = { actions.onFabMoved(offset.x / maxX, offset.y / maxY) }) { change, drag ->
                             change.consume()
@@ -131,7 +134,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
             ) {
                 Icon(
                     painterResource(R.drawable.ic_dashboard_loop_explain), contentDescription = stringResource(R.string.dashboard_loop_title),
-                    tint = DashColors.Accent, modifier = Modifier.size(24.dp)
+                    tint = DashColors.Accent, modifier = Modifier.size(20.dp)
                 )
             }
             dot?.let {
@@ -139,7 +142,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
                     Modifier
                         .align(Alignment.TopEnd)
                         .offset(x = 3.dp, y = (-3).dp)
-                        .size(14.dp)
+                        .size(12.dp)
                         .clip(CircleShape)
                         .background(DashColors.Bg)
                         .padding(2.dp)
@@ -152,7 +155,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
 }
 
 @Composable
-private fun LoopPopover(decision: LoopDecision?, onClose: () -> Unit, onWhy: () -> Unit) {
+private fun LoopPopover(decision: LoopDecision?, onClose: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -199,11 +202,12 @@ private fun LoopPopover(decision: LoopDecision?, onClose: () -> Unit, onWhy: () 
                     }
                 }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 12.dp)) {
-            PopoverButton(stringResource(R.string.dashboard_loop_close), DashColors.Card, DashColors.Sub, Modifier.weight(1f), onClose)
-            if (decision != null)
-                PopoverButton("✦ " + stringResource(R.string.dashboard_loop_why), AiPurple, Color(0xFF1B1230), Modifier.weight(1f), onWhy)
-        }
+        PopoverButton(
+            stringResource(R.string.dashboard_loop_close), DashColors.Card, DashColors.Sub,
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 12.dp), onClose
+        )
     }
 }
 

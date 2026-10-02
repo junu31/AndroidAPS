@@ -187,47 +187,22 @@ Rules:
 
                 parseCarbJson(text)
             }
-            .withRetry()
-    }
-
-    /**
-     * Personal-fork: plain-text generation with the same client, key and retry policy
-     * (used by the Dashboard loop-decision explanation).
-     */
-    fun generateText(apiKey: String, systemPrompt: String, userText: String, model: String = DEFAULT_MODEL): Single<String> {
-        if (apiKey.isBlank()) return Single.error(IllegalStateException("API key is empty"))
-        val request = GeminiRequest(
-            contents = listOf(
-                GeminiContent(parts = listOf(GeminiPart(text = systemPrompt)), role = "user"),
-                GeminiContent(parts = listOf(GeminiPart(text = userText)), role = "user")
-            ),
-            generationConfig = GeminiGenerationConfig(responseMimeType = "text/plain", temperature = 0.3)
-        )
-        return api.generateContent(model, apiKey, request)
-            .map { response ->
-                response.error?.let { err -> throw RuntimeException("Gemini error: ${err.message ?: err.status ?: "unknown"}") }
-                response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim()
-                    ?: throw RuntimeException("Empty response from Gemini")
-            }
-            .withRetry()
-    }
-
-    private fun <T : Any> Single<T>.withRetry(): Single<T> =
-        retryWhen { errors ->
-            // Use a counter so the final exhausted attempt explicitly emits the error
-            // instead of completing the inner Flowable empty (which would surface as
-            // NoSuchElementException at the Single layer).
-            val attemptNo = AtomicInteger(0)
-            errors.flatMap { error ->
-                val attempt = attemptNo.incrementAndGet()
-                if (!isRetryableError(error) || attempt > MAX_RETRIES) {
-                    Flowable.error(error)
-                } else {
-                    val delaySec = (attempt.toLong() * attempt.toLong()) // 1s, 4s
-                    Flowable.timer(delaySec, TimeUnit.SECONDS)
+            .retryWhen { errors ->
+                // Use a counter so the final exhausted attempt explicitly emits the error
+                // instead of completing the inner Flowable empty (which would surface as
+                // NoSuchElementException at the Single layer).
+                val attemptNo = AtomicInteger(0)
+                errors.flatMap { error ->
+                    val attempt = attemptNo.incrementAndGet()
+                    if (!isRetryableError(error) || attempt > MAX_RETRIES) {
+                        Flowable.error(error)
+                    } else {
+                        val delaySec = (attempt.toLong() * attempt.toLong()) // 1s, 4s
+                        Flowable.timer(delaySec, TimeUnit.SECONDS)
+                    }
                 }
             }
-        }
+    }
 
     private fun parseCarbJson(raw: String): CarbEstimatePayload {
         // Strip markdown code fence if the model added one despite the config.

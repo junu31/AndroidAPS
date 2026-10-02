@@ -37,7 +37,6 @@
     <string name="dashboard_stat_carbs">탄수화물</string>
     <string name="dashboard_stat_cgm_active">CGM활성률</string>
     <string name="dashboard_loop_title">이번 루프 판단</string>
-    <string name="dashboard_loop_why">왜? AI 설명</string>
     <string name="dashboard_loop_close">닫기</string>
     <string name="dashboard_loop_tbr">임시 기저 %1$s U/h (%2$d분)</string>
     <string name="dashboard_loop_tbr_none">기저 변경 없음</string>

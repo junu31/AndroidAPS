@@ -7,7 +7,7 @@ enum class DecisionKind { UP, DOWN, NONE }
 
 /**
  * Last loop decision for the Dashboard floating button.
- * Built locally from the loop result (no API call); [reason] is the algorithm's original text.
+ * Built locally from the loop result (no API call).
  */
 @Immutable
 data class LoopDecision(
@@ -18,8 +18,7 @@ data class LoopDecision(
     val kind: DecisionKind,
     /** short local explanation, empty when no simple rule matched */
     val summary: String,
-    val facts: List<Pair<String, String>>,
-    val reason: String
+    val facts: List<Pair<String, String>>
 )
 
 /** Values read from the oref reason text ("minPredBG 78", "Eventual BG 104"); null when not present. */

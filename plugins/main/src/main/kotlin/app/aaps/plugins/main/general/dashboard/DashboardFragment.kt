@@ -588,8 +588,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             decision = "$tbrPart · $smbPart",
             kind = kind,
             summary = summary,
-            facts = facts,
-            reason = reason
+            facts = facts
         )
     }
 
@@ -838,14 +837,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         rxBus.send(EventPreferenceChange(IntNonKey.RangeToDisplay.key))
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
         graph = graph.copy(rangeHours = hours)
-    }
-
-    override fun onLoopExplain() {
-        val d = state.loopDecision ?: return
-        if (childFragmentManager.isStateSaved) return
-        uiInteraction.runLoopExplainDialog(
-            childFragmentManager, d.runTime, d.decision, d.reason, d.facts.joinToString(" · ") { "${it.first} ${it.second}" }
-        )
     }
 
     // floating button position survives tab switches and restarts

@@ -20,6 +20,7 @@ import app.aaps.ui.activities.fragments.TreatmentsTemporaryBasalsFragment
 import app.aaps.ui.activities.fragments.TreatmentsUserEntryFragment
 import app.aaps.ui.alertDialogs.ErrorDialog
 import app.aaps.ui.dialogs.AiCarbsDialog
+import app.aaps.ui.dialogs.LoopExplainDialog
 import app.aaps.ui.dialogs.BolusProgressDialog
 import app.aaps.ui.dialogs.CalibrationDialog
 import app.aaps.ui.dialogs.CarbsDialog
@@ -52,6 +53,7 @@ abstract class UiModule {
 
     @ContributesAndroidInjector abstract fun contributesWizardDialog(): WizardDialog
     @ContributesAndroidInjector abstract fun contributesAiCarbsDialog(): AiCarbsDialog
+    @ContributesAndroidInjector abstract fun contributesLoopExplainDialog(): LoopExplainDialog
     @ContributesAndroidInjector abstract fun contributesCalibrationDialog(): CalibrationDialog
     @ContributesAndroidInjector abstract fun contributesCarbsDialog(): CarbsDialog
     @ContributesAndroidInjector abstract fun contributesCareDialog(): CareDialog

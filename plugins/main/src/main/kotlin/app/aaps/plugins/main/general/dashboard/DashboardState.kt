@@ -20,6 +20,9 @@ data class DashboardState(
     val sensitivity: InfoTile = InfoTile(),
     val statusLights: List<StatusLight> = emptyList(),
     val stats: GlucoseStats? = null,
+    val loopDecision: LoopDecision? = null,
+    /** floating button position as fraction of the free area (x, y); null = default (bottom right) */
+    val fabPosition: Pair<Float, Float>? = null,
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,

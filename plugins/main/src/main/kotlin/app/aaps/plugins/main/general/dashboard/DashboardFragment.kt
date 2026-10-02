@@ -291,7 +291,10 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         }
         handler.postDelayed(refreshLoop, 60 * 1000L)
         handler.post { refreshAll() }
-        state = state.copy(pumpStatus = overviewData.pumpStatus, calcProgressPct = overviewData.calcProgressPct)
+        state = state.copy(
+            pumpStatus = overviewData.pumpStatus, calcProgressPct = overviewData.calcProgressPct,
+            fabPosition = if (fabPrefs.contains("fab_x")) fabPrefs.getFloat("fab_x", 1f) to fabPrefs.getFloat("fab_y", 1f) else null
+        )
         popupBolusDialogIfRunning(onClick = false)
     }
 
@@ -538,7 +541,56 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             }
         } else null
 
-        post { it.copy(loop = loopInfo) }
+        val decision = loop.lastRun?.let { buildLoopDecision(it) }
+        post { it.copy(loop = loopInfo, loopDecision = decision) }
+    }
+
+    /** Local, API-free summary of the last loop run for the floating button. */
+    private fun buildLoopDecision(lastRun: Loop.LastRun): LoopDecision? {
+        val result = lastRun.constraintsProcessed ?: lastRun.request ?: return null
+        val reason = (lastRun.request ?: result).reason
+        val profile = profileFunction.getProfile()
+        val units = profileFunction.getUnits()
+        val basal = profile?.getBasal()
+        val tbrPart = when {
+            !result.isTempBasalRequested -> rh.gs(R.string.dashboard_loop_tbr_none)
+            result.duration == 0         -> rh.gs(R.string.dashboard_loop_tbr_cancel)
+            else                         -> rh.gs(R.string.dashboard_loop_tbr, decimalFormatter.to2Decimal(result.rate), result.duration)
+        }
+        val smbPart = if (result.smb > 0) rh.gs(R.string.dashboard_loop_smb, decimalFormatter.to2Decimal(result.smb)) else rh.gs(R.string.dashboard_loop_smb_none)
+        val kind = when {
+            result.smb > 0                                                                  -> DecisionKind.UP
+            result.isTempBasalRequested && basal != null && result.rate > basal + 0.001 -> DecisionKind.UP
+            result.isTempBasalRequested && basal != null && result.rate < basal - 0.001 -> DecisionKind.DOWN
+            result.isTempBasalRequested && result.duration > 0 && result.rate == 0.0      -> DecisionKind.DOWN
+            else                                                                            -> DecisionKind.NONE
+        }
+        val target = result.targetBG.takeIf { it > 0 }?.let { profileUtil.fromMgdlToStringInUnits(it, units) }
+        val minPred = LoopReasonParser.minPredBg(reason)
+        val eventual = LoopReasonParser.eventualBg(reason)
+        val summary = when {
+            result.smb > 0 && eventual != null && target != null      -> rh.gs(R.string.dashboard_loop_why_smb, eventual, target)
+            kind == DecisionKind.DOWN && minPred != null && target != null -> rh.gs(R.string.dashboard_loop_why_low, minPred, target)
+            kind == DecisionKind.UP && eventual != null && target != null  -> rh.gs(R.string.dashboard_loop_why_high, eventual, target)
+            kind == DecisionKind.NONE                                      -> rh.gs(R.string.dashboard_loop_why_none)
+            else                                                           -> ""
+        }
+        val facts = buildList {
+            result.iob?.let { add("IOB" to rh.gs(app.aaps.core.ui.R.string.format_insulin_units, it.iob)) }
+            result.mealData?.let { add("COB" to rh.gs(app.aaps.core.objects.R.string.format_carbs, it.mealCOB.toInt())) }
+            minPred?.let { add(rh.gs(R.string.dashboard_loop_min_pred) to it) }
+            eventual?.let { add(rh.gs(R.string.dashboard_loop_eventual) to it) }
+            target?.let { add(rh.gs(R.string.dashboard_target) to it) }
+        }
+        return LoopDecision(
+            runTime = lastRun.lastAPSRun,
+            runTimeText = dateUtil.timeString(lastRun.lastAPSRun) + " · " + dateUtil.minAgo(rh, lastRun.lastAPSRun),
+            decision = "$tbrPart · $smbPart",
+            kind = kind,
+            summary = summary,
+            facts = facts,
+            reason = reason
+        )
     }
 
     private fun updateTimeAndStatusLights() {
@@ -786,6 +838,22 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         rxBus.send(EventPreferenceChange(IntNonKey.RangeToDisplay.key))
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
         graph = graph.copy(rangeHours = hours)
+    }
+
+    override fun onLoopExplain() {
+        val d = state.loopDecision ?: return
+        if (childFragmentManager.isStateSaved) return
+        uiInteraction.runLoopExplainDialog(
+            childFragmentManager, d.runTime, d.decision, d.reason, d.facts.joinToString(" · ") { "${it.first} ${it.second}" }
+        )
+    }
+
+    // floating button position survives tab switches and restarts
+    private val fabPrefs by lazy { requireContext().getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE) }
+
+    override fun onFabMoved(x: Float, y: Float) {
+        fabPrefs.edit().putFloat("fab_x", x).putFloat("fab_y", y).apply()
+        state = state.copy(fabPosition = x to y)
     }
 
     override fun showInfo(title: String, text: String) {

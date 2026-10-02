@@ -36,4 +36,19 @@
     <string name="dashboard_stat_basal">Basal</string>
     <string name="dashboard_stat_carbs">Carbs</string>
     <string name="dashboard_stat_cgm_active">CGM active</string>
+    <string name="dashboard_loop_title">Loop decision</string>
+    <string name="dashboard_loop_why">Why? AI explanation</string>
+    <string name="dashboard_loop_close">Close</string>
+    <string name="dashboard_loop_tbr">Temp basal %1$s U/h (%2$d min)</string>
+    <string name="dashboard_loop_tbr_none">Basal unchanged</string>
+    <string name="dashboard_loop_tbr_cancel">Temp basal cancelled</string>
+    <string name="dashboard_loop_smb">SMB %1$s U</string>
+    <string name="dashboard_loop_smb_none">no SMB</string>
+    <string name="dashboard_loop_why_low">Lowest predicted BG (%1$s) is below target (%2$s).</string>
+    <string name="dashboard_loop_why_high">Eventual BG (%1$s) is above target (%2$s).</string>
+    <string name="dashboard_loop_why_smb">BG is predicted to end above target (%1$s &gt; %2$s), so an SMB was given.</string>
+    <string name="dashboard_loop_why_none">The current basal was judged appropriate.</string>
+    <string name="dashboard_loop_min_pred">Lowest pred.</string>
+    <string name="dashboard_loop_eventual">Eventual</string>
+    <string name="dashboard_loop_none">No loop run yet</string>
 </resources>

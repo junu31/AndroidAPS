@@ -16,6 +16,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.edit
+import kotlinx.coroutines.flow.first
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -345,8 +346,13 @@ private const val KEY_HERO_PAGE = "hero_page"
 private fun HeroPager(state: DashboardState, actions: DashboardActions) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS_UI, Context.MODE_PRIVATE) }
-    val pagerState = rememberPagerState(initialPage = prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, 1)) { 2 }
+    val savedPage = remember { prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, 1) }
+    val pagerState = rememberPagerState(initialPage = savedPage) { 2 }
     LaunchedEffect(pagerState) {
+        // the tab is composed off screen without a width first, which drops the pager back to page 0:
+        // restore the saved page once it has a size and only then start remembering the user's choice
+        snapshotFlow { pagerState.layoutInfo.viewportSize.width }.first { it > 0 }
+        if (pagerState.currentPage != savedPage) pagerState.scrollToPage(savedPage)
         snapshotFlow { pagerState.settledPage }.collect { prefs.edit { putInt(KEY_HERO_PAGE, it) } }
     }
     // the main tabs are a ViewPager2: keep it from taking the swipe while the finger is on the card

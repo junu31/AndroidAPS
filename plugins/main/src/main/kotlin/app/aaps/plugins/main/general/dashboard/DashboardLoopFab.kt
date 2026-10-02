@@ -76,6 +76,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
         }
         var open by remember { mutableStateOf(false) }
         val fabCoords = remember { arrayOfNulls<LayoutCoordinates>(1) }
+        val dragAnchor = remember { arrayOfNulls<Offset>(2) } // [touch-down root position, button offset at touch-down]
 
         if (open) {
             Box(
@@ -122,24 +123,21 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
                     // the tab pager would otherwise steal the drag; keep it from intercepting as soon as the button is touched
                     .pointerInput(Unit) {
                         awaitEachGesture {
-                            awaitFirstDown(requireUnconsumed = false)
+                            val down = awaitFirstDown(requireUnconsumed = false)
                             view.parent?.requestDisallowInterceptTouchEvent(true)
+                            // anchor at the touch-down point so the touch-slop distance is not lost
+                            dragAnchor[0] = fabCoords[0]?.localToRoot(down.position)
+                            dragAnchor[1] = offset
                         }
                     }
                     .onGloballyPositioned { fabCoords[0] = it }
                     .pointerInput(maxX, maxY) {
                         // track the finger in root coordinates: local deltas shrink while the button itself moves
-                        var startRoot = Offset.Zero
-                        var startOffset = Offset.Zero
-                        detectDragGestures(
-                            onDragStart = { local ->
-                                startRoot = fabCoords[0]?.localToRoot(local) ?: local
-                                startOffset = offset
-                            },
-                            onDragEnd = { actions.onFabMoved(offset.x / maxX, offset.y / maxY) }
-                        ) { change, _ ->
+                        detectDragGestures(onDragEnd = { actions.onFabMoved(offset.x / maxX, offset.y / maxY) }) { change, _ ->
                             change.consume()
                             val root = fabCoords[0]?.localToRoot(change.position) ?: return@detectDragGestures
+                            val startRoot = dragAnchor[0] ?: return@detectDragGestures
+                            val startOffset = dragAnchor[1] ?: return@detectDragGestures
                             val target = startOffset + (root - startRoot)
                             offset = Offset(target.x.coerceIn(0f, maxX), target.y.coerceIn(0f, maxY))
                         }

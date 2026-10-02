@@ -27,7 +27,8 @@ object WeeklyReviewMath {
 
     fun changePct(current: Double, tuned: Double): Int = if (current == 0.0) 0 else ((tuned / current - 1) * 100).roundToInt()
 
-    private fun same(a: Double, b: Double) = abs(a - b) < 0.005
+    // Autotune shows basal with 3 decimals; ranges are only merged when equal at that precision
+    private fun same(a: Double, b: Double) = abs(a - b) < 0.0005
 
     /** Data quality of one Autotune day (04:00 → 04:00). */
     data class DayQuality(val dayStart: Long, val bgCount: Int, val carbEntries: Int) {

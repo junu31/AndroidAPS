@@ -9,6 +9,7 @@ import android.view.Window
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.interfaces.autotune.Autotune
 import app.aaps.core.interfaces.autotune.AutotuneSummary
 import app.aaps.core.interfaces.db.PersistenceLayer
@@ -245,8 +246,8 @@ Rules:
             addRow(
                 binding.basalRows,
                 String.format(Locale.getDefault(), "%02d–%02d", r.startHour, r.endHour),
-                String.format(Locale.getDefault(), "%.2f", r.current),
-                String.format(Locale.getDefault(), "%.2f", r.tuned),
+                String.format(Locale.getDefault(), "%.3f", r.current),
+                String.format(Locale.getDefault(), "%.3f", r.tuned),
                 r.changePct
             )
         }
@@ -254,15 +255,18 @@ Rules:
 
     private fun renderRatios(s: AutotuneSummary) {
         binding.ratioRows.removeAllViews()
-        val units = profileUtil.units.asText
+        // same precision as the Autotune tab: ISF 1 decimal (mg/dL) / 2 decimals (mmol/L), IC 2 decimals
+        val units = profileUtil.units
+        val isfFormat = if (units == GlucoseUnit.MMOL) "%.2f" else "%.1f"
         addRow(
-            binding.ratioRows, "ISF ($units/U)",
-            profileUtil.fromMgdlToStringInUnits(s.currentIsfMgdl), profileUtil.fromMgdlToStringInUnits(s.tunedIsfMgdl),
+            binding.ratioRows, "ISF (${units.asText}/U)",
+            String.format(Locale.getDefault(), isfFormat, profileUtil.fromMgdlToUnits(s.currentIsfMgdl)),
+            String.format(Locale.getDefault(), isfFormat, profileUtil.fromMgdlToUnits(s.tunedIsfMgdl)),
             WeeklyReviewMath.changePct(s.currentIsfMgdl, s.tunedIsfMgdl)
         )
         addRow(
             binding.ratioRows, "IC (g/U)",
-            String.format(Locale.getDefault(), "%.1f", s.currentIc), String.format(Locale.getDefault(), "%.1f", s.tunedIc),
+            String.format(Locale.getDefault(), "%.2f", s.currentIc), String.format(Locale.getDefault(), "%.2f", s.tunedIc),
             WeeklyReviewMath.changePct(s.currentIc, s.tunedIc)
         )
     }
@@ -339,10 +343,10 @@ Rules:
         appendLine("기간: 최근 ${s.days}일, 프로필: ${s.profileName}")
         appendLine("기저 (시간대: 현재 → 제안, 변화):")
         WeeklyReviewMath.basalRanges(s.currentBasal, s.tunedBasal).forEach {
-            appendLine(String.format(Locale.US, "%02d-%02d: %.2f → %.2f U/h (%+d%%)", it.startHour, it.endHour, it.current, it.tuned, it.changePct))
+            appendLine(String.format(Locale.US, "%02d-%02d: %.3f → %.3f U/h (%+d%%)", it.startHour, it.endHour, it.current, it.tuned, it.changePct))
         }
         appendLine(String.format(Locale.US, "ISF: %.1f → %.1f mg/dL/U (%+d%%)", s.currentIsfMgdl, s.tunedIsfMgdl, WeeklyReviewMath.changePct(s.currentIsfMgdl, s.tunedIsfMgdl)))
-        appendLine(String.format(Locale.US, "IC: %.1f → %.1f g/U (%+d%%)", s.currentIc, s.tunedIc, WeeklyReviewMath.changePct(s.currentIc, s.tunedIc)))
+        appendLine(String.format(Locale.US, "IC: %.2f → %.2f g/U (%+d%%)", s.currentIc, s.tunedIc, WeeklyReviewMath.changePct(s.currentIc, s.tunedIc)))
         val bad = quality.filterNot { it.ok }
         if (bad.isEmpty()) appendLine("데이터 품질: 7일 모두 양호")
         else {

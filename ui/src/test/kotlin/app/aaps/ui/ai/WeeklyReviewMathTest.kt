@@ -20,6 +20,14 @@ class WeeklyReviewMathTest {
     }
 
     @Test
+    fun `hours differing only in the third decimal stay separate`() {
+        val current = List(24) { 0.700 }
+        val tuned = List(24) { if (it < 12) 0.683 else 0.687 }
+        val r = WeeklyReviewMath.basalRanges(current, tuned)
+        assertThat(r.map { it.startHour to it.endHour }).containsExactly(0 to 12, 12 to 24).inOrder()
+    }
+
+    @Test
     fun `day quality flags sensor gaps and missing carbs`() {
         assertThat(WeeklyReviewMath.DayQuality(0, 280, 3).ok).isTrue()
         assertThat(WeeklyReviewMath.DayQuality(0, 150, 3).sensorGap).isTrue()

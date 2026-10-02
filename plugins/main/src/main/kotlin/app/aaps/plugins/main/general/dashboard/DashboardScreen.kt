@@ -404,7 +404,10 @@ private fun PageDots(current: Int, count: Int) {
     }
 }
 
-/** Second card: BG inside the loop icon with the trend circle (option B, colors follow the BG range). */
+/**
+ * Second card: BG inside the loop icon with the trend circle (option B, colors follow the BG range).
+ * Split by grid lines: ring | right side, right side = delta bars / 2x2 IOB, COB, Basal, Sens.
+ */
 @Composable
 private fun RingCard(state: DashboardState, actions: DashboardActions) {
     val bg = state.bg
@@ -413,40 +416,94 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
         Box(
             Modifier
                 .matchParentSize()
-                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(900f, 0f)))
+                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(0f, 0f)))
         )
-        Column(Modifier.padding(start = 12.dp, end = 18.dp, top = 6.dp, bottom = 8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // tapping the BG opens the last loop decision, like on the first card
-                var showDecision by remember { mutableStateOf(false) }
-                Box {
-                    BgRing(
-                        bg, color, state.loop, 150.dp,
-                        Modifier
-                            .clip(RoundedCornerShape(75.dp))
-                            .clickable { showDecision = true }
-                    )
-                    // top left stays free: the trend triangles never point there
-                    LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 10.dp, top = 10.dp))
-                }
-                if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
-                Spacer(Modifier.width(10.dp))
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            // tapping the BG opens the last loop decision, like on the first card
+            var showDecision by remember { mutableStateOf(false) }
+            Box(Modifier.padding(6.dp)) {
+                BgRing(
+                    bg, color, state.loop, 156.dp,
+                    Modifier
+                        .clip(RoundedCornerShape(78.dp))
+                        .clickable { showDecision = true }
+                )
+                // top left stays free: the trend triangles never point there
+                LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 4.dp, top = 4.dp))
+            }
+            if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
+            GridLineV()
+            Column(Modifier.weight(1f)) {
                 Column(
-                    Modifier.weight(1f),
-                    horizontalAlignment = Alignment.End,
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                    Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
                 ) {
-                    state.loop?.let { LoopPill(it, actions) }
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
-                        DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
-                        DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
-                    }
-                    Text(bg.timeAgo, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
+                    DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
+                    DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
+                }
+                GridLineH()
+                Row(Modifier.weight(1f)) {
+                    GridStat("IOB", DashColors.Iob, state.iob, actions)
+                    GridLineV()
+                    GridStat("COB", DashColors.Cob, state.cob, actions)
+                }
+                GridLineH()
+                Row(Modifier.weight(1f)) {
+                    GridStat("Basal", DashColors.Basal, state.basal, actions)
+                    GridLineV()
+                    GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
                 }
             }
-            HeroStats(state, actions)
         }
+    }
+}
+
+@Composable
+private fun GridLineV() {
+    Box(
+        Modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun GridLineH() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun RowScope.GridStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions) {
+    Column(
+        Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
+            .padding(horizontal = 4.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(label, color = DashColors.Sub, fontSize = 10.5.sp, maxLines = 1)
+        }
+        Text(
+            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
+        )
     }
 }
 

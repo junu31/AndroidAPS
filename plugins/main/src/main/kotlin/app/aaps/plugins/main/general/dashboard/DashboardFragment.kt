@@ -293,10 +293,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         }
         handler.postDelayed(refreshLoop, 60 * 1000L)
         handler.post { refreshAll() }
-        state = state.copy(
-            pumpStatus = overviewData.pumpStatus, calcProgressPct = overviewData.calcProgressPct,
-            fabPosition = if (fabPrefs.contains("fab_x")) fabPrefs.getFloat("fab_x", 1f) to fabPrefs.getFloat("fab_y", 1f) else null
-        )
+        state = state.copy(pumpStatus = overviewData.pumpStatus, calcProgressPct = overviewData.calcProgressPct)
         popupBolusDialogIfRunning(onClick = false)
     }
 
@@ -845,15 +842,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         graph = graph.copy(rangeHours = hours)
     }
 
-    // floating button position survives tab switches and restarts
-    private val fabPrefs by lazy { requireContext().getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE) }
-
     override fun onWeeklyReview() = withBolusProtection { uiInteraction.runWeeklyReviewDialog(childFragmentManager) }
-
-    override fun onFabMoved(x: Float, y: Float) {
-        fabPrefs.edit().putFloat("fab_x", x).putFloat("fab_y", y).apply()
-        state = state.copy(fabPosition = x to y)
-    }
 
     override fun showInfo(title: String, text: String) {
         activity?.let { OKDialog.show(it, title, text) }

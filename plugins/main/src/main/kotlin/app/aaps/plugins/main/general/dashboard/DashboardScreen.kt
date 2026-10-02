@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -29,6 +30,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -96,7 +101,6 @@ interface DashboardActions {
     fun onAcceptTemp()
     fun onScale(hours: Int)
     fun showInfo(title: String, text: String)
-    fun onFabMoved(x: Float, y: Float)
     fun onWeeklyReview()
 }
 
@@ -142,7 +146,6 @@ fun DashboardScreen(
                 SecondaryActions(state.buttons, actions)
         }
         BottomActions(state, actions, Modifier.align(Alignment.BottomCenter))
-        LoopFabOverlay(state.loopDecision, state.fabPosition, actions)
     }
 }
 
@@ -260,15 +263,26 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                 // left: BG value + trend arrow
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                    Text(
-                        bg.value,
-                        color = color,
-                        fontSize = 58.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-2).sp,
-                        maxLines = 1,
-                        textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
-                    )
+                    // tapping the BG value opens the last loop decision; the small bubble marks it as tappable
+                    var showDecision by remember { mutableStateOf(false) }
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showDecision = true }
+                            .padding(end = 2.dp)
+                    ) {
+                        Text(
+                            bg.value,
+                            color = color,
+                            fontSize = 58.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-2).sp,
+                            maxLines = 1,
+                            textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
+                        )
+                        LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 2.dp, top = 6.dp))
+                    }
+                    if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
                     Spacer(Modifier.width(10.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         bg.arrowRes?.let {

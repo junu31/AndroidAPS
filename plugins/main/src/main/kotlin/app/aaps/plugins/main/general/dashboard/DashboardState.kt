@@ -23,8 +23,6 @@ data class DashboardState(
     val loopDecision: LoopDecision? = null,
     /** null = Autotune not enabled (card hidden); "" = never reviewed; otherwise e.g. "6 days ago" */
     val weeklyReviewLast: String? = null,
-    /** floating button position as fraction of the free area (x, y); null = default (bottom right) */
-    val fabPosition: Pair<Float, Float>? = null,
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,

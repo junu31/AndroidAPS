@@ -417,6 +417,7 @@ class MyPreferenceFragment : PreferenceFragmentCompat(), OnSharedPreferenceChang
                     summary = app.aaps.plugins.main.R.string.theme_switcher_summary
                 )
             )
+            addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.GeneralModernTheme, title = app.aaps.plugins.main.R.string.modern_design, summary = app.aaps.plugins.main.R.string.modern_design_summary))
         }
     }
 

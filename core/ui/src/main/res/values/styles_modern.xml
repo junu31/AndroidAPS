@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: "new design" theme. Only applied in dark mode, light mode keeps the classic look. -->
+<resources>
+    <style name="ThemeOverlay.Aaps.Modern" parent="" />
+    <style name="DialogTheme.Modern" />
+</resources>

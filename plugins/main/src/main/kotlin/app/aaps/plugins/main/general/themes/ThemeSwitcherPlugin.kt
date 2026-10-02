@@ -12,8 +12,10 @@ import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventPreferenceChange
 import app.aaps.core.interfaces.rx.events.EventThemeSwitch
+import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.ModernTheme
 import app.aaps.plugins.main.R
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -46,6 +48,10 @@ class ThemeSwitcherPlugin @Inject constructor(
                     setThemeMode()
                     rxBus.send(EventThemeSwitch())
                 }
+                if (it.isChanged(BooleanKey.GeneralModernTheme.key)) {
+                    ModernTheme.enabled = preferences.get(BooleanKey.GeneralModernTheme)
+                    rxBus.send(EventThemeSwitch())
+                }
             }
     }
 
@@ -60,6 +66,7 @@ class ThemeSwitcherPlugin @Inject constructor(
             MODE_NIGHT_FOLLOW_SYSTEM
         }
         AppCompatDelegate.setDefaultNightMode(mode)
+        ModernTheme.enabled = preferences.get(BooleanKey.GeneralModernTheme)
     }
 
     override fun onStop() {

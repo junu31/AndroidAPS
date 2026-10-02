@@ -54,4 +54,6 @@
     <string name="dashboard_weekly_review_never">Suggested profile changes from the last 7 days</string>
     <string name="dashboard_weekly_review_last">Last review: %1$s</string>
     <string name="dashboard_weekly_review_open">Review</string>
+    <string name="modern_design">New design</string>
+    <string name="modern_design_summary">Dashboard-like colors and rounded buttons in all screens (dark mode only)</string>
 </resources>

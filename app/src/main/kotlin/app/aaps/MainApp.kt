@@ -39,6 +39,7 @@ import app.aaps.core.keys.LongComposedKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.ModernTheme
 import app.aaps.core.ui.extensions.runOnUiThread
 import app.aaps.core.ui.locale.LocaleHelper
 import app.aaps.core.utils.JsonHelper
@@ -132,6 +133,10 @@ class MainApp : DaggerApplication() {
         // Register and initialize plugins
         pluginStore.plugins = plugins
         configBuilder.initialize()
+
+        // Personal-fork: "new design" overlay must be registered before the first activity
+        ModernTheme.enabled = preferences.get(BooleanKey.GeneralModernTheme)
+        ModernTheme.register(this)
 
         // Do initializations in another thread
         scope.launch { doInit() }

@@ -21,6 +21,7 @@ import androidx.appcompat.view.ContextThemeWrapper
 import androidx.core.content.ContextCompat
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
+import app.aaps.core.ui.ModernTheme
 import app.aaps.core.ui.getThemeColor
 import app.aaps.core.ui.locale.LocaleHelper
 import dagger.Reusable
@@ -99,10 +100,10 @@ class ResourceHelperImpl @Inject constructor(var context: Context, private val f
     override fun shortTextMode(): Boolean = !gb(app.aaps.core.ui.R.bool.isTablet)
 
     override fun gac(context: Context?, attributeId: Int): Int =
-        (ContextThemeWrapper(context ?: this.context, app.aaps.core.ui.R.style.AppTheme)).getThemeColor(attributeId)
+        (ContextThemeWrapper(context ?: this.context, app.aaps.core.ui.R.style.AppTheme)).also { ModernTheme.applyTo(it) }.getThemeColor(attributeId)
 
     override fun gac(attributeId: Int): Int =
-        ContextThemeWrapper(this.context, app.aaps.core.ui.R.style.AppTheme).getThemeColor(attributeId)
+        ContextThemeWrapper(this.context, app.aaps.core.ui.R.style.AppTheme).also { ModernTheme.applyTo(it) }.getThemeColor(attributeId)
 
     override fun getThemedCtx(context: Context): Context {
         val res: Resources = context.resources

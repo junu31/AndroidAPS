@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: "new design" theme overlay, applied on top of AppTheme to every activity when enabled -->
+<resources>
+    <style name="ThemeOverlay.Aaps.Modern" parent="">
+        <item name="android:windowBackground">@color/modern_bg</item>
+        <item name="android:statusBarColor">@color/modern_bg</item>
+        <item name="android:navigationBarColor">@color/modern_bg</item>
+        <item name="colorPrimary">@color/modern_accent</item>
+        <item name="colorAccent">@color/modern_accent</item>
+        <item name="colorSecondary">@color/modern_accent</item>
+        <item name="colorOnSecondary">@color/modern_on_accent</item>
+        <item name="colorControlActivated">@color/modern_accent</item>
+        <!-- number picker +/- and other ImageButtons -->
+        <item name="colorButtonNormal">@color/modern_card2</item>
+        <item name="colorSurface">@color/modern_card</item>
+        <item name="backgroundColor">@color/modern_card</item>
+        <!-- flat cards in the dashboard palette instead of elevation-lightened gray -->
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="defaultBackground">@color/modern_bg</item>
+        <item name="automationBackgroundColor">@color/modern_bg</item>
+        <item name="dialogTitleBackground">@android:color/transparent</item>
+        <item name="android:dialogCornerRadius">22dp</item>
+        <item name="ribbonDefaultColor">@color/modern_card2</item>
+        <item name="toastBackgroundColor">@color/modern_card2</item>
+        <item name="materialAlertDialogTheme">@style/DialogTheme.Modern</item>
+        <item name="android:alertDialogTheme">@style/DialogTheme.Modern</item>
+        <item name="alertDialogTheme">@style/DialogTheme.Modern</item>
+        <!-- rounded, non-caps buttons (see ModernViewInflater) -->
+        <item name="viewInflaterClass">app.aaps.core.ui.ModernViewInflater</item>
+    </style>
+
+    <style name="DialogTheme.Modern">
+        <item name="colorSurface">@color/modern_card</item>
+        <item name="colorPrimary">@color/modern_accent</item>
+        <item name="colorAccent">@color/modern_accent</item>
+        <item name="shapeAppearanceMediumComponent">@style/ShapeAppearance.Aaps.Modern.Dialog</item>
+    </style>
+
+    <style name="ShapeAppearance.Aaps.Modern.Dialog" parent="ShapeAppearance.MaterialComponents.MediumComponent">
+        <item name="cornerSize">22dp</item>
+    </style>
+</resources>

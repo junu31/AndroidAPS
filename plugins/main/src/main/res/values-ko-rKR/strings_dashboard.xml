@@ -54,4 +54,6 @@
     <string name="dashboard_weekly_review_never">최근 7일 기록으로 프로필 조정안 보기</string>
     <string name="dashboard_weekly_review_last">마지막 검토 %1$s</string>
     <string name="dashboard_weekly_review_open">검토하기</string>
+    <string name="modern_design">신규 디자인</string>
+    <string name="modern_design_summary">모든 화면을 대시보드와 같은 색상과 둥근 버튼으로 표시 (다크 모드에서만 적용)</string>
 </resources>

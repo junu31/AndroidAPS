@@ -23,6 +23,7 @@ import androidx.recyclerview.widget.RecyclerView
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.RM
+import app.aaps.core.data.model.TrendArrow
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
@@ -363,6 +364,12 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             range = range,
             isActual = isActualBg,
             arrowRes = trendArrow?.directionToIcon(),
+            trendLevel = when (trendArrow) {
+                TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN -> 3
+                TrendArrow.SINGLE_UP, TrendArrow.SINGLE_DOWN                                               -> 2
+                TrendArrow.FORTY_FIVE_UP, TrendArrow.FORTY_FIVE_DOWN                                       -> 1
+                else                                                                                       -> 0
+            },
             arrowDescription = lastBgDescription + " " + rh.gs(app.aaps.core.ui.R.string.and) + " " + trendDescription,
             delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: "",
             shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",

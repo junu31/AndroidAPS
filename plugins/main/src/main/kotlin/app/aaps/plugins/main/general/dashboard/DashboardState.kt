@@ -35,6 +35,8 @@ data class BgInfo(
     val isActual: Boolean = true,
     @DrawableRes val arrowRes: Int? = null,
     val arrowDescription: String = "",
+    /** 0 = flat/none, 1 = 45 degrees, 2 = single, 3 = double / triple (drives the arrow tile intensity) */
+    val trendLevel: Int = 0,
     val delta: String = "",
     val shortAvgDelta: String = "",
     val longAvgDelta: String = "",

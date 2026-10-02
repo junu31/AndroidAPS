@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
@@ -269,11 +268,14 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                     Spacer(Modifier.width(10.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         bg.arrowRes?.let {
+                            // rounded-square tile like the buttons; the faster the change, the stronger the tint
+                            val tint = listOf(0.12f, 0.18f, 0.28f, 0.45f)[bg.trendLevel.coerceIn(0, 3)]
                             Box(
                                 Modifier
                                     .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(color.copy(alpha = 0.15f)),
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(color.copy(alpha = tint))
+                                    .border(1.dp, color.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(24.dp))

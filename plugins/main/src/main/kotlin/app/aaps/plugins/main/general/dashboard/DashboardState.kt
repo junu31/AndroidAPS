@@ -26,7 +26,9 @@ data class DashboardState(
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,
-    val simpleMode: Boolean = false
+    val simpleMode: Boolean = false,
+    /** false = the BG cards are drawn without card background / border (setting) */
+    val bgCardBackground: Boolean = true
 )
 
 enum class BgRange { LOW, IN_RANGE, HIGH, UNKNOWN }

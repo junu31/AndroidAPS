@@ -1,10 +1,16 @@
 package app.aaps.plugins.main.general.dashboard
 
+import android.content.Context
+import androidx.preference.PreferenceCategory
+import androidx.preference.PreferenceManager
+import androidx.preference.PreferenceScreen
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.plugin.PluginBase
 import app.aaps.core.interfaces.plugin.PluginDescription
 import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.plugins.main.R
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -27,6 +33,25 @@ class DashboardPlugin @Inject constructor(
         .enableByDefault(true)
         .visibleByDefault(true)
         .simpleModePosition(PluginDescription.Position.TAB)
+        .preferencesId(PluginDescription.PREFERENCE_SCREEN)
         .description(R.string.description_dashboard),
     aapsLogger, rh
-)
+) {
+
+    override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
+        if (requiredKey != null) return
+        val category = PreferenceCategory(context)
+        parent.addPreference(category)
+        category.apply {
+            key = "dashboard_settings"
+            title = rh.gs(R.string.dashboard)
+            initialExpandedChildrenCount = 0
+            addPreference(
+                AdaptiveSwitchPreference(
+                    ctx = context, booleanKey = BooleanKey.DashboardBgCardBackground,
+                    title = R.string.dashboard_bg_card_background, summary = R.string.dashboard_bg_card_background_summary
+                )
+            )
+        }
+    }
+}

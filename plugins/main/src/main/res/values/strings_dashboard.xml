@@ -56,4 +56,6 @@
     <string name="dashboard_weekly_review_open">Review</string>
     <string name="modern_design">New design</string>
     <string name="modern_design_summary">Dashboard style (dark mode only)</string>
+    <string name="dashboard_bg_card_background">BG cards as cards</string>
+    <string name="dashboard_bg_card_background_summary">Background and border around the BG cards on the dashboard</string>
 </resources>

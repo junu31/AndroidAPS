@@ -395,7 +395,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             qualityIcon = qualityIcon,
             qualityMessage = if (qualityIcon != 0) bgQualityCheck.stateDescription() else ""
         )
-        post { it.copy(bg = info, simpleMode = preferences.simpleMode) }
+        post { it.copy(bg = info, simpleMode = preferences.simpleMode, bgCardBackground = preferences.get(BooleanKey.DashboardBgCardBackground)) }
     }
 
     // ---------- Profile / target ----------

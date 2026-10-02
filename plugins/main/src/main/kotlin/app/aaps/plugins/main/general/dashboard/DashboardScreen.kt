@@ -173,9 +173,16 @@ private fun SectionTitle(text: String) {
 }
 
 @Composable
-private fun CardBox(modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
+private fun CardBox(modifier: Modifier = Modifier, plain: Boolean = false, content: @Composable BoxScope.() -> Unit) {
     Box(
-        modifier
+        // without the card the content spreads to the screen edges like the graph below
+        if (plain) modifier.layout { measurable, constraints ->
+            val extra = (ScreenPadding * 2).roundToPx()
+            val width = constraints.maxWidth + extra
+            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+        }
+        else modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(22.dp))
             .background(DashColors.Card)
@@ -265,8 +272,8 @@ private fun CompactRibbon(@DrawableRes icon: Int, description: String, info: Rib
 private fun HeroCard(state: DashboardState, actions: DashboardActions) {
     val bg = state.bg
     val color = bg.range.color()
-    CardBox {
-        Box(
+    CardBox(plain = !state.bgCardBackground) {
+        if (state.bgCardBackground) Box(
             Modifier
                 .matchParentSize()
                 .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(900f, 0f)))
@@ -418,8 +425,8 @@ private fun PageDots(current: Int, count: Int) {
 private fun RingCard(state: DashboardState, actions: DashboardActions) {
     val bg = state.bg
     val color = bg.range.color()
-    CardBox {
-        Box(
+    CardBox(plain = !state.bgCardBackground) {
+        if (state.bgCardBackground) Box(
             Modifier
                 .matchParentSize()
                 .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(0f, 0f)))

@@ -3,6 +3,7 @@ package app.aaps.plugins.main.general.dashboard
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -71,7 +72,8 @@ fun BgRing(
                 modifier = Modifier.size(iconSize)
             )
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        // the loop arrow head reaches into the right side of the ring, so the value sits a bit to the left
+        Column(Modifier.offset(x = -size * 0.03f), horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 bg.value,
                 color = color,

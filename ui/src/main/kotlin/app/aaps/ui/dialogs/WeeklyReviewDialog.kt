@@ -87,7 +87,7 @@ Rules:
         super.onStart()
         dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
         val metrics = resources.displayMetrics
-        dialog?.window?.setLayout(metrics.widthPixels - (24 * metrics.density).toInt(), (metrics.heightPixels * 0.9).toInt())
+        dialog?.window?.setLayout(metrics.widthPixels - (24 * metrics.density).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
     }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -182,7 +182,12 @@ Rules:
         // all weekdays, current profile; same calculation as the Autotune tab
         disposable += Single.fromCallable { autotune.aapsAutotune(DAYS, false, "", BooleanArray(7) { true }) }
             .subscribeOn(aapsSchedulers.io)
-            .subscribe({}, { aapsLogger.error(LTag.UI, "Weekly review autotune", it) })
+            .subscribe({}, {
+                // Autotune can throw (e.g. NaN with too little data) and then leaves its "running" flag set
+                aapsLogger.error(LTag.UI, "Weekly review autotune", it)
+                autotune.calculationRunning = false
+                autotune.lastRunSuccess = false
+            })
         watchRun()
     }
 

@@ -193,7 +193,7 @@
     <string name="weekly_review_run_confirm">지금 프로필로 최근 7일 Autotune을 실행할까요? 마지막 Autotune 결과가 이번 결과로 바뀌어요.</string>
     <string name="weekly_review_run_confirm_reverted">%1$s 프로필은 지난 제안으로 덮어쓴 상태예요. 새로 검토하면 \'되돌리기\'로 덮어쓰기 전 값으로 돌아갈 수 없게 돼요. 계속할까요?</string>
     <string name="weekly_review_running">Autotune 계산 중… 1분 정도 걸릴 수 있어요.</string>
-    <string name="weekly_review_failed">Autotune 결과가 나오지 않았어요. AT 로그를 확인해 주세요.</string>
+    <string name="weekly_review_failed">Autotune 결과를 계산하지 못했어요. 최근 7일의 혈당·탄수화물 기록이 너무 적으면 이렇게 돼요.</string>
     <string name="weekly_review_none">아직 검토 결과가 없어요. \'검토하기\'를 누르면 최근 7일을 분석해요.</string>
     <string name="weekly_review_meta">%1$d일 · %2$s · %3$s</string>
     <string name="weekly_review_save_new_confirm">조정안을 새 로컬 프로필로 저장할까요?\n%1$s\n지금 쓰는 프로필은 그대로예요.</string>

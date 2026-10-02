@@ -247,16 +247,13 @@
     <string name="weekly_review_run">Run review (7 days)</string>
     <string name="weekly_review_close">Close</string>
     <string name="weekly_review_run_confirm">Run Autotune for the last 7 days with the current profile? This replaces the last Autotune result.</string>
-    <string name="weekly_review_run_confirm_reverted">%1$s was overwritten with the last suggestion. If you run a new review, 'Revert' will no longer restore the values from before that overwrite. Continue?</string>
+    <string name="weekly_review_run_confirm_reverted">%1$s was overwritten with the last suggestion. If you run a new review, \'Revert\' will no longer restore the values from before that overwrite. Continue?</string>
     <string name="weekly_review_running">Running Autotune… this can take a minute.</string>
     <string name="weekly_review_failed">Autotune did not produce a result. Check the Autotune log.</string>
-    <string name="weekly_review_none">No review yet. Tap 'Run review' to analyse the last 7 days.</string>
+    <string name="weekly_review_none">No review yet. Tap \'Run review\' to analyse the last 7 days.</string>
     <string name="weekly_review_meta">%1$d days · %2$s · %3$s</string>
-    <string name="weekly_review_save_new_confirm">Store the suggestion as a new local profile?
-%1$s
-The profile in use is not changed.</string>
+    <string name="weekly_review_save_new_confirm">Store the suggestion as a new local profile?\n%1$s\nThe profile in use is not changed.</string>
     <string name="weekly_review_saved">Saved as %1$s. Use a profile switch to activate it.</string>
-    <string name="weekly_review_overwrite_confirm">Replace basal, ISF and IC of %1$s with the suggested values?
-You can undo it with 'Revert'.</string>
+    <string name="weekly_review_overwrite_confirm">Replace basal, ISF and IC of %1$s with the suggested values?\nYou can undo it with \'Revert\'.</string>
     <string name="weekly_review_revert_confirm">Restore %1$s to the values from before the overwrite?</string>
 </resources>

@@ -191,16 +191,13 @@
     <string name="weekly_review_run">검토하기 (7일)</string>
     <string name="weekly_review_close">닫기</string>
     <string name="weekly_review_run_confirm">지금 프로필로 최근 7일 Autotune을 실행할까요? 마지막 Autotune 결과가 이번 결과로 바뀌어요.</string>
-    <string name="weekly_review_run_confirm_reverted">%1$s 프로필은 지난 제안으로 덮어쓴 상태예요. 새로 검토하면 '되돌리기'로 덮어쓰기 전 값으로 돌아갈 수 없게 돼요. 계속할까요?</string>
+    <string name="weekly_review_run_confirm_reverted">%1$s 프로필은 지난 제안으로 덮어쓴 상태예요. 새로 검토하면 \'되돌리기\'로 덮어쓰기 전 값으로 돌아갈 수 없게 돼요. 계속할까요?</string>
     <string name="weekly_review_running">Autotune 계산 중… 1분 정도 걸릴 수 있어요.</string>
     <string name="weekly_review_failed">Autotune 결과가 나오지 않았어요. AT 로그를 확인해 주세요.</string>
-    <string name="weekly_review_none">아직 검토 결과가 없어요. '검토하기'를 누르면 최근 7일을 분석해요.</string>
+    <string name="weekly_review_none">아직 검토 결과가 없어요. \'검토하기\'를 누르면 최근 7일을 분석해요.</string>
     <string name="weekly_review_meta">%1$d일 · %2$s · %3$s</string>
-    <string name="weekly_review_save_new_confirm">조정안을 새 로컬 프로필로 저장할까요?
-%1$s
-지금 쓰는 프로필은 그대로예요.</string>
+    <string name="weekly_review_save_new_confirm">조정안을 새 로컬 프로필로 저장할까요?\n%1$s\n지금 쓰는 프로필은 그대로예요.</string>
     <string name="weekly_review_saved">%1$s(으)로 저장했어요. 쓰려면 프로필 전환을 해 주세요.</string>
-    <string name="weekly_review_overwrite_confirm">%1$s 프로필의 기저·ISF·IC를 조정안 값으로 바꿀까요?
-'되돌리기'로 이전 값으로 돌릴 수 있어요.</string>
+    <string name="weekly_review_overwrite_confirm">%1$s 프로필의 기저·ISF·IC를 조정안 값으로 바꿀까요?\n\'되돌리기\'로 이전 값으로 돌릴 수 있어요.</string>
     <string name="weekly_review_revert_confirm">%1$s 프로필을 덮어쓰기 전 값으로 되돌릴까요?</string>
 </resources>

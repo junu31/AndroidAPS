@@ -443,7 +443,8 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                 )
             }
             if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
-            GridLineV()
+            // the centre line stops short of the card edges
+            GridLineV(Modifier.padding(vertical = 14.dp))
             Column(Modifier.weight(1f)) {
                 Column(
                     Modifier
@@ -476,9 +477,9 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
 }
 
 @Composable
-private fun GridLineV() {
+private fun GridLineV(modifier: Modifier = Modifier) {
     Box(
-        Modifier
+        modifier
             .width(1.dp)
             .fillMaxHeight()
             .background(DashColors.Line)

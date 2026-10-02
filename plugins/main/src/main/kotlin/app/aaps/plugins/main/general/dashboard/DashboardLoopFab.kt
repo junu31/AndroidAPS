@@ -38,6 +38,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.LayoutCoordinates
+import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
@@ -73,6 +75,7 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
             mutableStateOf(Offset((position?.first ?: 1f) * maxX, (position?.second ?: 1f) * maxY))
         }
         var open by remember { mutableStateOf(false) }
+        val fabCoords = remember { arrayOfNulls<LayoutCoordinates>(1) }
 
         if (open) {
             Box(
@@ -123,10 +126,22 @@ fun LoopFabOverlay(decision: LoopDecision?, position: Pair<Float, Float>?, actio
                             view.parent?.requestDisallowInterceptTouchEvent(true)
                         }
                     }
+                    .onGloballyPositioned { fabCoords[0] = it }
                     .pointerInput(maxX, maxY) {
-                        detectDragGestures(onDragEnd = { actions.onFabMoved(offset.x / maxX, offset.y / maxY) }) { change, drag ->
+                        // track the finger in root coordinates: local deltas shrink while the button itself moves
+                        var startRoot = Offset.Zero
+                        var startOffset = Offset.Zero
+                        detectDragGestures(
+                            onDragStart = { local ->
+                                startRoot = fabCoords[0]?.localToRoot(local) ?: local
+                                startOffset = offset
+                            },
+                            onDragEnd = { actions.onFabMoved(offset.x / maxX, offset.y / maxY) }
+                        ) { change, _ ->
                             change.consume()
-                            offset = Offset((offset.x + drag.x).coerceIn(0f, maxX), (offset.y + drag.y).coerceIn(0f, maxY))
+                            val root = fabCoords[0]?.localToRoot(change.position) ?: return@detectDragGestures
+                            val target = startOffset + (root - startRoot)
+                            offset = Offset(target.x.coerceIn(0f, maxX), target.y.coerceIn(0f, maxY))
                         }
                     }
                     .clickable { open = !open },

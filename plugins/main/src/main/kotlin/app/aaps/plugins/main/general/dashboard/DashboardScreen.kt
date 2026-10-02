@@ -457,17 +457,17 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                     DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
                 }
-                GridLineH()
+                GridLineH(Modifier.padding(horizontal = 10.dp))
                 Column(Modifier.weight(0.4f)) {
                     Row(Modifier.weight(1f)) {
                         GridStat("IOB", DashColors.Iob, state.iob, actions)
-                        GridLineV()
+                        GridLineV(Modifier.padding(vertical = 6.dp))
                         GridStat("COB", DashColors.Cob, state.cob, actions)
                     }
-                    GridLineH()
+                    GridLineH(Modifier.padding(horizontal = 10.dp))
                     Row(Modifier.weight(1f)) {
                         GridStat("Basal", DashColors.Basal, state.basal, actions)
-                        GridLineV()
+                        GridLineV(Modifier.padding(vertical = 6.dp))
                         GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
                     }
                 }
@@ -487,9 +487,9 @@ private fun GridLineV(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun GridLineH() {
+private fun GridLineH(modifier: Modifier = Modifier) {
     Box(
-        Modifier
+        modifier
             .fillMaxWidth()
             .height(1.dp)
             .background(DashColors.Line)

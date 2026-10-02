@@ -418,10 +418,16 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                 .matchParentSize()
                 .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(0f, 0f)))
         )
+        // symmetric grid: left half = ring, right half = delta bars (top half) / 2x2 values (bottom half)
         Row(Modifier.height(IntrinsicSize.Min)) {
             // tapping the BG opens the last loop decision, like on the first card
             var showDecision by remember { mutableStateOf(false) }
-            Box(Modifier.padding(6.dp)) {
+            Box(
+                Modifier
+                    .weight(1f)
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
                 BgRing(
                     bg, color, state.loop, 156.dp,
                     Modifier
@@ -429,30 +435,39 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .clickable { showDecision = true }
                 )
                 // top left stays free: the trend triangles never point there
-                LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 4.dp, top = 4.dp))
+                LoopDecisionBadge(
+                    state.loopDecision,
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 8.dp)
+                )
             }
             if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
             GridLineV()
             Column(Modifier.weight(1f)) {
                 Column(
-                    Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 6.dp),
-                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                    Modifier
+                        .weight(1f)
+                        .padding(start = 10.dp, end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)
                 ) {
                     DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
                     DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
                 }
                 GridLineH()
-                Row(Modifier.weight(1f)) {
-                    GridStat("IOB", DashColors.Iob, state.iob, actions)
-                    GridLineV()
-                    GridStat("COB", DashColors.Cob, state.cob, actions)
-                }
-                GridLineH()
-                Row(Modifier.weight(1f)) {
-                    GridStat("Basal", DashColors.Basal, state.basal, actions)
-                    GridLineV()
-                    GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
+                Column(Modifier.weight(1f)) {
+                    Row(Modifier.weight(1f)) {
+                        GridStat("IOB", DashColors.Iob, state.iob, actions)
+                        GridLineV()
+                        GridStat("COB", DashColors.Cob, state.cob, actions)
+                    }
+                    GridLineH()
+                    Row(Modifier.weight(1f)) {
+                        GridStat("Basal", DashColors.Basal, state.basal, actions)
+                        GridLineV()
+                        GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
+                    }
                 }
             }
         }
@@ -486,7 +501,7 @@ private fun RowScope.GridStat(label: String, accent: Color, tile: InfoTile, acti
             .weight(1f)
             .fillMaxHeight()
             .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
-            .padding(horizontal = 4.dp, vertical = 4.dp),
+            .padding(horizontal = 2.dp, vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -498,11 +513,11 @@ private fun RowScope.GridStat(label: String, accent: Color, tile: InfoTile, acti
                     .background(accent)
             )
             Spacer(Modifier.width(4.dp))
-            Text(label, color = DashColors.Sub, fontSize = 10.5.sp, maxLines = 1)
+            Text(label, color = DashColors.Sub, fontSize = 9.5.sp, maxLines = 1)
         }
         Text(
-            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 2.dp)
+            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
         )
     }
 }

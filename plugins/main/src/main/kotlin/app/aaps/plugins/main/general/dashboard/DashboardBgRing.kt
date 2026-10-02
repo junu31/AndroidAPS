@@ -75,7 +75,7 @@ fun BgRing(
             Text(
                 bg.value,
                 color = color,
-                fontSize = if (bg.value.length <= 3) 29.sp else 23.sp,
+                fontSize = if (bg.value.length <= 3) 25.sp else 20.sp,
                 fontWeight = FontWeight.ExtraBold,
                 maxLines = 1,
                 textDecoration = if (bg.isActual) null else TextDecoration.LineThrough

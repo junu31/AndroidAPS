@@ -2,16 +2,18 @@ package app.aaps.plugins.main.general.dashboard
 
 import androidx.annotation.DrawableRes
 import android.content.Context
-import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.core.content.edit
 import androidx.compose.foundation.Canvas
@@ -36,6 +38,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -348,19 +351,34 @@ private fun HeroPager(state: DashboardState, actions: DashboardActions) {
     }
     // the main tabs are a ViewPager2: keep it from taking the swipe while the finger is on the card
     val view = LocalView.current
-    Column(Modifier.animateContentSize()) {
+    // the cards differ in height: the pager follows the visible card, blending while swiping
+    val heights = remember { mutableStateMapOf<Int, Int>() }
+    val h0 = heights[0]
+    val h1 = heights[1]
+    val heightModifier = if (h0 != null && h1 != null) {
+        val f = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
+        Modifier.height(with(LocalDensity.current) { (h0 + (h1 - h0) * f).toDp() })
+    } else Modifier
+    Column {
         HorizontalPager(
             state = pagerState,
             pageSpacing = 12.dp,
+            beyondViewportPageCount = 1,
             verticalAlignment = Alignment.Top,
-            modifier = Modifier.pointerInput(Unit) {
+            modifier = heightModifier.pointerInput(Unit) {
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
                     view.parent?.requestDisallowInterceptTouchEvent(true)
                 }
             }
         ) { page ->
-            if (page == 0) HeroCard(state, actions) else RingCard(state, actions)
+            Box(
+                Modifier
+                    .wrapContentHeight(Alignment.Top, unbounded = true)
+                    .onSizeChanged { heights[page] = it.height }
+            ) {
+                if (page == 0) HeroCard(state, actions) else RingCard(state, actions)
+            }
         }
         PageDots(pagerState.currentPage, 2)
     }
@@ -401,13 +419,15 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 // tapping the BG opens the last loop decision, like on the first card
                 var showDecision by remember { mutableStateOf(false) }
-                Box(
-                    Modifier
-                        .clip(RoundedCornerShape(75.dp))
-                        .clickable { showDecision = true }
-                ) {
-                    BgRing(bg, color, state.loop, 150.dp)
-                    LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 8.dp, top = 8.dp))
+                Box {
+                    BgRing(
+                        bg, color, state.loop, 150.dp,
+                        Modifier
+                            .clip(RoundedCornerShape(75.dp))
+                            .clickable { showDecision = true }
+                    )
+                    // top left stays free: the trend triangles never point there
+                    LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 10.dp, top = 10.dp))
                 }
                 if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
                 Spacer(Modifier.width(10.dp))

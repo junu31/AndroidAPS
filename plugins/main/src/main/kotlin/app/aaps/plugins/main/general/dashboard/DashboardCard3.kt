@@ -88,9 +88,10 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
         // top left: now (IOB, COB, Basal, Sens) as four rows, each ending where the circle is
         val y0 = Pad + 4.dp
         listOf(
-            Triple("IOB", DashColors.Iob, state.iob),
-            Triple("COB", DashColors.Cob, state.cob),
+            // the widest row (top) gets the longest value
             Triple("Basal", DashColors.Basal, state.basal),
+            Triple("COB", DashColors.Cob, state.cob),
+            Triple("IOB", DashColors.Iob, state.iob),
             Triple(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity)
         ).forEachIndexed { i, (label, dot, tile) ->
             val y = y0 + 2.dp + (i * 18).dp

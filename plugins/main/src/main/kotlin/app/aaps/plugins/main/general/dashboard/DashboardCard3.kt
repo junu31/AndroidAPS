@@ -28,6 +28,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -83,7 +84,8 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
         // top left: now (IOB, COB, Basal, Sens); each row ends where the circle is, like the delta bars
         val y0 = Pad + 4.dp
         Grid2(
-            rows = listOf(left to widthAt(y0 + 16.dp), left to widthAt(y0 + 50.dp)), y = y0, alignEnd = false,
+            rows = listOf(left to widthAt(y0 + 18.dp), left to widthAt(y0 + 56.dp)), y = y0, alignEnd = false,
+            centered = true, rowH = 37.dp,
             cells = listOf(
                 GridCell("IOB", DashColors.Iob, state.iob.value),
                 GridCell("COB", DashColors.Cob, state.cob.value),
@@ -169,8 +171,10 @@ private data class GridCell(val label: String, val color: Color, val value: Stri
  * so the cells follow the circle; the line between the rows is as long as the shorter row.
  */
 @Composable
-private fun Grid2(rows: List<Pair<Dp, Dp>>, y: Dp, alignEnd: Boolean, cells: List<GridCell>, onClick: ((Int) -> Unit)?) {
-    val rowH = 32.dp
+private fun Grid2(
+    rows: List<Pair<Dp, Dp>>, y: Dp, alignEnd: Boolean, cells: List<GridCell>, onClick: ((Int) -> Unit)?,
+    centered: Boolean = false, rowH: Dp = 32.dp
+) {
     rows.forEachIndexed { r, (x, width) ->
         val cw = (width - 8.dp) / 2
         Box(
@@ -198,13 +202,23 @@ private fun Grid2(rows: List<Pair<Dp, Dp>>, y: Dp, alignEnd: Boolean, cells: Lis
                 .offset(x + (cw + 8.dp) * col, y + rowH * row + 3.dp)
                 .width(cw)
                 .then(if (onClick != null) Modifier.clickable { onClick(i) } else Modifier),
-            horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start
+            horizontalAlignment = when {
+                centered -> Alignment.CenterHorizontally
+                alignEnd -> Alignment.End
+                else     -> Alignment.Start
+            }
         ) {
             Text(c.label, color = c.color, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            Row(verticalAlignment = Alignment.Bottom) {
-                // long values ("사용불가", "0.70 U/h") get a smaller font so they fit the narrow cells
-                val v = c.value.ifEmpty { "–" }
-                Text(v, color = DashColors.Text, fontSize = if (v.length + c.unit.length > 6) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
+            // long values ("사용불가", "0.70 U/h") get a smaller font; centred cells may wrap to a second line
+            val v = c.value.ifEmpty { "–" }
+            val small = v.length + c.unit.length > 6
+            if (centered)
+                Text(
+                    v, color = DashColors.Text, fontSize = if (small) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 2,
+                    lineHeight = 11.sp, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
+                )
+            else Row(verticalAlignment = Alignment.Bottom) {
+                Text(v, color = DashColors.Text, fontSize = if (small) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 if (c.unit.isNotEmpty()) Text(" " + c.unit, color = DashColors.Dim, fontSize = 8.5.sp, maxLines = 1)
             }
         }

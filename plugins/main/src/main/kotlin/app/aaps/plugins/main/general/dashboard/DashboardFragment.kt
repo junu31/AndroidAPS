@@ -548,11 +548,21 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                 RM.Mode.OPEN_LOOP         -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_open, rh.gs(app.aaps.core.ui.R.string.openloop), lastRunAgo, Severity.WARNING)
                 RM.Mode.DISABLED_LOOP     -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disabled, rh.gs(R.string.disabled_loop), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.CROSS)
                 RM.Mode.RESUME            -> error("Invalid mode")
-            }
+            }.copy(ringColor = rh.gac(context, loopColorAttr(mode)))
         } else null
 
         val decision = loop.lastRun?.let { buildLoopDecision(it) }
         post { it.copy(loop = loopInfo, loopDecision = decision) }
+    }
+
+    @AttrRes private fun loopColorAttr(mode: RM.Mode): Int = when (mode) {
+        RM.Mode.SUPER_BOLUS                                                             -> app.aaps.core.ui.R.attr.loopSuperBolus
+        RM.Mode.DISCONNECTED_PUMP                                                       -> app.aaps.core.ui.R.attr.loopDisconnected
+        RM.Mode.CLOSED_LOOP_LGS                                                         -> app.aaps.core.ui.R.attr.loopLgs
+        RM.Mode.CLOSED_LOOP                                                             -> app.aaps.core.ui.R.attr.loopClosed
+        RM.Mode.OPEN_LOOP                                                               -> app.aaps.core.ui.R.attr.loopOpened
+        RM.Mode.SUSPENDED_BY_PUMP, RM.Mode.SUSPENDED_BY_USER, RM.Mode.SUSPENDED_BY_DST,
+        RM.Mode.DISABLED_LOOP, RM.Mode.RESUME                                           -> app.aaps.core.ui.R.attr.loopDisabled
     }
 
     /** Ring card: icons with a symbol in the middle are drawn as the plain loop ring in their color, the symbol goes under the BG value. */

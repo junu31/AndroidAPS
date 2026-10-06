@@ -434,7 +434,7 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                 .matchParentSize()
                 .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(0f, 0f)))
         )
-        // symmetric grid: left half = ring, right half = loop + delta bars (top 60 %) / 2x2 values (bottom 40 %)
+        // symmetric grid: left half = ring, right half = delta bars (top 60 %) / 2x2 values (bottom 40 %)
         Row(Modifier.height(IntrinsicSize.Min)) {
             // tapping the BG opens the last loop decision, like on the first card
             var showDecision by remember { mutableStateOf(false) }
@@ -444,11 +444,12 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                     .padding(vertical = 6.dp),
                 contentAlignment = Alignment.Center
             ) {
+                // the ring carries the loop icon and status: tapping it opens the loop menu like the loop icon on the classic home
                 BgRing(
                     bg, color, state.loop, 156.dp,
                     Modifier
                         .clip(RoundedCornerShape(78.dp))
-                        .clickable { showDecision = true }
+                        .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
                 )
                 // age of the last BG top left, like on the first card; the decision badge in the other corner
                 Text(
@@ -457,11 +458,15 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .align(Alignment.TopStart)
                         .padding(start = 12.dp, top = 2.dp)
                 )
+                // the last loop decision opens from the badge
                 LoopDecisionBadge(
                     state.loopDecision,
                     Modifier
                         .align(Alignment.TopEnd)
-                        .padding(end = 8.dp)
+                        .padding(end = 4.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showDecision = true }
+                        .padding(4.dp)
                 )
             }
             if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
@@ -474,7 +479,6 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .padding(start = 10.dp, end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)
                 ) {
-                    state.loop?.let { LoopPill(it, actions, compact = true) }
                     DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
                     DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
@@ -581,22 +585,21 @@ private fun DeltaBar(label: String, value: String, mgdl: Double?) {
 }
 
 @Composable
-private fun LoopPill(loop: LoopInfo, actions: DashboardActions, compact: Boolean = false) {
+private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
     val c = loop.severity.color()
     Row(
         Modifier
-            .padding(bottom = if (compact) 2.dp else 0.dp)
             .clip(RoundedCornerShape(999.dp))
             .background(c.copy(alpha = 0.12f))
             .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
             .padding(horizontal = 8.dp, vertical = 3.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(painterResource(loop.iconRes), contentDescription = loop.label, tint = Color.Unspecified, modifier = Modifier.size(if (compact) 14.dp else 16.dp))
-        Spacer(Modifier.width(if (compact) 4.dp else 6.dp))
+        Icon(painterResource(loop.iconRes), contentDescription = loop.label, tint = Color.Unspecified, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
         Text(
             if (loop.extra.isNotEmpty()) "${loop.label} · ${loop.extra}" else loop.label,
-            color = c, fontSize = if (compact) 11.sp else 12.sp, fontWeight = FontWeight.SemiBold,
+            color = c, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
             maxLines = 1, overflow = TextOverflow.Ellipsis
         )
     }

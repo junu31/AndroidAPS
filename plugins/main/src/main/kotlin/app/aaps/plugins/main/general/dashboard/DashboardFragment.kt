@@ -896,7 +896,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             appendLine("현재 혈당: ${bg.value} (추세 ${bg.arrowDescription}), 변화 5분 ${bg.delta} / 15분 ${bg.shortAvgDelta} / 40분 ${bg.longAvgDelta}")
             appendLine("IOB ${state.iob.value}, COB ${state.cob.value}, 기저 ${state.basal.value}, 민감도 ${state.sensitivity.value}, 목표 ${state.target.text}")
             decision.facts.forEach { (k, v) -> appendLine("$k: $v") }
-            appendLine("알고리즘 원문(reason): ${decision.reason}")
+            appendLine("알고리즘 원문: ${decision.reason.take(LOOP_AI_REASON_CHARS)}")
         }
         disposable += aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, data)
             .observeOn(aapsSchedulers.main)
@@ -958,8 +958,13 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     }
 }
 
+/** the oref reason can be very long; the start holds the deciding values */
+private const val LOOP_AI_REASON_CHARS = 600
+
 /** Personal-fork: instruction for the loop decision explanation (advisory text only). */
 private const val LOOP_AI_SYSTEM_PROMPT =
-    "너는 AndroidAPS(오픈소스 자동 인슐린 주입 앱)의 루프 판단을 1형 당뇨인 사용자에게 설명하는 도우미야. " +
-        "아래 데이터만 근거로, 이번에 왜 이렇게 판단했는지 한국어 존댓말로 3~4문장, 쉬운 말로 설명해. " +
-        "데이터에 없는 숫자는 만들지 말고, 새로운 치료 권고나 용량 조언은 하지 마. 마크다운이나 목록 없이 평문으로만 써."
+    "AndroidAPS 루프가 방금 내린 판단을 짧게 해설해.\n" +
+        "규칙: 인사, 서론, 맺음말 없이 바로 본론. 한국어 존댓말 2~3문장, 문장마다 50자 이내.\n" +
+        "1문장: 무엇을 했는지(기저 변경, SMB). 2문장: 핵심 이유(예측 혈당과 목표 비교). 3문장(필요할 때만): 눈여겨볼 점.\n" +
+        "아래 데이터에 있는 숫자만 쓰고, 치료나 용량 권고는 하지 마. 목록, 마크다운 없이 평문.\n" +
+        "예시: SMB 0.2U를 넣고 기저를 0.45U/h로 올렸어요. 예상 혈당 168이 목표 110보다 높아서예요."

@@ -29,7 +29,7 @@ class AiTextEngineImpl @Inject constructor(
             val path = preferences.get(StringKey.AiLocalModelPath)
             check(path.isNotEmpty() && File(path).canRead()) { "No local model file" }
             val start = System.currentTimeMillis()
-            val text = localLlm.generate(path, LocalLlm.gemmaPrompt(systemPrompt, userText)).trim()
+            val text = cleanLocal(localLlm.generate(path, LocalLlm.gemmaPrompt(systemPrompt, userText)))
             check(text.isNotEmpty()) { "Empty answer from the local model" }
             AiTextEngine.Result(text, modelLabel(path), local = true, millis = System.currentTimeMillis() - start)
         }.subscribeOn(Schedulers.io())
@@ -50,6 +50,15 @@ class AiTextEngineImpl @Inject constructor(
 
         const val ENGINE_GEMINI = "gemini"
         const val ENGINE_LOCAL = "local"
+
+        private val filler = Regex("""^(안녕하세요|안녕|네[,.!]|물론|좋습니다|알겠습니다|설명해 ?드릴게요|다음과 같습니다)[^.!?\n]*[.!?:]?\s*""")
+
+        /** Small local models open with greetings and use markdown; keep the plain answer only. */
+        fun cleanLocal(raw: String): String {
+            var t = raw.replace("<end_of_turn>", "").replace(Regex("""\*\*|__|#+\s"""), "").trim()
+            repeat(3) { t = t.replace(filler, "").trim() }
+            return t.lines().map { it.trim().removePrefix("- ").removePrefix("* ") }.filter { it.isNotEmpty() }.joinToString("\n")
+        }
 
         /** "gemma-3n-E2B-it-int4.task" -> "Gemma 3n" */
         fun modelLabel(path: String): String {

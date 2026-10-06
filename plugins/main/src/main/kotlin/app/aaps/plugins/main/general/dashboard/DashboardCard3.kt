@@ -152,7 +152,7 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
         )
         val decision = state.loopDecision
         val lines = buildList {
-            add(Triple("‹ " + stringResource(R.string.dashboard_loop_title), DashColors.Dim, 9.5.sp))
+            add(Triple(stringResource(R.string.dashboard_loop_title) + " ›", DashColors.Dim, 9.5.sp))
             if (decision == null) add(Triple(stringResource(R.string.dashboard_loop_none), DashColors.Sub, 9.5.sp))
             else {
                 add(Triple(decision.runTimeText, DashColors.Dim, 9.sp))

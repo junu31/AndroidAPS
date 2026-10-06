@@ -54,6 +54,8 @@ data class BgInfo(
     val timeAgo: String = "",
     /** only the age of the last BG, e.g. "2m ago" (ring card) */
     val age: String = "",
+    /** name of the BG source, e.g. "xDrip+ BG" (ring card) */
+    val source: String = "",
     @DrawableRes val qualityIcon: Int = 0,
     val qualityMessage: String = ""
 )

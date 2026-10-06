@@ -451,18 +451,24 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .clip(RoundedCornerShape(78.dp))
                         .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
                 )
-                // age of the last BG top left, like on the first card; the decision badge in the other corner
+                // corners outside the ring: BG source top left, its age top right, loop decision bottom right
                 Text(
-                    bg.age, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1,
+                    bg.source, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
                         .align(Alignment.TopStart)
                         .padding(start = 12.dp, top = 2.dp)
+                        .width(70.dp)
                 )
-                // the last loop decision opens from the badge
+                Text(
+                    bg.age, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 10.dp, top = 2.dp)
+                )
                 LoopDecisionBadge(
                     state.loopDecision,
                     Modifier
-                        .align(Alignment.TopEnd)
+                        .align(Alignment.BottomEnd)
                         .padding(end = 4.dp)
                         .clip(RoundedCornerShape(8.dp))
                         .clickable { showDecision = true }

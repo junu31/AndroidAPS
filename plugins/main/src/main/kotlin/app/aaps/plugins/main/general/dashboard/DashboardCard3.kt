@@ -85,19 +85,36 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
             }
         }
 
-        // top left: now (IOB, COB, Basal, Sens); each row ends where the circle is, like the delta bars
+        // top left: now (IOB, COB, Basal, Sens) as four rows, each ending where the circle is
         val y0 = Pad + 4.dp
-        Grid2(
-            rows = listOf(left to widthAt(y0 + 18.dp), left to widthAt(y0 + 56.dp)), y = y0, alignEnd = false,
-            centered = true, rowH = 37.dp,
-            cells = listOf(
-                GridCell("IOB", DashColors.Iob, state.iob.value),
-                GridCell("COB", DashColors.Cob, state.cob.value),
-                GridCell("Basal", DashColors.Basal, state.basal.value),
-                GridCell(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity.value)
-            ),
-            onClick = { i -> listOf(state.iob, state.cob, state.basal, state.sensitivity)[i].let { if (it.dialogText.isNotEmpty()) actions.showInfo(it.dialogTitle, it.dialogText) } }
-        )
+        listOf(
+            Triple("IOB", DashColors.Iob, state.iob),
+            Triple("COB", DashColors.Cob, state.cob),
+            Triple("Basal", DashColors.Basal, state.basal),
+            Triple(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity)
+        ).forEachIndexed { i, (label, dot, tile) ->
+            val y = y0 + 2.dp + (i * 18).dp
+            Row(
+                Modifier
+                    .offset(left, y)
+                    .width(widthAt(y + 8.dp))
+                    .height(16.dp)
+                    .clickable { if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    Modifier
+                        .size(6.dp)
+                        .clip(RoundedCornerShape(3.dp))
+                        .background(dot)
+                )
+                Text(label, color = DashColors.Sub, fontSize = 10.sp, maxLines = 1, modifier = Modifier.offset(x = 5.dp))
+                Text(
+                    tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End, modifier = Modifier.weight(1f)
+                )
+            }
+        }
 
         // top right: BG change, bars like card 1
         listOf(
@@ -189,66 +206,5 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
                 .clip(RoundedCornerShape(RingSize / 2))
                 .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
         )
-    }
-}
-
-private data class GridCell(val label: String, val color: Color, val value: String, val unit: String = "")
-
-/**
- * 2x2 values divided by short grid lines (like the BG statistics card). Each row has its own start and width
- * so the cells follow the circle; the line between the rows is as long as the shorter row.
- */
-@Composable
-private fun Grid2(
-    rows: List<Pair<Dp, Dp>>, y: Dp, alignEnd: Boolean, cells: List<GridCell>, onClick: ((Int) -> Unit)?,
-    centered: Boolean = false, rowH: Dp = 32.dp
-) {
-    rows.forEachIndexed { r, (x, width) ->
-        val cw = (width - 8.dp) / 2
-        Box(
-            Modifier
-                .offset(x + cw + 4.dp, y + rowH * r + 4.dp)
-                .size(1.dp, rowH - 8.dp)
-                .background(DashColors.Line)
-        )
-    }
-    val shorter = rows.minBy { it.second }
-    val lineX = if (alignEnd) shorter.first + 2.dp else rows[0].first + 2.dp
-    Box(
-        Modifier
-            .offset(lineX, y + rowH)
-            .size(shorter.second - 4.dp, 1.dp)
-            .background(DashColors.Line)
-    )
-    cells.forEachIndexed { i, c ->
-        val col = i % 2
-        val row = i / 2
-        val (x, width) = rows[row]
-        val cw = (width - 8.dp) / 2
-        Column(
-            Modifier
-                .offset(x + (cw + 8.dp) * col, y + rowH * row + 3.dp)
-                .width(cw)
-                .then(if (onClick != null) Modifier.clickable { onClick(i) } else Modifier),
-            horizontalAlignment = when {
-                centered -> Alignment.CenterHorizontally
-                alignEnd -> Alignment.End
-                else     -> Alignment.Start
-            }
-        ) {
-            Text(c.label, color = c.color, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            // long values ("사용불가", "0.70 U/h") get a smaller font; centred cells may wrap to a second line
-            val v = c.value.ifEmpty { "–" }
-            val small = v.length + c.unit.length > 6
-            if (centered)
-                Text(
-                    v, color = DashColors.Text, fontSize = if (small) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 2,
-                    lineHeight = 11.sp, textAlign = TextAlign.Center, overflow = TextOverflow.Ellipsis
-                )
-            else Row(verticalAlignment = Alignment.Bottom) {
-                Text(v, color = DashColors.Text, fontSize = if (small) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
-                if (c.unit.isNotEmpty()) Text(" " + c.unit, color = DashColors.Dim, fontSize = 8.5.sp, maxLines = 1)
-            }
-        }
     }
 }

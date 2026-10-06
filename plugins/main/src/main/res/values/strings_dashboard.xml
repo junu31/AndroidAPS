@@ -59,4 +59,17 @@
     <string name="dashboard_bg_card_background">BG cards as cards</string>
     <string name="dashboard_bg_card_background_summary">Background and border around the BG cards on the dashboard</string>
     <string name="dashboard_card3_boluses">Recent boluses</string>
+    <string name="dashboard_ai_engine">AI explanation engine</string>
+    <string name="dashboard_ai_engine_summary">Weekly review and loop decision explanations (photo carbs always use Gemini)</string>
+    <string name="dashboard_ai_engine_local">Local</string>
+    <string name="dashboard_ai_model_file">Local model file</string>
+    <string name="dashboard_ai_model_none">No model selected</string>
+    <string name="dashboard_ai_fallback">Use Gemini if the local model fails</string>
+    <string name="dashboard_ai_fallback_summary">Only when the model is missing or fails</string>
+    <string name="dashboard_loop_ai">✦ AI explanation</string>
+    <string name="dashboard_loop_ai_title">✦ AI explanation</string>
+    <string name="dashboard_loop_ai_loading">Generating…</string>
+    <string name="dashboard_loop_ai_label_local">%1$s · local · %2$ds</string>
+    <string name="dashboard_loop_ai_failed">Could not create the explanation</string>
+    <string name="dashboard_loop_ai_no_engine">Set a Gemini key or choose a local model in Dashboard settings</string>
 </resources>

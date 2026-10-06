@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -67,14 +68,14 @@ fun LoopDecisionBadge(decision: LoopDecision?, modifier: Modifier = Modifier) {
 
 /** Last loop decision (local summary, no API call) shown as a dialog. */
 @Composable
-fun LoopDecisionDialog(decision: LoopDecision?, onDismiss: () -> Unit) {
+fun LoopDecisionDialog(decision: LoopDecision?, explain: DecisionExplain?, onExplain: () -> Unit, onDismiss: () -> Unit) {
     Dialog(onDismissRequest = onDismiss) {
-        LoopPopover(decision, onDismiss)
+        LoopPopover(decision, explain?.takeIf { it.runTime == decision?.runTime }, onExplain, onDismiss)
     }
 }
 
 @Composable
-private fun LoopPopover(decision: LoopDecision?, onClose: () -> Unit) {
+private fun LoopPopover(decision: LoopDecision?, explain: DecisionExplain?, onExplain: () -> Unit, onClose: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
@@ -119,6 +120,42 @@ private fun LoopPopover(decision: LoopDecision?, onClose: () -> Unit) {
                         }
                     }
                 }
+        }
+        // AI explanation (on demand only): Gemini or the local model, see the Dashboard settings
+        if (decision != null) when {
+            explain == null || (explain.error && !explain.loading) -> {
+                if (explain?.error == true) Text(explain.text, color = DashColors.Low, fontSize = 12.sp, modifier = Modifier.padding(top = 10.dp))
+                PopoverButton(
+                    stringResource(R.string.dashboard_loop_ai), AiPurple.copy(alpha = 0.12f), Color(0xFFC4B5FD),
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .border(1.dp, AiPurple.copy(alpha = 0.5f), RoundedCornerShape(8.dp)), onExplain
+                )
+            }
+
+            else                                                    -> Column(
+                Modifier
+                    .padding(top = 12.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(AiPurple.copy(alpha = 0.08f))
+                    .border(1.dp, AiPurple.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 12.dp, vertical = 10.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.dashboard_loop_ai_title), color = Color(0xFFC4B5FD), fontSize = 10.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                    Text(if (explain.loading) stringResource(R.string.dashboard_loop_ai_loading) else explain.label, color = DashColors.Dim, fontSize = 10.5.sp)
+                }
+                if (explain.loading)
+                    LinearProgressIndicator(
+                        color = AiPurple, trackColor = DashColors.Card2,
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth()
+                    )
+                else Text(explain.text, color = DashColors.Text, fontSize = 12.5.sp, lineHeight = 19.sp, modifier = Modifier.padding(top = 4.dp))
+            }
         }
         PopoverButton(
             stringResource(R.string.dashboard_loop_close), DashColors.Card, DashColors.Sub,

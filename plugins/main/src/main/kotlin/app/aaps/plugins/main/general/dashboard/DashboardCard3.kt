@@ -197,7 +197,7 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
             )
             ly += lh
         }
-        if (showDecision) LoopDecisionDialog(decision) { showDecision = false }
+        if (showDecision) LoopDecisionDialog(decision, state.decisionExplain, actions::onExplainDecision) { showDecision = false }
 
         // the ring of card 2; tapping it opens the loop menu
         BgRing(

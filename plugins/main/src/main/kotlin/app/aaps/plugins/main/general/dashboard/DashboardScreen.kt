@@ -120,6 +120,7 @@ interface DashboardActions {
     fun showInfo(title: String, text: String)
     fun onWeeklyReview()
     fun onRecentBoluses()
+    fun onExplainDecision()
 }
 
 @Composable
@@ -301,7 +302,7 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
                         )
                         LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 2.dp, top = 6.dp))
                     }
-                    if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
+                    if (showDecision) LoopDecisionDialog(state.loopDecision, state.decisionExplain, actions::onExplainDecision) { showDecision = false }
                     Spacer(Modifier.width(10.dp))
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         bg.arrowRes?.let {
@@ -506,7 +507,7 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .padding(4.dp)
                 )
             }
-            if (showDecision) LoopDecisionDialog(state.loopDecision) { showDecision = false }
+            if (showDecision) LoopDecisionDialog(state.loopDecision, state.decisionExplain, actions::onExplainDecision) { showDecision = false }
             // the centre line stops short of the card edges
             GridLineV(Modifier.padding(vertical = 14.dp))
             Column(Modifier.weight(1f)) {

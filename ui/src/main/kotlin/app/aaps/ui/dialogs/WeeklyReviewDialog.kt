@@ -25,7 +25,7 @@ import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.dialogs.OKDialog
 import app.aaps.ui.R
-import app.aaps.ui.ai.GeminiCarbService
+import app.aaps.core.interfaces.ai.AiTextEngine
 import app.aaps.ui.ai.WeeklyReviewMath
 import app.aaps.ui.databinding.DialogWeeklyReviewBinding
 import dagger.android.support.DaggerDialogFragment
@@ -81,7 +81,7 @@ Rules:
     @Inject lateinit var profileUtil: ProfileUtil
     @Inject lateinit var persistenceLayer: PersistenceLayer
     @Inject lateinit var autotune: Autotune
-    @Inject lateinit var geminiService: GeminiCarbService
+    @Inject lateinit var aiTextEngine: AiTextEngine
 
     private val disposable = CompositeDisposable()
     private var _binding: DialogWeeklyReviewBinding? = null
@@ -309,15 +309,16 @@ Rules:
     private fun explain(summary: AutotuneSummary) {
         storedExplanation(summary.runTime)?.let { showAi(it, done = true); return }
         val apiKey = preferences.get(StringKey.OverviewAiCarbsApiKey).trim()
-        if (apiKey.isEmpty()) {
+        if (!aiTextEngine.usesLocal && apiKey.isEmpty()) {
             showAi(rh.gs(R.string.ai_carbs_error_no_key), done = false)
             return
         }
         binding.aiButton.isEnabled = false
         binding.aiText.visibility = View.VISIBLE
         binding.aiText.text = rh.gs(R.string.weekly_review_ai_loading)
-        disposable += geminiService.generateText(apiKey, SYSTEM_PROMPT, promptData(summary))
-            .subscribeOn(aapsSchedulers.io)
+        // Gemini or the local model, as chosen in the Dashboard settings
+        disposable += aiTextEngine.generate(SYSTEM_PROMPT, promptData(summary))
+            .map { it.text }
             .observeOn(aapsSchedulers.main)
             .subscribe({ text ->
                            val cleaned = text.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim().replaceFirst(Regex("^[-*•]\\s*"), "• ") }

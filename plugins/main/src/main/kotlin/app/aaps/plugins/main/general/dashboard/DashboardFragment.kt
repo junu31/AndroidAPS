@@ -30,6 +30,7 @@ import app.aaps.core.data.time.T
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
+import app.aaps.core.interfaces.ai.AiTextEngine
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.autotune.Autotune
@@ -89,6 +90,7 @@ import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.BooleanNonKey
 import app.aaps.core.keys.IntNonKey
+import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
@@ -121,6 +123,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var aapsLogger: AAPSLogger
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var preferences: Preferences
+    @Inject lateinit var aiTextEngine: AiTextEngine
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var rh: ResourceHelper
     @Inject lateinit var profileFunction: ProfileFunction
@@ -615,7 +618,8 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             decision = "$tbrPart · $smbPart",
             kind = kind,
             summary = summary,
-            facts = facts
+            facts = facts,
+            reason = reason
         )
     }
 
@@ -877,6 +881,34 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         graph = graph.copy(rangeHours = hours)
     }
 
+    override fun onExplainDecision() {
+        val decision = state.loopDecision ?: return
+        if (state.decisionExplain?.let { it.runTime == decision.runTime && (it.loading || !it.error) } == true) return
+        if (!aiTextEngine.usesLocal && preferences.get(StringKey.OverviewAiCarbsApiKey).isBlank()) {
+            state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = rh.gs(R.string.dashboard_loop_ai_no_engine), error = true))
+            return
+        }
+        state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = true))
+        val bg = state.bg
+        val data = buildString {
+            appendLine("결정: ${decision.decision}")
+            if (decision.summary.isNotEmpty()) appendLine("간단 요약: ${decision.summary}")
+            appendLine("현재 혈당: ${bg.value} (추세 ${bg.arrowDescription}), 변화 5분 ${bg.delta} / 15분 ${bg.shortAvgDelta} / 40분 ${bg.longAvgDelta}")
+            appendLine("IOB ${state.iob.value}, COB ${state.cob.value}, 기저 ${state.basal.value}, 민감도 ${state.sensitivity.value}, 목표 ${state.target.text}")
+            decision.facts.forEach { (k, v) -> appendLine("$k: $v") }
+            appendLine("알고리즘 원문(reason): ${decision.reason}")
+        }
+        disposable += aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, data)
+            .observeOn(aapsSchedulers.main)
+            .subscribe({ r ->
+                           val label = if (r.local) rh.gs(R.string.dashboard_loop_ai_label_local, r.source, r.millis / 1000) else r.source
+                           state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = r.text, label = label))
+                       }, { e ->
+                           aapsLogger.error(LTag.UI, "Loop decision AI", e)
+                           state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = rh.gs(R.string.dashboard_loop_ai_failed), error = true))
+                       })
+    }
+
     override fun onRecentBoluses() {
         startActivity(Intent(requireContext(), uiInteraction.treatmentsActivity))
     }
@@ -925,3 +957,9 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             withBolusProtection { uiInteraction.runBolusProgressDialog(childFragmentManager) }
     }
 }
+
+/** Personal-fork: instruction for the loop decision explanation (advisory text only). */
+private const val LOOP_AI_SYSTEM_PROMPT =
+    "너는 AndroidAPS(오픈소스 자동 인슐린 주입 앱)의 루프 판단을 1형 당뇨인 사용자에게 설명하는 도우미야. " +
+        "아래 데이터만 근거로, 이번에 왜 이렇게 판단했는지 한국어 존댓말로 3~4문장, 쉬운 말로 설명해. " +
+        "데이터에 없는 숫자는 만들지 말고, 새로운 치료 권고나 용량 조언은 하지 마. 마크다운이나 목록 없이 평문으로만 써."

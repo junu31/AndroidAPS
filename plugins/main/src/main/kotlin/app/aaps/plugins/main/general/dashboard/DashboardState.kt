@@ -30,8 +30,13 @@ data class DashboardState(
     /** false = the BG cards are drawn without card background / border (setting) */
     val bgCardBackground: Boolean = true,
     /** last boluses for card 3 (newest first) */
-    val recentBoluses: List<RecentBolus> = emptyList()
+    val recentBoluses: List<RecentBolus> = emptyList(),
+    /** AI explanation of the loop decision with [DecisionExplain.runTime] */
+    val decisionExplain: DecisionExplain? = null
 )
+
+@Immutable
+data class DecisionExplain(val runTime: Long, val loading: Boolean, val text: String = "", val label: String = "", val error: Boolean = false)
 
 @Immutable
 data class RecentBolus(val time: String, val amount: String, val smb: Boolean)

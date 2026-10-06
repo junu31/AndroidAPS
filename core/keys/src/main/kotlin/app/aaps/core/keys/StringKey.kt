@@ -37,6 +37,8 @@ enum class StringKey(
     OverviewCopySettingsFromNs(key = "statuslights_copy_ns", "", dependency = BooleanKey.OverviewShowStatusLights),
 
     OverviewAiCarbsApiKey("overview_ai_carbs_api_key", "", isPassword = true),
+    AiTextEngine("ai_text_engine", "gemini"), // Personal-fork: "gemini" or "local" for the AI explanations
+    AiLocalModelPath("ai_local_model_path", "", exportable = false), // Personal-fork: copied model file
 
     SafetyAge("age", "adult"),
     MaintenanceEmail("maintenance_logs_email", "logs@aaps.app", defaultedBySM = true),

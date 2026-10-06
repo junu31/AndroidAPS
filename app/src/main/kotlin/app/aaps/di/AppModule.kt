@@ -59,6 +59,7 @@ open class AppModule {
         @Binds fun bindConfigInterface(config: ConfigImpl): Config
 
         @Binds fun bindActivityNames(activityNames: UiInteractionImpl): UiInteraction
+        @Binds fun bindAiTextEngine(aiTextEngine: app.aaps.ui.ai.AiTextEngineImpl): app.aaps.core.interfaces.ai.AiTextEngine
     }
 }
 

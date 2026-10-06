@@ -18,7 +18,9 @@ data class LoopDecision(
     val kind: DecisionKind,
     /** short local explanation, empty when no simple rule matched */
     val summary: String,
-    val facts: List<Pair<String, String>>
+    val facts: List<Pair<String, String>>,
+    /** full oref reason text (input for the AI explanation) */
+    val reason: String = ""
 )
 
 /** Values read from the oref reason text ("minPredBG 78", "Eventual BG 104"); null when not present. */

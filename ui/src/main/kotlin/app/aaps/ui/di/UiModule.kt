@@ -74,6 +74,7 @@ abstract class UiModule {
     @ContributesAndroidInjector abstract fun contributesEditQuickWizardDialog(): EditQuickWizardDialog
 
     @ContributesAndroidInjector abstract fun contributesTDDStatsActivity(): TDDStatsActivity
+    @ContributesAndroidInjector abstract fun contributesLocalModelPickerActivity(): app.aaps.ui.activities.LocalModelPickerActivity
     @ContributesAndroidInjector abstract fun contributeBolusProgressHelperActivity(): BolusProgressHelperActivity
     @ContributesAndroidInjector abstract fun contributeErrorHelperActivity(): ErrorHelperActivity
     @ContributesAndroidInjector abstract fun contributesStatsActivity(): StatsActivity

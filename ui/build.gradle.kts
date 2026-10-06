@@ -32,6 +32,8 @@ dependencies {
     implementation(libs.com.squareup.retrofit2.adapter.rxjava3)
     implementation(libs.com.squareup.retrofit2.converter.gson)
     implementation(libs.com.google.code.gson)
+    // Personal-fork: on-device LLM for the AI explanations
+    implementation(libs.com.google.mediapipe.tasks.genai)
 
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)

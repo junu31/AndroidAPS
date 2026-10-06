@@ -200,4 +200,10 @@
     <string name="weekly_review_saved">%1$s(으)로 저장했어요. 쓰려면 프로필 전환을 해 주세요.</string>
     <string name="weekly_review_overwrite_confirm">%1$s 프로필의 기저·ISF·IC를 조정안 값으로 바꿀까요?\n\'되돌리기\'로 이전 값으로 돌릴 수 있어요.</string>
     <string name="weekly_review_revert_confirm">%1$s 프로필을 덮어쓰기 전 값으로 되돌릴까요?</string>
+    <string name="local_model_file">로컬 모델 파일</string>
+    <string name="local_model_pick">모델 파일(.task)을 선택하세요</string>
+    <string name="local_model_copying">%1$s 복사 중…</string>
+    <string name="local_model_ready">로컬 모델 준비 완료: %1$s</string>
+    <string name="local_model_copy_failed">모델 복사에 실패했습니다</string>
+    <string name="local_model_wrong_type">.task 모델 파일을 선택하세요</string>
 </resources>

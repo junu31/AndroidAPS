@@ -20,6 +20,7 @@ enum class BooleanKey(
     GeneralSimpleMode("simple_mode", true),
     GeneralModernTheme("use_modern_theme", false), // Personal-fork: "new design"
     DashboardBgCardBackground("dashboard_bg_card_background", true), // Personal-fork: Dashboard BG cards drawn as cards
+    AiLocalFallbackGemini("ai_local_fallback_gemini", true), // Personal-fork: use Gemini when the local model fails
     GeneralSetupWizardProcessed("startupwizard_processed", false),
     OverviewKeepScreenOn("keep_screen_on", false, calculatedDefaultValue = true),
     OverviewShowTreatmentButton("show_treatment_button", false, defaultedBySM = true, hideParentScreenIfHidden = true),

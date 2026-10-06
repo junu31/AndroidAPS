@@ -53,10 +53,13 @@ class AiTextEngineImpl @Inject constructor(
 
         private val filler = Regex("""^(안녕하세요|안녕|네[,.!]|물론|좋습니다|알겠습니다|설명해 ?드릴게요|다음과 같습니다)[^.!?\n]*[.!?:]?\s*""")
 
+        /** opening sentences like "루프 판단을 설명해 드릴게요." */
+        private val intro = Regex("""^[^.!?\n]*(드릴게요|드리겠습니다|살펴볼게요|살펴보겠습니다|다음과 같습니다)[.!?:]?\s*""")
+
         /** Small local models open with greetings and use markdown; keep the plain answer only. */
         fun cleanLocal(raw: String): String {
             var t = raw.replace("<end_of_turn>", "").replace(Regex("""\*\*|__|#+\s"""), "").trim()
-            repeat(3) { t = t.replace(filler, "").trim() }
+            repeat(3) { t = t.replace(filler, "").replace(intro, "").trim() }
             return t.lines().map { it.trim().removePrefix("- ").removePrefix("* ") }.filter { it.isNotEmpty() }.joinToString("\n")
         }
 

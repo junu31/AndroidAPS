@@ -86,8 +86,12 @@ class DashboardPlugin @Inject constructor(
                         val file = File(preferences.get(StringKey.AiLocalModelPath))
                         if (file.canRead()) "${file.name} · ${"%.1f".format(file.length() / 1e9)} GB" else rh.gs(R.string.dashboard_ai_model_none)
                     }
-                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed -> if (changed == StringKey.AiLocalModelPath.key) notifyChanged() }
-                    sharedPreferences?.registerOnSharedPreferenceChangeListener(listener)
+                    val pref = this
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed ->
+                        // re-setting the provider redraws the summary
+                        if (changed == StringKey.AiLocalModelPath.key) pref.summaryProvider = pref.summaryProvider
+                    }
+                    androidx.preference.PreferenceManager.getDefaultSharedPreferences(context).registerOnSharedPreferenceChangeListener(listener)
                     modelPathListener = listener
                 }
             )

@@ -698,8 +698,10 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             autotune.lastResultSummary()?.let { dateUtil.dateStringRelative(it.runTime, rh) } ?: ""
         else null
         // card 3: last boluses as on the treatments screen (priming excluded)
+        // sort by time ourselves: the "ascending" flag of the query does not give newest first
         val recent = persistenceLayer.getBolusesFromTime(now - T.hours(24).msecs(), false).blockingGet()
             .filter { it.type != BS.Type.PRIMING }
+            .sortedByDescending { it.timestamp }
             .take(5)
             .map { RecentBolus(dateUtil.timeString(it.timestamp), fmt(it.amount, "%.2f"), it.type == BS.Type.SMB) }
         post { it.copy(stats = stats, weeklyReviewLast = reviewLast, recentBoluses = recent) }

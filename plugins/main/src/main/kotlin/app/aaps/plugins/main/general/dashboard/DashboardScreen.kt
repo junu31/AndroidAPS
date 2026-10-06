@@ -465,6 +465,20 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                         .align(Alignment.TopEnd)
                         .padding(end = 10.dp, top = 2.dp)
                 )
+                // pump battery bottom left (same value and warning color as in the supplies)
+                state.statusLights.firstOrNull { it.iconRes == app.aaps.core.objects.R.drawable.ic_cp_age_battery }?.let { battery ->
+                    val tint = if (battery.severity == Severity.WARNING || battery.severity == Severity.CRITICAL) battery.severity.color() else DashColors.Sub
+                    Row(
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 12.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painterResource(battery.iconRes), contentDescription = battery.label, tint = tint, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(3.dp))
+                        Text(battery.value, color = tint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    }
+                }
                 LoopDecisionBadge(
                     state.loopDecision,
                     Modifier

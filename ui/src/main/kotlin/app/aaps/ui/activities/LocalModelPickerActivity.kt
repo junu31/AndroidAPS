@@ -62,7 +62,8 @@ class LocalModelPickerActivity : TranslatedDaggerAppCompatActivity() {
 
     private fun copy(uri: Uri) {
         val name = displayName(uri) ?: "model.task"
-        if (!name.endsWith(".task", ignoreCase = true) && !name.endsWith(".litertlm", ignoreCase = true)) {
+        // the MediaPipe runtime reads .task bundles (not the .litertlm files of the LiteRT-LM runtime)
+        if (!name.endsWith(".task", ignoreCase = true)) {
             ToastUtils.errorToast(this, getString(R.string.local_model_wrong_type))
             finish()
             return

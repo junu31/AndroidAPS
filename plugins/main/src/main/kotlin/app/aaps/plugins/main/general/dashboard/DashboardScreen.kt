@@ -95,7 +95,7 @@ object DashColors {
     val Accent = Color(0xFF2DD4BF)
 }
 
-private val ScreenPadding = 14.dp
+internal val ScreenPadding = 14.dp
 
 interface DashboardActions {
 
@@ -119,6 +119,7 @@ interface DashboardActions {
     fun onScale(hours: Int)
     fun showInfo(title: String, text: String)
     fun onWeeklyReview()
+    fun onRecentBoluses()
 }
 
 @Composable
@@ -191,7 +192,7 @@ private fun Severity.color(): Color = when (this) {
     Severity.NEUTRAL  -> DashColors.Text
 }
 
-private fun BgRange.color(): Color = when (this) {
+internal fun BgRange.color(): Color = when (this) {
     BgRange.LOW      -> DashColors.Low
     BgRange.IN_RANGE -> DashColors.InRange
     BgRange.HIGH     -> DashColors.High
@@ -199,7 +200,7 @@ private fun BgRange.color(): Color = when (this) {
 }
 
 @OptIn(ExperimentalFoundationApi::class)
-private fun Modifier.clicks(onClick: () -> Unit, onLongClick: (() -> Unit)? = null) =
+internal fun Modifier.clicks(onClick: () -> Unit, onLongClick: (() -> Unit)? = null) =
     combinedClickable(onClick = onClick, onLongClick = onLongClick)
 
 @Composable
@@ -341,14 +342,15 @@ private fun HeroCard(state: DashboardState, actions: DashboardActions) {
 
 private const val PREFS_UI = "dashboard_ui"
 private const val KEY_HERO_PAGE = "hero_page"
+private const val HERO_PAGES = 3
 
 /** BG card and the ring card side by side; swipe to switch, the last shown card is kept across restarts. */
 @Composable
 private fun HeroPager(state: DashboardState, actions: DashboardActions) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences(PREFS_UI, Context.MODE_PRIVATE) }
-    val savedPage = remember { prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, 1) }
-    val pagerState = rememberPagerState(initialPage = savedPage) { 2 }
+    val savedPage = remember { prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, HERO_PAGES - 1) }
+    val pagerState = rememberPagerState(initialPage = savedPage) { HERO_PAGES }
     LaunchedEffect(pagerState) {
         // the tab is composed off screen without a width first, which drops the pager back to page 0:
         // restore the saved page once it has a size and only then start remembering the user's choice
@@ -360,11 +362,13 @@ private fun HeroPager(state: DashboardState, actions: DashboardActions) {
     val view = LocalView.current
     // the cards differ in height: the pager follows the visible card, blending while swiping
     val heights = remember { mutableStateMapOf<Int, Int>() }
-    val h0 = heights[0]
-    val h1 = heights[1]
-    val heightModifier = if (h0 != null && h1 != null) {
-        val f = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, 1f)
-        Modifier.height(with(LocalDensity.current) { (h0 + (h1 - h0) * f).toDp() })
+    val position = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, (HERO_PAGES - 1).toFloat())
+    val from = position.toInt().coerceAtMost(HERO_PAGES - 2)
+    val hFrom = heights[from]
+    val hTo = heights[from + 1]
+    val heightModifier = if (hFrom != null && hTo != null) {
+        val f = position - from
+        Modifier.height(with(LocalDensity.current) { (hFrom + (hTo - hFrom) * f).toDp() })
     } else Modifier
     // without the card background the cards spread to the screen edges like the graph below
     Column(
@@ -393,10 +397,14 @@ private fun HeroPager(state: DashboardState, actions: DashboardActions) {
                     .wrapContentHeight(Alignment.Top, unbounded = true)
                     .onSizeChanged { heights[page] = it.height }
             ) {
-                if (page == 0) HeroCard(state, actions) else RingCard(state, actions)
+                when (page) {
+                    0    -> HeroCard(state, actions)
+                    1    -> RingCard(state, actions)
+                    else -> CardBox(plain = !state.bgCardBackground) { Card3(state, actions, state.bg.range.color()) }
+                }
             }
         }
-        PageDots(pagerState.currentPage, 2)
+        PageDots(pagerState.currentPage, HERO_PAGES)
     }
 }
 
@@ -575,7 +583,7 @@ private const val DELTA_FULL_SCALE_MGDL = 10.0
 
 /** Delta as a bar from a centre zero line (option A): rising goes right in yellow, falling goes left in blue. */
 @Composable
-private fun DeltaBar(label: String, value: String, mgdl: Double?) {
+internal fun DeltaBar(label: String, value: String, mgdl: Double?, compact: Boolean = false) {
     val color = when {
         mgdl == null || mgdl == 0.0 -> DashColors.Sub
         mgdl > 0                    -> DashColors.High
@@ -583,11 +591,11 @@ private fun DeltaBar(label: String, value: String, mgdl: Double?) {
     }
     val fraction = ((mgdl ?: 0.0) / DELTA_FULL_SCALE_MGDL).coerceIn(-1.0, 1.0).toFloat()
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, color = DashColors.Dim, fontSize = 10.5.sp, maxLines = 1, modifier = Modifier.width(40.dp))
+        Text(label, color = DashColors.Dim, fontSize = if (compact) 9.sp else 10.5.sp, maxLines = 1, modifier = Modifier.width(if (compact) 28.dp else 40.dp))
         Canvas(
             Modifier
                 .weight(1f)
-                .height(10.dp)
+                .height(if (compact) 7.dp else 10.dp)
         ) {
             val r = CornerRadius(size.height / 2)
             drawRoundRect(DashColors.Card2, cornerRadius = r)
@@ -598,8 +606,8 @@ private fun DeltaBar(label: String, value: String, mgdl: Double?) {
             drawLine(DashColors.Sub.copy(alpha = 0.6f), Offset(mid, -3.dp.toPx()), Offset(mid, size.height + 3.dp.toPx()), 1.dp.toPx())
         }
         Text(
-            value.ifEmpty { "–" }, color = color, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
-            textAlign = TextAlign.End, modifier = Modifier.width(34.dp)
+            value.ifEmpty { "–" }, color = color, fontSize = if (compact) 10.5.sp else 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+            textAlign = TextAlign.End, modifier = Modifier.width(if (compact) 26.dp else 34.dp)
         )
     }
 }

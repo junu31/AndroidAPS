@@ -28,8 +28,13 @@ data class DashboardState(
     val calcProgressPct: Int = 100,
     val simpleMode: Boolean = false,
     /** false = the BG cards are drawn without card background / border (setting) */
-    val bgCardBackground: Boolean = true
+    val bgCardBackground: Boolean = true,
+    /** last boluses for card 3 (newest first) */
+    val recentBoluses: List<RecentBolus> = emptyList()
 )
+
+@Immutable
+data class RecentBolus(val time: String, val amount: String, val smb: Boolean)
 
 enum class BgRange { LOW, IN_RANGE, HIGH, UNKNOWN }
 

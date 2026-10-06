@@ -65,6 +65,7 @@ class UiInteractionImpl @Inject constructor(
     override val preferencesActivity: Class<*> = PreferencesActivity::class.java
     override val myPreferenceFragment: Class<*> = MyPreferenceFragment::class.java
     override val quickWizardListActivity: Class<*> = QuickWizardListActivity::class.java
+    override val treatmentsActivity: Class<*> = app.aaps.ui.activities.TreatmentsActivity::class.java
 
     override val unitsEntries = arrayOf<CharSequence>("mg/dL", "mmol/L")
     override val unitsValues = arrayOf<CharSequence>("mg/dl", "mmol")

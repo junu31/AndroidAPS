@@ -24,7 +24,9 @@ import androidx.recyclerview.widget.RecyclerView
 import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.model.RM
+import app.aaps.core.data.model.BS
 import app.aaps.core.data.model.TrendArrow
+import app.aaps.core.data.time.T
 import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
@@ -695,7 +697,12 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val reviewLast = if ((autotune as? PluginBase)?.isEnabled() == true)
             autotune.lastResultSummary()?.let { dateUtil.dateStringRelative(it.runTime, rh) } ?: ""
         else null
-        post { it.copy(stats = stats, weeklyReviewLast = reviewLast) }
+        // card 3: last boluses as on the treatments screen (priming excluded)
+        val recent = persistenceLayer.getBolusesFromTime(now - T.hours(24).msecs(), false).blockingGet()
+            .filter { it.type != BS.Type.PRIMING }
+            .take(5)
+            .map { RecentBolus(dateUtil.timeString(it.timestamp), fmt(it.amount, "%.2f"), it.type == BS.Type.SMB) }
+        post { it.copy(stats = stats, weeklyReviewLast = reviewLast, recentBoluses = recent) }
     }
 
     // ---------- Graph ----------
@@ -866,6 +873,10 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         rxBus.send(EventPreferenceChange(IntNonKey.RangeToDisplay.key))
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
         graph = graph.copy(rangeHours = hours)
+    }
+
+    override fun onRecentBoluses() {
+        startActivity(Intent(requireContext(), uiInteraction.treatmentsActivity))
     }
 
     override fun onWeeklyReview() = withBolusProtection { uiInteraction.runWeeklyReviewDialog(childFragmentManager) }

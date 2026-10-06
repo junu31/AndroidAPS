@@ -598,7 +598,8 @@ internal fun DeltaBar(label: String, value: String, mgdl: Double?, compact: Bool
                 .height(if (compact) 7.dp else 10.dp)
         ) {
             val r = CornerRadius(size.height / 2)
-            drawRoundRect(DashColors.Card2, cornerRadius = r)
+            // on the card 3 panels Card2 would be invisible
+            drawRoundRect(if (compact) DashColors.Line else DashColors.Card2, cornerRadius = r)
             val mid = size.width / 2
             val w = mid * kotlin.math.abs(fraction)
             if (w > 0f)

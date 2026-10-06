@@ -157,7 +157,7 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
         Grid2(
             x = w - Pad - 10.dp - tw, y = yb + 12.dp, width = tw, alignEnd = true,
             cells = listOf(
-                GridCell(stringResource(R.string.dashboard_stat_mean), DashColors.Sub, stats?.mean ?: dash, stats?.unitLabel ?: ""),
+                GridCell(stringResource(R.string.dashboard_stat_mean), DashColors.Sub, stats?.mean ?: dash),
                 GridCell(stringResource(R.string.dashboard_stat_cv), DashColors.Sub, stats?.cv ?: dash, "%"),
                 GridCell(stringResource(R.string.dashboard_stat_total_insulin), DashColors.Sub, stats?.totalInsulin ?: dash, "U"),
                 GridCell(stringResource(R.string.dashboard_stat_carbs), DashColors.Sub, stats?.carbs ?: dash, "g")
@@ -207,7 +207,9 @@ private fun Grid2(x: Dp, y: Dp, width: Dp, alignEnd: Boolean, cells: List<GridCe
         ) {
             Text(c.label, color = c.color, fontSize = 9.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Row(verticalAlignment = Alignment.Bottom) {
-                Text(c.value, color = DashColors.Text, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                // long values ("사용불가", "0.70 U/h") get a smaller font so they fit the narrow cells
+                val v = c.value.ifEmpty { "–" }
+                Text(v, color = DashColors.Text, fontSize = if (v.length + c.unit.length > 6) 10.sp else 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, softWrap = false)
                 if (c.unit.isNotEmpty()) Text(" " + c.unit, color = DashColors.Dim, fontSize = 8.5.sp, maxLines = 1)
             }
         }

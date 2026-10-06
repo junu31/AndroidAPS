@@ -2,6 +2,8 @@ package app.aaps.plugins.main.general.dashboard
 
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
+import androidx.preference.Preference
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
@@ -47,6 +49,9 @@ class DashboardPlugin @Inject constructor(
     aapsLogger, rh
 ) {
 
+    // kept so the listener is not garbage collected (SharedPreferences holds listeners weakly)
+    private var modelPathListener: SharedPreferences.OnSharedPreferenceChangeListener? = null
+
     override fun addPreferenceScreen(preferenceManager: PreferenceManager, parent: PreferenceScreen, context: Context, requiredKey: String?) {
         if (requiredKey != null) return
         val category = PreferenceCategory(context)
@@ -76,8 +81,14 @@ class DashboardPlugin @Inject constructor(
                         true
                     }
                 ).apply {
-                    val file = File(preferences.get(StringKey.AiLocalModelPath))
-                    summary = if (file.canRead()) "${file.name} · ${"%.1f".format(file.length() / 1e9)} GB" else rh.gs(R.string.dashboard_ai_model_none)
+                    // the picker is a separate screen: refresh the file name when the stored path changes
+                    summaryProvider = Preference.SummaryProvider<Preference> {
+                        val file = File(preferences.get(StringKey.AiLocalModelPath))
+                        if (file.canRead()) "${file.name} · ${"%.1f".format(file.length() / 1e9)} GB" else rh.gs(R.string.dashboard_ai_model_none)
+                    }
+                    val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changed -> if (changed == StringKey.AiLocalModelPath.key) notifyChanged() }
+                    sharedPreferences?.registerOnSharedPreferenceChangeListener(listener)
+                    modelPathListener = listener
                 }
             )
             addPreference(AdaptiveSwitchPreference(ctx = context, booleanKey = BooleanKey.AiLocalFallbackGemini, title = R.string.dashboard_ai_fallback, summary = R.string.dashboard_ai_fallback_summary))

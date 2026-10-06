@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
@@ -86,7 +87,8 @@ fun BgRing(
                 maxLines = 1,
                 textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
             )
-            if (bg.delta.isNotEmpty()) Text(bg.delta, color = DashColors.Sub, fontSize = 10.sp, maxLines = 1)
+            val glyph = loop?.ringGlyph ?: LoopGlyph.NONE
+            if (glyph != LoopGlyph.NONE) LoopGlyphMark(glyph, loop?.ringTint?.let { Color(it) } ?: color)
         }
     }
 }
@@ -120,5 +122,28 @@ private fun LoopRingText(loop: LoopInfo, iconSize: Dp) {
         while (paint.measureText(shown) > maxWidth && shown.length > 2) shown = shown.dropLast(2) + "…"
         val w = paint.measureText(shown)
         drawIntoCanvas { canvas -> canvas.nativeCanvas.drawTextOnPath(shown, path, (half - w) / 2, paint.textSize * 0.35f, paint) }
+    }
+}
+
+/** The pause bars / cross from the middle of the original loop icons, moved under the BG value. */
+@Composable
+private fun LoopGlyphMark(glyph: LoopGlyph, color: Color) {
+    Canvas(Modifier.size(12.dp)) {
+        val w = size.width
+        when (glyph) {
+            LoopGlyph.PAUSE -> {
+                val bar = w * 0.3f
+                drawRect(color, topLeft = Offset(0f, 0f), size = Size(bar, w))
+                drawRect(color, topLeft = Offset(w - bar, 0f), size = Size(bar, w))
+            }
+
+            LoopGlyph.CROSS -> {
+                val s = w * 0.22f
+                drawLine(color, Offset(0f, 0f), Offset(w, w), s)
+                drawLine(color, Offset(w, 0f), Offset(0f, w), s)
+            }
+
+            LoopGlyph.NONE  -> Unit
+        }
     }
 }

@@ -70,13 +70,9 @@ data class LoopInfo(
     @DrawableRes val ringIconRes: Int = iconRes,
     /** ARGB tint for [ringIconRes], null = the icon's own colors */
     val ringTint: Int? = null,
-    /** symbol shown small under the BG value (the middle of the original icon) */
-    val ringGlyph: LoopGlyph = LoopGlyph.NONE,
     /** ARGB color of the loop ring (its status text is written on the ring) */
     val ringColor: Int = 0
 )
-
-enum class LoopGlyph { NONE, PAUSE, CROSS }
 
 @Immutable
 data class RibbonInfo(

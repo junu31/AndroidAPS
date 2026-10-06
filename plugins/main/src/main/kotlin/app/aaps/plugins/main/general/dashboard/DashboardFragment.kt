@@ -540,13 +540,13 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             when (mode) {
                 RM.Mode.SUPER_BOLUS       -> LoopInfo(R.drawable.ic_loop_superbolus, rh.gs(app.aaps.core.ui.R.string.superbolus), suspendEnd, Severity.WARNING).withRing(app.aaps.core.ui.R.attr.loopSuperBolus)
                 RM.Mode.DISCONNECTED_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disconnected, rh.gs(app.aaps.core.ui.R.string.disconnected), suspendEnd, Severity.CRITICAL)
-                RM.Mode.SUSPENDED_BY_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.pumpsuspended), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
-                RM.Mode.SUSPENDED_BY_USER -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loopsuspended), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
-                RM.Mode.SUSPENDED_BY_DST  -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loop_suspended_by_dst), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.PAUSE)
+                RM.Mode.SUSPENDED_BY_PUMP -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.pumpsuspended), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled)
+                RM.Mode.SUSPENDED_BY_USER -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loopsuspended), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled)
+                RM.Mode.SUSPENDED_BY_DST  -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_paused, rh.gs(app.aaps.core.ui.R.string.loop_suspended_by_dst), suspendEnd, Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled)
                 RM.Mode.CLOSED_LOOP_LGS   -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_lgs, rh.gs(app.aaps.core.ui.R.string.uel_lgs_loop_mode), lastRunAgo, Severity.WARNING)
                 RM.Mode.CLOSED_LOOP       -> LoopInfo(app.aaps.core.objects.R.drawable.ic_loop_closed, rh.gs(app.aaps.core.ui.R.string.closedloop), lastRunAgo, Severity.OK)
                 RM.Mode.OPEN_LOOP         -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_open, rh.gs(app.aaps.core.ui.R.string.openloop), lastRunAgo, Severity.WARNING)
-                RM.Mode.DISABLED_LOOP     -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disabled, rh.gs(R.string.disabled_loop), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled, LoopGlyph.CROSS)
+                RM.Mode.DISABLED_LOOP     -> LoopInfo(app.aaps.core.ui.R.drawable.ic_loop_disabled, rh.gs(R.string.disabled_loop), "", Severity.CRITICAL).withRing(app.aaps.core.ui.R.attr.loopDisabled)
                 RM.Mode.RESUME            -> error("Invalid mode")
             }.copy(ringColor = rh.gac(context, loopColorAttr(mode)))
         } else null
@@ -565,9 +565,9 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         RM.Mode.DISABLED_LOOP, RM.Mode.RESUME                                           -> app.aaps.core.ui.R.attr.loopDisabled
     }
 
-    /** Ring card: icons with a symbol in the middle are drawn as the plain loop ring in their color, the symbol goes under the BG value. */
-    private fun LoopInfo.withRing(@AttrRes colorAttr: Int, glyph: LoopGlyph = LoopGlyph.NONE) =
-        copy(ringIconRes = app.aaps.core.objects.R.drawable.ic_loop_closed, ringTint = rh.gac(context, colorAttr), ringGlyph = glyph)
+    /** Ring card: icons with a symbol in the middle are drawn as the plain loop ring in their color (the status is written on the ring). */
+    private fun LoopInfo.withRing(@AttrRes colorAttr: Int) =
+        copy(ringIconRes = app.aaps.core.objects.R.drawable.ic_loop_closed, ringTint = rh.gac(context, colorAttr))
 
     /** Local, API-free summary of the last loop run for the floating button. */
     private fun buildLoopDecision(lastRun: Loop.LastRun): LoopDecision? {

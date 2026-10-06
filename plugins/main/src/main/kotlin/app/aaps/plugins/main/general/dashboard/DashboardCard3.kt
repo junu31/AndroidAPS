@@ -16,6 +16,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -137,21 +141,45 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
             }
         }
 
-        // bottom right: today, rows follow the circle as well
-        val stats = state.stats
-        val dash = "–"
-        val rb1 = widthAt(yb + 18.dp)
-        val rb2 = widthAt(yb + 52.dp)
-        Grid2(
-            rows = listOf((w - Pad - 10.dp - rb1) to rb1, (w - Pad - 10.dp - rb2) to rb2), y = yb + 2.dp, alignEnd = true,
-            cells = listOf(
-                GridCell(stringResource(R.string.dashboard_stat_mean), DashColors.Sub, stats?.mean ?: dash),
-                GridCell(stringResource(R.string.dashboard_stat_cv), DashColors.Sub, stats?.cv ?: dash, "%"),
-                GridCell(stringResource(R.string.dashboard_stat_total_insulin), DashColors.Sub, stats?.totalInsulin ?: dash, "U"),
-                GridCell(stringResource(R.string.dashboard_stat_carbs), DashColors.Sub, stats?.carbs ?: dash, "g")
-            ),
-            onClick = null
+        // bottom right: last loop (SMB) decision; tap for the full explanation
+        var showDecision by remember { mutableStateOf(false) }
+        Box(
+            Modifier
+                .offset(cx + Gap / 2 + 30.dp, cy + Gap / 2)
+                .size(cx - Pad - Gap / 2 - 30.dp, cy - Pad - Gap / 2)
+                .clip(RoundedCornerShape(14.dp))
+                .clickable { showDecision = true }
         )
+        val decision = state.loopDecision
+        val lines = buildList {
+            add(Triple("‹ " + stringResource(R.string.dashboard_loop_title), DashColors.Dim, 9.5.sp))
+            if (decision == null) add(Triple(stringResource(R.string.dashboard_loop_none), DashColors.Sub, 9.5.sp))
+            else {
+                add(Triple(decision.runTimeText, DashColors.Dim, 9.sp))
+                val kindColor = when (decision.kind) {
+                    DecisionKind.UP   -> DashColors.High
+                    DecisionKind.DOWN -> DashColors.Iob
+                    DecisionKind.NONE -> DashColors.Text
+                }
+                add(Triple(decision.decision, kindColor, 10.sp))
+                if (decision.summary.isNotEmpty()) add(Triple(decision.summary, DashColors.Sub, 9.sp))
+            }
+        }
+        // right aligned lines, each as wide as the circle allows at its height
+        var ly = yb
+        lines.forEachIndexed { i, (text, c, size) ->
+            val lh = if (i == 2) 26.dp else 14.dp
+            val lw = widthAt(ly + lh / 2)
+            Text(
+                text, color = c, fontSize = size, fontWeight = if (i == 2) FontWeight.Bold else FontWeight.Normal,
+                maxLines = if (i >= 2) 2 else 1, lineHeight = 12.sp, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.End,
+                modifier = Modifier
+                    .offset(w - Pad - 10.dp - lw, ly)
+                    .width(lw)
+            )
+            ly += lh
+        }
+        if (showDecision) LoopDecisionDialog(decision) { showDecision = false }
 
         // the ring of card 2; tapping it opens the loop menu
         BgRing(

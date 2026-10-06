@@ -28,14 +28,12 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.aaps.plugins.main.R
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sqrt
 
 /** Card 3 geometry: the four panels are carved by a circle around the ring. */
@@ -82,11 +80,10 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
             }
         }
 
-        // top left: now
-        val y0 = Pad + 2.dp
-        Text(stringResource(R.string.dashboard_card3_now), color = DashColors.Dim, fontSize = 9.5.sp, modifier = Modifier.offset(left, y0))
+        // top left: now (IOB, COB, Basal, Sens); each row ends where the circle is, like the delta bars
+        val y0 = Pad + 4.dp
         Grid2(
-            x = left, y = y0 + 14.dp, width = min(widthAt(y0 + 28.dp).value, widthAt(y0 + 58.dp).value).dp, alignEnd = false,
+            rows = listOf(left to widthAt(y0 + 16.dp), left to widthAt(y0 + 50.dp)), y = y0, alignEnd = false,
             cells = listOf(
                 GridCell("IOB", DashColors.Iob, state.iob.value),
                 GridCell("COB", DashColors.Cob, state.cob.value),
@@ -97,18 +94,12 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
         )
 
         // top right: BG change, bars like card 1
-        Text(
-            stringResource(R.string.dashboard_card3_delta), color = DashColors.Dim, fontSize = 9.5.sp, textAlign = TextAlign.End,
-            modifier = Modifier
-                .offset(cx + Gap / 2, y0)
-                .width(cx - Gap / 2 - Pad - 10.dp)
-        )
         listOf(
             Triple(R.string.dashboard_delta_5, bg.delta, bg.deltasMgdl[0]),
             Triple(R.string.dashboard_delta_15, bg.shortAvgDelta, bg.deltasMgdl[1]),
             Triple(R.string.dashboard_delta_40, bg.longAvgDelta, bg.deltasMgdl[2])
         ).forEachIndexed { i, (label, value, mgdl) ->
-            val y = y0 + 18.dp + (i * 19).dp
+            val y = y0 + 6.dp + (i * 22).dp
             val rw = widthAt(y + 7.dp)
             Box(
                 Modifier
@@ -144,18 +135,13 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
             }
         }
 
-        // bottom right: today
+        // bottom right: today, rows follow the circle as well
         val stats = state.stats
         val dash = "–"
-        Text(
-            stringResource(R.string.dashboard_card3_today), color = DashColors.Dim, fontSize = 9.5.sp, textAlign = TextAlign.End,
-            modifier = Modifier
-                .offset(cx + Gap / 2, yb)
-                .width(cx - Gap / 2 - Pad - 10.dp)
-        )
-        val tw = min(widthAt(yb + 26.dp).value, widthAt(yb + 56.dp).value).dp
+        val rb1 = widthAt(yb + 18.dp)
+        val rb2 = widthAt(yb + 52.dp)
         Grid2(
-            x = w - Pad - 10.dp - tw, y = yb + 12.dp, width = tw, alignEnd = true,
+            rows = listOf((w - Pad - 10.dp - rb1) to rb1, (w - Pad - 10.dp - rb2) to rb2), y = yb + 2.dp, alignEnd = true,
             cells = listOf(
                 GridCell(stringResource(R.string.dashboard_stat_mean), DashColors.Sub, stats?.mean ?: dash),
                 GridCell(stringResource(R.string.dashboard_stat_cv), DashColors.Sub, stats?.cv ?: dash, "%"),
@@ -178,29 +164,38 @@ internal fun Card3(state: DashboardState, actions: DashboardActions, color: Colo
 
 private data class GridCell(val label: String, val color: Color, val value: String, val unit: String = "")
 
-/** 2x2 values divided by short grid lines (like the BG statistics card). */
+/**
+ * 2x2 values divided by short grid lines (like the BG statistics card). Each row has its own start and width
+ * so the cells follow the circle; the line between the rows is as long as the shorter row.
+ */
 @Composable
-private fun Grid2(x: Dp, y: Dp, width: Dp, alignEnd: Boolean, cells: List<GridCell>, onClick: ((Int) -> Unit)?) {
-    val rowH = 30.dp
-    val cw = (width - 8.dp) / 2
+private fun Grid2(rows: List<Pair<Dp, Dp>>, y: Dp, alignEnd: Boolean, cells: List<GridCell>, onClick: ((Int) -> Unit)?) {
+    val rowH = 32.dp
+    rows.forEachIndexed { r, (x, width) ->
+        val cw = (width - 8.dp) / 2
+        Box(
+            Modifier
+                .offset(x + cw + 4.dp, y + rowH * r + 4.dp)
+                .size(1.dp, rowH - 8.dp)
+                .background(DashColors.Line)
+        )
+    }
+    val shorter = rows.minBy { it.second }
+    val lineX = if (alignEnd) shorter.first + 2.dp else rows[0].first + 2.dp
     Box(
         Modifier
-            .offset(x + cw + 4.dp, y + 4.dp)
-            .size(1.dp, rowH * 2 - 8.dp)
-            .background(DashColors.Line)
-    )
-    Box(
-        Modifier
-            .offset(x + 2.dp, y + rowH)
-            .size(width - 4.dp, 1.dp)
+            .offset(lineX, y + rowH)
+            .size(shorter.second - 4.dp, 1.dp)
             .background(DashColors.Line)
     )
     cells.forEachIndexed { i, c ->
         val col = i % 2
         val row = i / 2
+        val (x, width) = rows[row]
+        val cw = (width - 8.dp) / 2
         Column(
             Modifier
-                .offset(x + (cw + 8.dp) * col, y + rowH * row + 2.dp)
+                .offset(x + (cw + 8.dp) * col, y + rowH * row + 3.dp)
                 .width(cw)
                 .then(if (onClick != null) Modifier.clickable { onClick(i) } else Modifier),
             horizontalAlignment = if (alignEnd) Alignment.End else Alignment.Start

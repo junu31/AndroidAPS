@@ -400,7 +400,16 @@ private fun HeroPager(state: DashboardState, actions: DashboardActions) {
                 when (page) {
                     0    -> HeroCard(state, actions)
                     1    -> RingCard(state, actions)
-                    else -> CardBox(plain = !state.bgCardBackground) { Card3(state, actions, state.bg.range.color()) }
+                    else -> CardBox(plain = !state.bgCardBackground) {
+                        val color = state.bg.range.color()
+                        // glow in the BG range color like the other cards, centred on the ring
+                        if (state.bgCardBackground) Box(
+                            Modifier
+                                .matchParentSize()
+                                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 500f))
+                        )
+                        Card3(state, actions, color)
+                    }
                 }
             }
         }

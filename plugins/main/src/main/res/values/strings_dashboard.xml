@@ -58,8 +58,5 @@
     <string name="modern_design_summary">Dashboard style (dark mode only)</string>
     <string name="dashboard_bg_card_background">BG cards as cards</string>
     <string name="dashboard_bg_card_background_summary">Background and border around the BG cards on the dashboard</string>
-    <string name="dashboard_card3_now">Now</string>
-    <string name="dashboard_card3_delta">Change</string>
     <string name="dashboard_card3_boluses">Recent boluses</string>
-    <string name="dashboard_card3_today">Today</string>
 </resources>

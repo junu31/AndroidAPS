@@ -1,8 +1,6 @@
 package app.aaps.ui.ai
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
 import com.google.mediapipe.tasks.genai.llminference.LlmInference
@@ -13,8 +11,8 @@ import javax.inject.Singleton
 
 /**
  * Personal-fork: on-device LLM (MediaPipe LLM Inference, e.g. Gemma 3n E2B .task file).
- * The model is loaded on first use and released after a short idle time, so the few GB of memory
- * are only taken while explanations are being generated.
+ * The model is loaded when needed (or [preload]ed by an open screen) and released right after the answer,
+ * so its memory is only taken while an explanation is being prepared or generated.
  */
 @Singleton
 class LocalLlm @Inject constructor(
@@ -25,19 +23,35 @@ class LocalLlm @Inject constructor(
     private val lock = Any()
     private var engine: LlmInference? = null
     private var loadedPath: String? = null
-    private val handler = Handler(Looper.getMainLooper())
-    private val release = Runnable {
+    /** false once the screen that asked for [preload] is gone; a late preload then frees the model again */
+    @Volatile private var keep = false
+
+    /** Loads the model in advance (blocking, background thread) so the next [generate] starts at once. */
+    fun preload(modelPath: String) {
+        keep = true
         synchronized(lock) {
-            engine?.close()
-            engine = null
-            loadedPath = null
-            aapsLogger.debug(LTag.UI, "Local LLM released")
+            if (!keep) return
+            if (engine == null || loadedPath != modelPath) load(modelPath)
+            if (!keep) close()
         }
+    }
+
+    /** Frees the model (blocking until a running load or answer is done; call from a background thread). */
+    fun release() {
+        keep = false
+        synchronized(lock) { close() }
+    }
+
+    private fun close() {
+        if (engine == null) return
+        engine?.close()
+        engine = null
+        loadedPath = null
+        aapsLogger.debug(LTag.UI, "Local model released")
     }
 
     /** Blocking, call from a background thread. */
     fun generate(modelPath: String, prompt: String): String = synchronized(lock) {
-        handler.removeCallbacks(release)
         try {
             val llm = engine?.takeIf { loadedPath == modelPath } ?: load(modelPath)
             val session = LlmInferenceSession.createFromOptions(
@@ -54,7 +68,9 @@ class LocalLlm @Inject constructor(
                 session.close()
             }
         } finally {
-            handler.postDelayed(release, IDLE_RELEASE_MS)
+            // the answer is stored by the caller and not asked again right away: give the memory back now
+            keep = false
+            close()
         }
     }
 
@@ -86,7 +102,6 @@ class LocalLlm @Inject constructor(
 
         /** prompt + answer */
         private const val MAX_TOKENS = 2048
-        private const val IDLE_RELEASE_MS = 2 * 60 * 1000L
 
         /** Gemma chat format */
         fun gemmaPrompt(systemPrompt: String, userText: String) =

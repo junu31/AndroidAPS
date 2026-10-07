@@ -20,6 +20,12 @@ interface AiTextEngine {
     /** true when the local model is selected (no API key needed) */
     val usesLocal: Boolean
 
-    /** Generates on a background thread; errors when neither engine can answer. */
+    /** Generates on a background thread; errors when neither engine can answer. The local model is released afterwards. */
     fun generate(systemPrompt: String, userText: String): Single<Result>
+
+    /** Starts loading the local model in the background (no-op for Gemini or without a model file). */
+    fun preload()
+
+    /** Frees a preloaded local model that was not used (e.g. the screen was closed). */
+    fun release()
 }

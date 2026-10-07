@@ -117,6 +117,8 @@ Rules:
 
     override fun onDestroyView() {
         disposable.clear()
+        // a preloaded model that was not used is freed with the dialog
+        aiTextEngine.release()
         _binding = null
         super.onDestroyView()
     }
@@ -242,6 +244,8 @@ Rules:
         binding.aiText.text = cached.orEmpty()
         binding.aiText.visibility = if (cached == null) View.GONE else View.VISIBLE
         binding.aiButton.visibility = if (cached == null) View.VISIBLE else View.GONE
+        // the AI button is shown: load the local model now so the explanation starts at once when tapped
+        if (cached == null) aiTextEngine.preload()
     }
 
     private fun renderBasal(s: AutotuneSummary) {

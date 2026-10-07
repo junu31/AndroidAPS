@@ -31,7 +31,7 @@ class AiTextEngineImpl @Inject constructor(
             check(path.isNotEmpty() && File(path).canRead()) { "No local model file" }
             val start = System.currentTimeMillis()
             // .litertlm (Gemma 4) runs on LiteRT-LM, .task (Gemma 3n) on MediaPipe
-            val raw = if (path.endsWith(".litertlm", ignoreCase = true)) liteRtLm.generate(path, systemPrompt, userText)
+            val raw = if (isLiteRt(path)) liteRtLm.generate(path, systemPrompt, userText)
             else localLlm.generate(path, LocalLlm.gemmaPrompt(systemPrompt, userText))
             val text = cleanLocal(raw)
             check(text.isNotEmpty()) { "Empty answer from the local model" }
@@ -43,6 +43,29 @@ class AiTextEngineImpl @Inject constructor(
             viaGemini(systemPrompt, userText)
         }
     }
+
+    override fun preload() {
+        if (!usesLocal) return
+        val path = preferences.get(StringKey.AiLocalModelPath)
+        if (path.isEmpty() || !File(path).canRead()) return
+        Schedulers.io().scheduleDirect {
+            try {
+                if (isLiteRt(path)) liteRtLm.preload(path) else localLlm.preload(path)
+            } catch (e: Exception) {
+                // generate() loads again and reports the error (or falls back to Gemini)
+                aapsLogger.warn(LTag.UI, "Local model preload failed: ${e.message}")
+            }
+        }
+    }
+
+    override fun release() {
+        Schedulers.io().scheduleDirect {
+            liteRtLm.release()
+            localLlm.release()
+        }
+    }
+
+    private fun isLiteRt(path: String) = path.endsWith(".litertlm", ignoreCase = true)
 
     private fun viaGemini(systemPrompt: String, userText: String): Single<AiTextEngine.Result> = Single.defer {
         val start = System.currentTimeMillis()

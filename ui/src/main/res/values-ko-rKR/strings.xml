@@ -206,4 +206,6 @@
     <string name="local_model_ready">로컬 모델 준비 완료: %1$s</string>
     <string name="local_model_copy_failed">모델 복사에 실패했습니다</string>
     <string name="local_model_wrong_type">.task 또는 .litertlm 모델 파일을 선택하세요</string>
+    <string name="weekly_review_ai_source_local">— %1$s · 로컬 · %2$d초</string>
+    <string name="weekly_review_ai_source">— %1$s · %2$d초</string>
 </resources>

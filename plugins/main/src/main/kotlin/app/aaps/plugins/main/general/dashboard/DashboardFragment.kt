@@ -901,7 +901,8 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         disposable += aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, data)
             .observeOn(aapsSchedulers.main)
             .subscribe({ r ->
-                           val label = if (r.local) rh.gs(R.string.dashboard_loop_ai_label_local, r.source, r.millis / 1000) else r.source
+                           val seconds = ((r.millis + 500) / 1000).toInt()
+                           val label = rh.gs(if (r.local) R.string.dashboard_loop_ai_label_local else R.string.dashboard_loop_ai_label, r.source, seconds)
                            state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = r.text, label = label))
                        }, { e ->
                            aapsLogger.error(LTag.UI, "Loop decision AI", e)

@@ -262,4 +262,6 @@
     <string name="local_model_ready">Local model ready: %1$s</string>
     <string name="local_model_copy_failed">Copying the model failed</string>
     <string name="local_model_wrong_type">Choose a .task or .litertlm model file</string>
+    <string name="weekly_review_ai_source_local">— %1$s · local · %2$d s</string>
+    <string name="weekly_review_ai_source">— %1$s · %2$d s</string>
 </resources>

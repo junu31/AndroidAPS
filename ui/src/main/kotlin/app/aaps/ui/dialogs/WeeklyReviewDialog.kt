@@ -318,10 +318,14 @@ Rules:
         binding.aiText.text = rh.gs(R.string.weekly_review_ai_loading)
         // Gemini or the local model, as chosen in the Dashboard settings
         disposable += aiTextEngine.generate(SYSTEM_PROMPT, promptData(summary))
-            .map { it.text }
             .observeOn(aapsSchedulers.main)
-            .subscribe({ text ->
-                           val cleaned = text.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim().replaceFirst(Regex("^[-*•]\\s*"), "• ") }
+            .subscribe({ result ->
+                           val cleaned = result.text.lines().filter { it.isNotBlank() }.joinToString("\n") { it.trim().replaceFirst(Regex("^[-*•]\\s*"), "• ") } +
+                               // which engine answered and how long it took; stored with the text so it survives restarts
+                               "\n\n" + rh.gs(
+                                   if (result.local) R.string.weekly_review_ai_source_local else R.string.weekly_review_ai_source,
+                                   result.source, ((result.millis + 500) / 1000).toInt()
+                               )
                            storeExplanation(summary.runTime, cleaned)
                            showAi(cleaned, done = true)
                        }, { error ->

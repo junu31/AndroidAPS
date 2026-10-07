@@ -291,7 +291,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 add(WizardRow(rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) rh.gs(R.string.dashboard_wizard_sb_formula) else "", u(w.insulinFromSuperBolus)))
             add(WizardRow(rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection)))
             // the percentage applied to the sum (only when it is not 100 %)
-            appendLine("합계: 위 항목을 모두 더하면 ${f2(w.totalBeforePercentageAdjustment)} U")
             if (w.percentageCorrection != 100)
                 add(
                     WizardRow(
@@ -360,6 +359,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             if (useSb && abs(w.insulinFromSuperBolus) >= 0.005)
                 appendLine("Superbolus: 앞으로 2시간 기저 인슐린 ${f2(w.insulinFromSuperBolus)} U를 지금 미리 넣음 (그동안 기저는 멈춤) → ${signed(w.insulinFromSuperBolus)}")
             if (abs(w.insulinFromCorrection) >= 0.005) appendLine("교정: 직접 입력한 값 → ${signed(w.insulinFromCorrection)}")
+            appendLine("합계: 위 항목을 모두 더하면 ${f2(w.totalBeforePercentageAdjustment)} U")
             if (w.percentageCorrection != 100)
                 appendLine("비율: 위 합계 ${f2(w.totalBeforePercentageAdjustment)} U × ${w.percentageCorrection}% 만 적용")
             appendLine("최종 권장: ${f2(w.calculatedTotalInsulin)} U")

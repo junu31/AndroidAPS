@@ -102,4 +102,29 @@
     <string name="dashboard_wizard_easy_correction">The value you entered is added as is</string>
     <string name="dashboard_wizard_easy_percent">Only %1$d%% of the sum is given</string>
     <string name="dashboard_wizard_easy_rounding">Sum %1$s · rounded to the pump step %2$s U → %3$s</string>
+    <string name="dashboard_loop_math_title">How the numbers came out</string>
+    <string name="dashboard_loop_math_eventual">Eventual BG (in a few hours)</string>
+    <string name="dashboard_loop_math_min">Lowest predicted (lowest point)</string>
+    <string name="dashboard_loop_math_bg">BG now</string>
+    <string name="dashboard_loop_math_iob">Insulin left will lower · IOB %1$s U × ISF %2$s</string>
+    <string name="dashboard_loop_math_dev">Rising force (deviation) · assumed to last 30 min</string>
+    <string name="dashboard_loop_math_dev_note">Deviation: actually %1$s every 5 min · insulin alone %2$s → gap %3$s × 6 (30 min) = %4$s</string>
+    <string name="dashboard_loop_math_use_cob">COB curve ends higher than %1$s, so its end is used</string>
+    <string name="dashboard_loop_math_use_uam">UAM curve ends higher than %1$s, so its end is used</string>
+    <string name="dashboard_loop_math_other">Other loop adjustment</string>
+    <string name="dashboard_loop_math_sum">Eventual</string>
+    <string name="dashboard_loop_math_min_cob">Carbs were entered: the COB curve low (%1$s) is blended with the UAM curve by the carbs left → %2$s</string>
+    <string name="dashboard_loop_math_min_uam">No carbs entered: the higher of the IOB curve low (%1$s) and the UAM curve low (%2$s) → %3$s</string>
+    <string name="dashboard_loop_math_min_iob">IOB curve low (%1$s) → %2$s</string>
+    <string name="dashboard_loop_math_min_plain">Loop value %1$s</string>
+    <string name="dashboard_loop_math_min_capped">(lowered so it does not exceed the average prediction)</string>
+    <string name="dashboard_loop_math_verdict_high">Eventual %1$s &gt; target %2$s → more insulin is needed</string>
+    <string name="dashboard_loop_math_verdict_low">Eventual %1$s &lt; target %2$s → less insulin</string>
+    <string name="dashboard_loop_math_verdict_near">Eventual %1$s is close to target %2$s</string>
+    <string name="dashboard_loop_math_verdict_safe">Lowest safety prediction %1$s ≥ safety line %2$s → no risk of going low (SMB allowed)</string>
+    <string name="dashboard_loop_math_verdict_unsafe">Lowest safety prediction %1$s &lt; safety line %2$s → SMB blocked, insulin reduced</string>
+    <string name="dashboard_loop_math_target">target %1$s</string>
+    <string name="dashboard_loop_math_threshold">safety line %1$s</string>
+    <string name="dashboard_loop_ai_flow">✦ Why did this happen? (last hour)</string>
+    <string name="dashboard_loop_ai_flow_title">✦ Last hour</string>
 </resources>

@@ -31,6 +31,8 @@ import app.aaps.core.data.pump.defs.PumpType
 import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.interfaces.ai.AiTextEngine
+import app.aaps.core.interfaces.aps.APSResult
+import io.reactivex.rxjava3.core.Single
 import app.aaps.core.interfaces.aps.Loop
 import app.aaps.core.interfaces.automation.Automation
 import app.aaps.core.interfaces.autotune.Autotune
@@ -619,9 +621,103 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             kind = kind,
             summary = summary,
             facts = facts,
-            reason = reason
+            reason = reason,
+            math = buildLoopMath(lastRun.request ?: result, result, reason)
         )
     }
+
+    /**
+     * Works out how OpenAPS SMB reached "eventual BG" and "minPredBG" (DetermineBasalSMB):
+     * eventual = BG − IOB × ISF + deviation (or the end of the COB / UAM curve when higher),
+     * minPredBG = lowest point of the IOB / COB / UAM curves, chosen by whether carbs were entered.
+     * Values come from the loop result; the loop's own numbers are always the ones shown as the answer.
+     */
+    private fun buildLoopMath(request: APSResult, result: APSResult, reason: String): LoopMath? {
+        val units = profileFunction.getUnits()
+        val mmol = units == GlucoseUnit.MMOL
+        val toMgdl = { v: Double -> if (mmol) v * Constants.MMOLL_TO_MGDL else v }
+        val fmt = { mgdl: Double -> profileUtil.fromMgdlToStringInUnits(mgdl, units) }
+        val signed = { mgdl: Double -> (if (mgdl < 0) "− " else "+ ") + fmt(abs(mgdl)) }
+        val bg = request.glucoseStatus?.glucose ?: return null
+        val iob = request.iob?.iob ?: return null
+        val isf = LoopReasonParser.number(reason, "ISF")?.let(toMgdl) ?: return null
+        val dev = LoopReasonParser.number(reason, "Dev")?.let(toMgdl) ?: return null
+        val bgi = LoopReasonParser.number(reason, "BGI")?.let(toMgdl) ?: 0.0
+        val eventual = LoopReasonParser.eventualBg(reason)?.replace(',', '.')?.toDoubleOrNull()?.let(toMgdl) ?: return null
+        val minPred = LoopReasonParser.minPredBg(reason)?.replace(',', '.')?.toDoubleOrNull()?.let(toMgdl) ?: return null
+        val minGuard = LoopReasonParser.number(reason, "minGuardBG")?.let(toMgdl)
+        val target = request.targetBG.takeIf { it > 0 } ?: result.targetBG
+        val minBg = request.oapsProfile?.min_bg ?: target
+        val threshold = minBg - 0.5 * (minBg - 40)
+
+        // eventual BG
+        val drop = iob * isf
+        val naive = Math.round(bg - drop).toDouble()
+        val sum = naive + dev
+        val steps = mutableListOf(
+            MathStep(rh.gs(R.string.dashboard_loop_math_bg), fmt(bg)),
+            MathStep(rh.gs(R.string.dashboard_loop_math_iob, decimalFormatter.to2Decimal(iob), fmt(isf)), signed(-drop), if (drop >= 0) StepKind.DOWN else StepKind.UP),
+            MathStep(rh.gs(R.string.dashboard_loop_math_dev), signed(dev), if (dev >= 0) StepKind.UP else StepKind.DOWN)
+        )
+        if (abs(eventual - sum) >= 1.5) {
+            val cobEnd = LoopReasonParser.number(reason, "COBpredBG")?.let(toMgdl)
+            val uamEnd = LoopReasonParser.number(reason, "UAMpredBG")?.let(toMgdl)
+            val label = when {
+                cobEnd != null && abs(cobEnd - eventual) < 1.5 -> rh.gs(R.string.dashboard_loop_math_use_cob, fmt(sum))
+                uamEnd != null && abs(uamEnd - eventual) < 1.5 -> rh.gs(R.string.dashboard_loop_math_use_uam, fmt(sum))
+                else                                           -> rh.gs(R.string.dashboard_loop_math_other)
+            }
+            steps += MathStep(label, signed(eventual - sum), if (eventual >= sum) StepKind.UP else StepKind.DOWN)
+        }
+        val per5 = dev / 6.0
+        val deviationNote = rh.gs(R.string.dashboard_loop_math_dev_note, signedPlain(fmt, per5 + bgi), signedPlain(fmt, bgi), signedPlain(fmt, per5), signedPlain(fmt, dev))
+
+        // lowest predicted BG
+        val p = request.predictions()
+        val curves = listOfNotNull(
+            p?.ZT?.let { PredCurve(PredKind.ZT, it) },
+            p?.IOB?.let { PredCurve(PredKind.IOB, it) },
+            p?.COB?.let { PredCurve(PredKind.COB, it) },
+            p?.UAM?.let { PredCurve(PredKind.UAM, it) }
+        )
+        // same windows as the algorithm: IOB / COB after the 90 min insulin peak, UAM after 1 h
+        val minIob = p?.IOB?.drop(18)?.minOrNull()?.toDouble()
+        val minCob = p?.COB?.drop(18)?.minOrNull()?.toDouble()
+        val minUam = p?.UAM?.drop(12)?.minOrNull()?.toDouble()
+        val carbsEntered = (request.mealData?.carbs ?: 0.0) > 0.0
+        var minPredNote = when {
+            carbsEntered && minCob != null                  -> rh.gs(R.string.dashboard_loop_math_min_cob, fmt(minCob), fmt(minPred))
+            !carbsEntered && minIob != null && minUam != null -> rh.gs(R.string.dashboard_loop_math_min_uam, fmt(minIob), fmt(minUam), fmt(minPred))
+            minIob != null                                  -> rh.gs(R.string.dashboard_loop_math_min_iob, fmt(minIob), fmt(minPred))
+            else                                            -> rh.gs(R.string.dashboard_loop_math_min_plain, fmt(minPred))
+        }
+        val chosen = if (!carbsEntered && minIob != null && minUam != null) maxOf(minIob, minUam) else null
+        if (chosen != null && minPred < chosen - 1.5) minPredNote += " " + rh.gs(R.string.dashboard_loop_math_min_capped)
+
+        // what the two numbers decided
+        val verdicts = buildList {
+            add(
+                when {
+                    eventual > target + 1.5 -> rh.gs(R.string.dashboard_loop_math_verdict_high, fmt(eventual), fmt(target))
+                    eventual < target - 1.5 -> rh.gs(R.string.dashboard_loop_math_verdict_low, fmt(eventual), fmt(target))
+                    else                    -> rh.gs(R.string.dashboard_loop_math_verdict_near, fmt(eventual), fmt(target))
+                } to false
+            )
+            minGuard?.let {
+                if (it >= threshold) add(rh.gs(R.string.dashboard_loop_math_verdict_safe, fmt(it), fmt(threshold)) to false)
+                else add(rh.gs(R.string.dashboard_loop_math_verdict_unsafe, fmt(it), fmt(threshold)) to true)
+            }
+        }
+        return LoopMath(
+            eventual = fmt(eventual), eventualSteps = steps, deviationNote = deviationNote,
+            minPred = fmt(minPred), minPredNote = minPredNote, minPredWarn = minPred < threshold,
+            curves = curves, minPredMgdl = minPred, targetMgdl = target, thresholdMgdl = threshold,
+            targetText = fmt(target), thresholdText = fmt(threshold), verdicts = verdicts
+        )
+    }
+
+    private fun signedPlain(fmt: (Double) -> String, mgdl: Double): String =
+        (if (mgdl < 0) "−" else "+") + fmt(abs(mgdl))
 
     private fun updateTimeAndStatusLights() {
         val pump = activePlugin.activePump
@@ -891,15 +987,19 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         }
         state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = true))
         val bg = state.bg
-        val data = buildString {
-            appendLine("결정: ${decision.decision}")
+        val now = buildString {
+            appendLine("지금 판단: ${decision.decision}")
             if (decision.summary.isNotEmpty()) appendLine("간단 요약: ${decision.summary}")
             appendLine("현재 혈당: ${bg.value} (추세 ${bg.arrowDescription}), 변화 5분 ${bg.delta} / 15분 ${bg.shortAvgDelta} / 40분 ${bg.longAvgDelta}")
             appendLine("IOB ${state.iob.value}, COB ${state.cob.value}, 기저 ${state.basal.value}, 민감도 ${state.sensitivity.value}, 목표 ${state.target.text}")
             decision.facts.forEach { (k, v) -> appendLine("$k: $v") }
             appendLine("알고리즘 원문: ${decision.reason.take(LOOP_AI_REASON_CHARS)}")
         }
-        disposable += aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, data)
+        // the last hour of loop runs, boluses and carbs: the AI explains the flow, the dialog already shows the math
+        val start = decision.runTime - T.mins(LOOP_AI_HISTORY_MIN).msecs()
+        disposable += Single.fromCallable { now + loopHistoryText(start, decision.runTime) }
+            .subscribeOn(aapsSchedulers.io)
+            .flatMap { data -> aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, data) }
             .observeOn(aapsSchedulers.main)
             .subscribe({ r ->
                            val seconds = ((r.millis + 500) / 1000).toInt()
@@ -909,6 +1009,29 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
                            aapsLogger.error(LTag.UI, "Loop decision AI", e)
                            state = state.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = rh.gs(R.string.dashboard_loop_ai_failed), error = true))
                        })
+    }
+
+    /** one line per loop run (oldest first) plus boluses / carbs of the window; runs on io */
+    private fun loopHistoryText(start: Long, end: Long): String = buildString {
+        val runs = persistenceLayer.getApsResults(start, end + 1).sortedBy { it.date }
+        if (runs.isNotEmpty()) appendLine("최근 1시간 루프 판단 (오래된 것부터):")
+        runs.forEach { r ->
+            val bgText = r.glucoseStatus?.glucose?.let { profileUtil.fromMgdlToStringInUnits(it) } ?: "-"
+            val tbr = when {
+                !r.isTempBasalRequested -> "기저 유지"
+                r.duration == 0         -> "임시기저 취소"
+                else                    -> "기저 ${decimalFormatter.to2Decimal(r.rate)}U/h"
+            }
+            val smb = if (r.smb > 0) ", SMB ${decimalFormatter.to2Decimal(r.smb)}U" else ""
+            val ev = LoopReasonParser.eventualBg(r.reason)?.let { ", 예상 $it" } ?: ""
+            val mp = LoopReasonParser.minPredBg(r.reason)?.let { ", 예측최저 $it" } ?: ""
+            appendLine("${dateUtil.timeString(r.date)} 혈당 $bgText, IOB ${r.iob?.iob?.let { decimalFormatter.to2Decimal(it) } ?: "-"}$ev$mp → $tbr$smb")
+        }
+        val boluses = persistenceLayer.getBolusesFromTime(start, true).blockingGet().filter { it.timestamp <= end }
+        if (boluses.isNotEmpty())
+            appendLine("볼루스: " + boluses.joinToString(", ") { "${dateUtil.timeString(it.timestamp)} ${decimalFormatter.to2Decimal(it.amount)}U${if (it.type == BS.Type.SMB) "(SMB)" else ""}" })
+        val carbs = persistenceLayer.getCarbsFromTime(start, true).blockingGet().filter { it.timestamp <= end }
+        appendLine(if (carbs.isEmpty()) "탄수화물 입력: 없음" else "탄수화물 입력: " + carbs.joinToString(", ") { "${dateUtil.timeString(it.timestamp)} ${it.amount.toInt()}g" })
     }
 
     override fun onRecentBoluses() {
@@ -964,9 +1087,11 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
 private const val LOOP_AI_REASON_CHARS = 600
 
 /** Personal-fork: instruction for the loop decision explanation (advisory text only). */
+private const val LOOP_AI_HISTORY_MIN = 60L
+
+/** Personal-fork: the dialog already shows the math, so the AI explains the last hour's flow. */
 private const val LOOP_AI_SYSTEM_PROMPT =
-    "AndroidAPS 루프가 방금 내린 판단을 짧게 해설해.\n" +
-        "규칙: 인사, 서론, 맺음말 없이 바로 본론. 한국어 존댓말 2~3문장, 문장마다 50자 이내.\n" +
-        "1문장: 무엇을 했는지(기저 변경, SMB). 2문장: 핵심 이유(예측 혈당과 목표 비교). 3문장(필요할 때만): 눈여겨볼 점.\n" +
-        "아래 데이터에 있는 숫자만 쓰고, 치료나 용량 권고는 하지 마. 목록, 마크다운 없이 평문.\n" +
-        "예시: SMB 0.2U를 넣고 기저를 0.45U/h로 올렸어요. 예상 혈당 168이 목표 110보다 높아서예요."
+    "AndroidAPS 루프(OpenAPS SMB)의 최근 1시간 판단 기록을 보고 흐름을 짧게 설명해.\n" +
+        "규칙: 인사, 서론, 맺음말 없이 바로 본론. 한국어 존댓말 2~3문장, 문장마다 60자 이내.\n" +
+        "지금 판단 하나를 풀어 쓰지 말고, 기록에서 보이는 변화를 설명해: 혈당이 어떻게 움직였는지, SMB·기저가 어떻게 바뀌었는지, 왜 지금 늘리거나 줄였는지(예: IOB가 쌓임, 예측최저가 낮아짐, 탄수 입력 없이 오름).\n" +
+        "아래 데이터에 있는 숫자만 쓰고 새로 계산하지 마. 치료나 용량 권고는 하지 마. 목록, 마크다운 없이 평문."

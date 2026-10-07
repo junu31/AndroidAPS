@@ -102,4 +102,29 @@
     <string name="dashboard_wizard_easy_correction">직접 입력한 값을 그대로 더해요</string>
     <string name="dashboard_wizard_easy_percent">합계의 %1$d%%만 넣어요</string>
     <string name="dashboard_wizard_easy_rounding">모두 더하면 %1$s · 펌프 주입 단위 %2$s U에 맞춰 %3$s</string>
+    <string name="dashboard_loop_math_title">숫자가 나온 과정</string>
+    <string name="dashboard_loop_math_eventual">예상 혈당 (몇 시간 뒤)</string>
+    <string name="dashboard_loop_math_min">예측 최저 (가장 낮아질 때)</string>
+    <string name="dashboard_loop_math_bg">지금 혈당</string>
+    <string name="dashboard_loop_math_iob">남은 인슐린이 내릴 양 · IOB %1$s U × ISF %2$s</string>
+    <string name="dashboard_loop_math_dev">오르는 힘 (편차) · 30분 더 이어진다고 보고</string>
+    <string name="dashboard_loop_math_dev_note">편차: 실제 5분마다 %1$s · 인슐린만이면 %2$s → 차이 %3$s × 6번(30분) = %4$s</string>
+    <string name="dashboard_loop_math_use_cob">COB 예측선 끝이 %1$s보다 높아 그 값을 씀</string>
+    <string name="dashboard_loop_math_use_uam">UAM 예측선 끝이 %1$s보다 높아 그 값을 씀</string>
+    <string name="dashboard_loop_math_other">루프의 기타 보정</string>
+    <string name="dashboard_loop_math_sum">예상</string>
+    <string name="dashboard_loop_math_min_cob">탄수 입력이 있어서 COB 선 최저(%1$s)와 UAM 선을 남은 탄수 비율만큼 섞어요 → %2$s</string>
+    <string name="dashboard_loop_math_min_uam">탄수 입력이 없어서 IOB 선 최저(%1$s)와 UAM 선 최저(%2$s) 중 높은 쪽을 써요 → %3$s</string>
+    <string name="dashboard_loop_math_min_iob">IOB 선 최저(%1$s) → %2$s</string>
+    <string name="dashboard_loop_math_min_plain">루프 값 %1$s</string>
+    <string name="dashboard_loop_math_min_capped">(평균 예측을 넘지 않게 낮춤)</string>
+    <string name="dashboard_loop_math_verdict_high">예상 %1$s &gt; 목표 %2$s → 인슐린이 더 필요해요</string>
+    <string name="dashboard_loop_math_verdict_low">예상 %1$s &lt; 목표 %2$s → 인슐린을 줄여요</string>
+    <string name="dashboard_loop_math_verdict_near">예상 %1$s이 목표 %2$s 근처예요</string>
+    <string name="dashboard_loop_math_verdict_safe">안전 확인용 최저 예측 %1$s ≥ 안전선 %2$s → 낮아질 위험 없음 (SMB 가능)</string>
+    <string name="dashboard_loop_math_verdict_unsafe">안전 확인용 최저 예측 %1$s &lt; 안전선 %2$s → SMB를 막고 인슐린을 줄여요</string>
+    <string name="dashboard_loop_math_target">목표 %1$s</string>
+    <string name="dashboard_loop_math_threshold">안전선 %1$s</string>
+    <string name="dashboard_loop_ai_flow">✦ 왜 이렇게 됐나요? (최근 1시간)</string>
+    <string name="dashboard_loop_ai_flow_title">✦ 최근 1시간 흐름</string>
 </resources>

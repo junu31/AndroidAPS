@@ -135,8 +135,9 @@ class UiInteractionImpl @Inject constructor(
         WeeklyReviewDialog().show(fragmentManager, "WeeklyReviewDialog")
     }
 
-    override fun runAiCarbsDialog(fragmentManager: FragmentManager) {
+    override fun runAiCarbsDialog(fragmentManager: FragmentManager, returnResult: Boolean) {
         AiCarbsDialog()
+            .also { it.arguments = Bundle().apply { putBoolean(AiCarbsDialog.ARG_RETURN_RESULT, returnResult) } }
             .show(fragmentManager, "AiCarbsDialog")
     }
 

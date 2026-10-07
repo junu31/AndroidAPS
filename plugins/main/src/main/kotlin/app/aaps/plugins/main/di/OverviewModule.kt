@@ -28,6 +28,7 @@ abstract class OverviewModule {
     @ContributesAndroidInjector abstract fun contributesDismissNotificationReceiver(): DismissNotificationReceiver
     @ContributesAndroidInjector abstract fun contributesOverviewFragment(): OverviewFragment
     @ContributesAndroidInjector abstract fun contributesDashboardFragment(): DashboardFragment
+    @ContributesAndroidInjector abstract fun contributesDashboardWizardDialog(): app.aaps.plugins.main.general.dashboard.DashboardWizardDialog
     @ContributesAndroidInjector abstract fun graphDataInjector(): GraphData
 
     @Module

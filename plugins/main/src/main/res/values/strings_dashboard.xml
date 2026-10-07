@@ -73,4 +73,18 @@
     <string name="dashboard_loop_ai_failed">Could not create the explanation</string>
     <string name="dashboard_loop_ai_no_engine">Set a Gemini key or choose a local model in Dashboard settings</string>
     <string name="dashboard_loop_ai_label">%1$s · %2$ds</string>
+    <string name="dashboard_wizard_correction">Corr</string>
+    <string name="dashboard_wizard_carb_time">Carb time</string>
+    <string name="dashboard_wizard_show_calc">Show calculation</string>
+    <string name="dashboard_wizard_missing_carbs">Missing %1$d g</string>
+    <string name="dashboard_wizard_carbs_constraint">Carbs constraint applied</string>
+    <string name="dashboard_wizard_notes">Notes</string>
+    <string name="dashboard_wizard_bg_edited">edited (sensor %1$s)</string>
+    <string name="dashboard_wizard_ai_estimate">AI estimate</string>
+    <string name="dashboard_wizard_photo">Photo</string>
+    <string name="dashboard_wizard_result">Result</string>
+    <string name="dashboard_wizard_ok">Bolus ›</string>
+    <string name="dashboard_wizard_ai_again">Values changed · ✦ explain again</string>
+    <string name="dashboard_wizard_ai_stale_label">previous values</string>
+    <string name="dashboard_wizard_minutes">min</string>
 </resources>

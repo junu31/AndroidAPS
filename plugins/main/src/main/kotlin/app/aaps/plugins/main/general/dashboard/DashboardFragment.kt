@@ -806,7 +806,8 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
 
     override fun onInsulin() = withBolusProtection { uiInteraction.runInsulinDialog(childFragmentManager) }
     override fun onCarbs() = withBolusProtection { uiInteraction.runCarbsDialog(childFragmentManager) }
-    override fun onWizard() = withBolusProtection { uiInteraction.runWizardDialog(childFragmentManager) }
+    // the Dashboard has its own calculator (classic wizard untouched, still used by the home tab)
+    override fun onWizard() = withBolusProtection { DashboardWizardDialog().show(childFragmentManager, "DashboardWizardDialog") }
     override fun onAiCarbs() = withBolusProtection { uiInteraction.runAiCarbsDialog(childFragmentManager) }
     override fun onTreatment() = withBolusProtection { uiInteraction.runTreatmentDialog(childFragmentManager) }
     override fun onQuickWizard() = withBolusProtection { onClickQuickWizard() }

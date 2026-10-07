@@ -60,6 +60,9 @@ class AiCarbsDialog : DaggerDialogFragment() {
 
     companion object {
 
+        /** Personal-fork: opened from the Dashboard calculator, the carbs are returned as a fragment result */
+        const val ARG_RETURN_RESULT = "return_result"
+
         private const val STATE_FOOD = "state_food"
         private const val STATE_FINAL_CARBS = "state_final_carbs"
         private const val STATE_IMAGE_URI = "state_image_uri"
@@ -101,6 +104,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
     private val disposable = CompositeDisposable()
 
     private var lastEstimate: CarbEstimatePayload? = null
+    private val returnResult: Boolean get() = arguments?.getBoolean(ARG_RETURN_RESULT) == true
     private var selectedImageUri: Uri? = null
     private var pendingCameraUri: Uri? = null
 
@@ -162,6 +166,11 @@ class AiCarbsDialog : DaggerDialogFragment() {
         binding.cancelButton.setOnClickListener { dismiss() }
         binding.applyButton.setOnClickListener { handOver(toWizard = true) }
         binding.applyCarbsButton.setOnClickListener { handOver(toWizard = false) }
+        // opened from the Dashboard calculator: hand the carbs back to it instead of opening another dialog
+        if (returnResult) {
+            binding.applyButton.text = rh.gs(R.string.ai_carbs_to_dashboard_calculator)
+            binding.applyCarbsButton.visibility = View.GONE
+        }
 
         binding.imageGalleryButton.setOnClickListener { launchGalleryPicker() }
         binding.imageCameraButton.setOnClickListener { ensureCameraPermissionAndLaunch() }
@@ -408,6 +417,15 @@ class AiCarbsDialog : DaggerDialogFragment() {
         }
         appendHistoryFromCurrentEstimate(appliedCarbsG = value)
         val fm = parentFragmentManager
+        if (returnResult) {
+            val foods = lastEstimate?.items.orEmpty().joinToString(" · ") { "${it.name} ${formatG(it.carbsG)}g" }
+            fm.setFragmentResult(
+                UiInteraction.AI_CARBS_RESULT_KEY,
+                bundleOf(UiInteraction.AI_CARBS_RESULT_CARBS to value, UiInteraction.AI_CARBS_RESULT_FOODS to foods)
+            )
+            dismiss()
+            return
+        }
         dismiss()
         if (toWizard) uiInteraction.runWizardDialog(fm, value)
         else CarbsDialog()

@@ -28,6 +28,11 @@ interface UiInteraction {
 
         const val PLUGIN_NAME = "PluginName"
 
+        /** Personal-fork: fragment result of the AI carbs dialog opened with returnResult = true */
+        const val AI_CARBS_RESULT_KEY = "ai_carbs_result"
+        const val AI_CARBS_RESULT_CARBS = "carbs"
+        const val AI_CARBS_RESULT_FOODS = "foods"
+
         /**
          * Preference from [Preferences]
          */
@@ -63,7 +68,7 @@ interface UiInteraction {
     fun runCarbsDialog(fragmentManager: FragmentManager)
 
     /** Personal-fork: open the AI carb estimator on its own; the result is handed to the Wizard or Carbs dialog. */
-    fun runAiCarbsDialog(fragmentManager: FragmentManager)
+    fun runAiCarbsDialog(fragmentManager: FragmentManager, returnResult: Boolean = false)
 
     /** Personal-fork: weekly review (Autotune of the last 7 days + AI explanation + profile actions). */
     fun runWeeklyReviewDialog(fragmentManager: FragmentManager)

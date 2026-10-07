@@ -264,4 +264,5 @@
     <string name="local_model_wrong_type">Choose a .task or .litertlm model file</string>
     <string name="weekly_review_ai_source_local">— %1$s · local · %2$d s</string>
     <string name="weekly_review_ai_source">— %1$s · %2$d s</string>
+    <string name="ai_carbs_to_dashboard_calculator">Into the calculator</string>
 </resources>

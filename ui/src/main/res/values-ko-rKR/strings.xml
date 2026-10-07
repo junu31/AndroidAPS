@@ -208,4 +208,5 @@
     <string name="local_model_wrong_type">.task 또는 .litertlm 모델 파일을 선택하세요</string>
     <string name="weekly_review_ai_source_local">— %1$s · 로컬 · %2$d초</string>
     <string name="weekly_review_ai_source">— %1$s · %2$d초</string>
+    <string name="ai_carbs_to_dashboard_calculator">계산기에 넣기</string>
 </resources>

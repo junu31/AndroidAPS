@@ -73,4 +73,18 @@
     <string name="dashboard_loop_ai_failed">설명을 만들지 못했어요</string>
     <string name="dashboard_loop_ai_no_engine">Gemini 키를 설정하거나 대시보드 설정에서 로컬 모델을 선택하세요</string>
     <string name="dashboard_loop_ai_label">%1$s · %2$d초</string>
+    <string name="dashboard_wizard_correction">교정</string>
+    <string name="dashboard_wizard_carb_time">탄수화물 시간</string>
+    <string name="dashboard_wizard_show_calc">계산 표시</string>
+    <string name="dashboard_wizard_missing_carbs">부족 %1$d g</string>
+    <string name="dashboard_wizard_carbs_constraint">탄수화물 제한이 적용되었습니다</string>
+    <string name="dashboard_wizard_notes">메모</string>
+    <string name="dashboard_wizard_bg_edited">수정됨 (센서 %1$s)</string>
+    <string name="dashboard_wizard_ai_estimate">AI 추정</string>
+    <string name="dashboard_wizard_photo">사진</string>
+    <string name="dashboard_wizard_result">결과</string>
+    <string name="dashboard_wizard_ok">주입 ›</string>
+    <string name="dashboard_wizard_ai_again">값이 바뀌었어요 · ✦ 다시 설명</string>
+    <string name="dashboard_wizard_ai_stale_label">이전 값 기준</string>
+    <string name="dashboard_wizard_minutes">분</string>
 </resources>

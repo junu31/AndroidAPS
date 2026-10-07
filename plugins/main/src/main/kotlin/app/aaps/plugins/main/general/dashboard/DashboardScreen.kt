@@ -968,8 +968,7 @@ private fun BottomActions(state: DashboardState, actions: DashboardActions, modi
             if (buttons.carbs)
                 // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
                 ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
-            if (buttons.aiCarbs)
-                ActionButton(stringResource(R.string.dashboard_ai), R.drawable.ic_dashboard_ai, DashColors.Basal, DashColors.Card) { actions.onAiCarbs() }
+            // the AI photo carbs are inside the Dashboard calculator now
             if (buttons.wizard)
                 ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
         }

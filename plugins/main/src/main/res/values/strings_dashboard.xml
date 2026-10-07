@@ -79,7 +79,7 @@
     <string name="dashboard_wizard_missing_carbs">Missing %1$d g</string>
     <string name="dashboard_wizard_carbs_constraint">Carbs constraint applied</string>
     <string name="dashboard_wizard_notes">Notes</string>
-    <string name="dashboard_wizard_bg_edited">edited (sensor %1$s)</string>
+    <string name="dashboard_wizard_bg_edited">sensor %1$s</string>
     <string name="dashboard_wizard_ai_estimate">AI estimate</string>
     <string name="dashboard_wizard_photo">Photo</string>
     <string name="dashboard_wizard_result">Result</string>

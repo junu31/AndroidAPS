@@ -79,7 +79,7 @@
     <string name="dashboard_wizard_missing_carbs">부족 %1$d g</string>
     <string name="dashboard_wizard_carbs_constraint">탄수화물 제한이 적용되었습니다</string>
     <string name="dashboard_wizard_notes">메모</string>
-    <string name="dashboard_wizard_bg_edited">수정됨 (센서 %1$s)</string>
+    <string name="dashboard_wizard_bg_edited">센서 %1$s</string>
     <string name="dashboard_wizard_ai_estimate">AI 추정</string>
     <string name="dashboard_wizard_photo">사진</string>
     <string name="dashboard_wizard_result">결과</string>

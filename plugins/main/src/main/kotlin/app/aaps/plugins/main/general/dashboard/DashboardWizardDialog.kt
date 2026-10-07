@@ -390,6 +390,9 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             val bgEdited = sensorBgText != null && bgText != sensorBgText
             val bgStep = if (units == GlucoseUnit.MGDL) 1.0 else 0.1
             val bgMax = if (units == GlucoseUnit.MGDL) 500.0 else 30.0
+            val isAi = aiCarbs != null && aiCarbs.toString() == carbsText
+            // BG and carbs side by side, like correction / carb time below
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Stepper(
                 label = rh.gs(app.aaps.core.ui.R.string.bg_label) + if (bgEdited) " · " + rh.gs(R.string.dashboard_wizard_bg_edited, sensorBgText) else "",
                 labelColor = if (bgEdited) DashColors.High else DashColors.Sub, value = bgText, unit = units.asText,
@@ -398,10 +401,9 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 onMinus = { bgText = step(bgText, -bgStep, 0.0, bgMax, if (units == GlucoseUnit.MGDL) 0 else 1); calculate() },
                 onPlus = { bgText = step(bgText, bgStep, 0.0, bgMax, if (units == GlucoseUnit.MGDL) 0 else 1); calculate() },
                 extra = if (bgEdited) ({ SmallAction("↺", DashColors.Accent) { bgText = sensorBgText!!; calculate() } }) else null,
-                modifier = Modifier.padding(top = 8.dp)
+                modifier = Modifier.weight(1f), compact = true
             )
             // carbs (+ AI photo)
-            val isAi = aiCarbs != null && aiCarbs.toString() == carbsText
             Stepper(
                 label = rh.gs(app.aaps.core.ui.R.string.carbs) + if (isAi) " · ✦ " + rh.gs(R.string.dashboard_wizard_ai_estimate) else "",
                 labelColor = if (isAi) AiLilac else DashColors.Sub, value = carbsText, unit = "g",
@@ -409,9 +411,10 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 onValue = { carbsText = it; calculate() },
                 onMinus = { carbsText = step(carbsText, -1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
                 onPlus = { carbsText = step(carbsText, 1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
-                extra = { SmallAction("📷 " + rh.gs(R.string.dashboard_wizard_photo), AiLilac) { uiInteraction.runAiCarbsDialog(childFragmentManager, returnResult = true) } },
-                modifier = Modifier.padding(top = 8.dp)
+                extra = { SmallAction("📷", AiLilac) { uiInteraction.runAiCarbsDialog(childFragmentManager, returnResult = true) } },
+                modifier = Modifier.weight(1f), compact = true
             )
+            }
             if (isAi && aiFoods.isNotEmpty())
                 Text(
                     aiFoods, color = DashColors.Sub, fontSize = 11.5.sp,

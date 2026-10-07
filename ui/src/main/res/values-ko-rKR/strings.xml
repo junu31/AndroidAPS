@@ -209,4 +209,33 @@
     <string name="weekly_review_ai_source_local">— %1$s · 로컬 · %2$d초</string>
     <string name="weekly_review_ai_source">— %1$s · %2$d초</string>
     <string name="ai_carbs_to_dashboard_calculator">계산기에 넣기</string>
+    <string name="weekly_review_why_hours">%1$d~%2$d시</string>
+    <string name="weekly_review_why_tag_cap_max">상한 %1$d%%</string>
+    <string name="weekly_review_why_tag_cap_min">하한 %1$d%%</string>
+    <string name="weekly_review_why_tag_nodata">데이터 없음</string>
+    <string name="weekly_review_why_tag_limit">한도</string>
+    <string name="weekly_review_why_basal_up">%1$s에 식사 없이 혈당이 오른 날이 %2$d일 중 %3$d일 (편차 합 %4$s) → 그 앞 시간 기저를 올렸어요.</string>
+    <string name="weekly_review_why_basal_down">%1$s에 식사 없이 혈당이 내려간 날이 %2$d일 중 %3$d일 (편차 합 %4$s) → 그 앞 시간 기저를 줄였어요.</string>
+    <string name="weekly_review_why_basal_same">%1$s 오르내림이 서로 비슷해서 (편차 합 %2$s) 그대로예요.</string>
+    <string name="weekly_review_why_basal_same_nodata">%1$s에 기저만 볼 구간이 없어서 그대로예요.</string>
+    <string name="weekly_review_why_basal_nodata">식사가 겹쳐 기저만 볼 구간이 없었어요 → 앞뒤 시간을 따라 조금만 바뀌었어요.</string>
+    <string name="weekly_review_why_basal_cap_max">상한(현재 기저의 %1$d%%)에 닿아 더 못 올렸어요.</string>
+    <string name="weekly_review_why_basal_cap_min">하한(현재 기저의 %1$d%%)에 닿아 더 못 내렸어요.</string>
+    <string name="weekly_review_why_basal_note">기저는 혈당이 움직인 시간의 1~3시간 앞을 고쳐요 (기저가 늦게 작용해서). 하루 계산마다 필요한 양의 20%%만 반영하고 %1$d일 동안 쌓여요.</string>
+    <string name="weekly_review_why_detail_title">%1$s, 식사 없는 구간에 남은 변화 (편차, %2$s)</string>
+    <string name="weekly_review_why_none">없음</string>
+    <string name="weekly_review_why_detail_calc_more">하루 평균 %1$s ÷ ISF %2$s = %3$s U 부족 → 날마다 그중 20%%만 앞 3시간에 나눠 더해요</string>
+    <string name="weekly_review_why_detail_calc_less">하루 평균 %1$s ÷ ISF %2$s = %3$s U 많음 → 날마다 그중 20%%만 앞 3시간에서 빼요</string>
+    <string name="weekly_review_why_isf_less">식사 없이 혈당을 내린 구간 %1$d개를 봤어요. 혈당이 예상의 약 %2$d%%만큼만 떨어져서, 1 U가 내리는 양을 줄였어요.</string>
+    <string name="weekly_review_why_isf_more">식사 없이 혈당을 내린 구간 %1$d개를 봤어요. 혈당이 예상의 약 %2$d%%만큼 떨어져서(예상보다 많이), 1 U가 내리는 양을 늘렸어요.</string>
+    <string name="weekly_review_why_isf_same">보정 구간 %1$d개에서 혈당이 예상의 약 %2$d%%만큼 떨어져 거의 맞아서 그대로예요.</string>
+    <string name="weekly_review_why_isf_mixed">보정 구간 %1$d개 (중간값: 예상의 %2$d%%) 기준으로 날마다 조금씩 맞췄어요.</string>
+    <string name="weekly_review_why_isf_few">보정 구간이 하루 10개보다 적은 날은 ISF를 그대로 둬요 (이번 주 %1$d개).</string>
+    <string name="weekly_review_why_isf_calc">실제 하락 ÷ 예상 하락 중간값 %1$s · %3$d일 중 %2$d일만 ISF를 고침, 하루 20%%씩</string>
+    <string name="weekly_review_why_ic_less">식사 %1$d번을 봤어요. 식사 뒤 혈당이 시작보다 평균 %2$s 높게 끝나서, 1 U가 처리하는 탄수를 줄였어요.</string>
+    <string name="weekly_review_why_ic_more">식사 %1$d번을 봤어요. 식사 뒤 혈당이 시작보다 평균 %2$s 낮게 끝나서, 1 U가 처리하는 탄수를 늘렸어요.</string>
+    <string name="weekly_review_why_ic_same">식사 %1$d번에서 탄수와 인슐린이 거의 맞아서 그대로예요.</string>
+    <string name="weekly_review_why_ic_mixed">식사 %1$d번에서 잰 실제 비율로 날마다 조금씩 맞췄어요.</string>
+    <string name="weekly_review_why_ic_none">볼 수 있는 식사가 없어서 그대로예요.</string>
+    <string name="weekly_review_why_ic_calc">탄수 %1$s g ÷ 실제 필요 인슐린 %2$s U = %3$s g/U · 하루 20%%씩 반영\n필요 인슐린 = 식사 전 IOB + 넣은 인슐린 + 끝날 때 혈당 차이를 맞출 양</string>
 </resources>

@@ -265,4 +265,33 @@
     <string name="weekly_review_ai_source_local">— %1$s · local · %2$d s</string>
     <string name="weekly_review_ai_source">— %1$s · %2$d s</string>
     <string name="ai_carbs_to_dashboard_calculator">Into the calculator</string>
+    <string name="weekly_review_why_hours">%1$d–%2$d h</string>
+    <string name="weekly_review_why_tag_cap_max">max %1$d%%</string>
+    <string name="weekly_review_why_tag_cap_min">min %1$d%%</string>
+    <string name="weekly_review_why_tag_nodata">no data</string>
+    <string name="weekly_review_why_tag_limit">limit</string>
+    <string name="weekly_review_why_basal_up">BG rose without meals at %1$s on %3$d of %2$d days (deviation sum %4$s) → the basal before it was raised.</string>
+    <string name="weekly_review_why_basal_down">BG fell without meals at %1$s on %3$d of %2$d days (deviation sum %4$s) → the basal before it was lowered.</string>
+    <string name="weekly_review_why_basal_same">At %1$s the rises and falls cancel out (deviation sum %2$s), so it stays.</string>
+    <string name="weekly_review_why_basal_same_nodata">No basal-only data at %1$s, so it stays.</string>
+    <string name="weekly_review_why_basal_nodata">Meals overlapped, so there was no basal-only period → it only followed the neighbouring hours a little.</string>
+    <string name="weekly_review_why_basal_cap_max">It stopped at the upper limit (%1$d%% of the current basal).</string>
+    <string name="weekly_review_why_basal_cap_min">It stopped at the lower limit (%1$d%% of the current basal).</string>
+    <string name="weekly_review_why_basal_note">Basal is fixed 1–3 hours before the hour where BG moved (basal acts late). Each day only 20%% of the needed change is applied, adding up over %1$d days.</string>
+    <string name="weekly_review_why_detail_title">%1$s, leftover change without meals (deviation, %2$s)</string>
+    <string name="weekly_review_why_none">none</string>
+    <string name="weekly_review_why_detail_calc_more">Daily average %1$s ÷ ISF %2$s = %3$s U short → 20%% of it spread over the 3 hours before, every day</string>
+    <string name="weekly_review_why_detail_calc_less">Daily average %1$s ÷ ISF %2$s = %3$s U too much → 20%% of it taken off the 3 hours before, every day</string>
+    <string name="weekly_review_why_isf_less">%1$d correction periods without meals: BG dropped only about %2$d%% of what was expected, so 1 U is now assumed to lower BG less.</string>
+    <string name="weekly_review_why_isf_more">%1$d correction periods without meals: BG dropped about %2$d%% of what was expected, so 1 U is now assumed to lower BG more.</string>
+    <string name="weekly_review_why_isf_same">%1$d correction periods: BG dropped about %2$d%% of what was expected, close enough to keep ISF.</string>
+    <string name="weekly_review_why_isf_mixed">%1$d correction periods (median %2$d%% of the expected drop), tuned day by day.</string>
+    <string name="weekly_review_why_isf_few">Days with fewer than 10 correction periods keep ISF unchanged (this week: %1$d).</string>
+    <string name="weekly_review_why_isf_calc">Median ratio actual / expected drop %1$s · ISF moved on %2$d of %3$d days, 20%% per day</string>
+    <string name="weekly_review_why_ic_less">%1$d meals: BG ended on average %2$s above where it started, so 1 U now covers fewer carbs.</string>
+    <string name="weekly_review_why_ic_more">%1$d meals: BG ended on average %2$s below where it started, so 1 U now covers more carbs.</string>
+    <string name="weekly_review_why_ic_same">%1$d meals: the carbs matched the insulin, IC stays.</string>
+    <string name="weekly_review_why_ic_mixed">%1$d meals, tuned day by day from the measured ratio.</string>
+    <string name="weekly_review_why_ic_none">No meals to look at, IC stays.</string>
+    <string name="weekly_review_why_ic_calc">Carbs %1$s g ÷ insulin actually needed %2$s U = %3$s g/U · 20%% per day\nneeded = IOB before the meal + insulin given + insulin for the BG difference at the end</string>
 </resources>

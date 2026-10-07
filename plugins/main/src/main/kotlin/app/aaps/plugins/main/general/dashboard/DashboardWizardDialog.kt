@@ -291,6 +291,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 add(WizardRow(rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) rh.gs(R.string.dashboard_wizard_sb_formula) else "", u(w.insulinFromSuperBolus)))
             add(WizardRow(rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection)))
             // the percentage applied to the sum (only when it is not 100 %)
+            appendLine("합계: 위 항목을 모두 더하면 ${f2(w.totalBeforePercentageAdjustment)} U")
             if (w.percentageCorrection != 100)
                 add(
                     WizardRow(
@@ -329,15 +330,39 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             return
         }
         explain = CalcExplain(view.signature, loading = true)
+        // the formulas are worked out here, the model only puts them into plain words (small local models are bad at arithmetic)
+        val f2 = { v: Double -> String.format(Locale.US, "%.2f", v) }
+        val f1 = { v: Double -> String.format(Locale.US, "%.1f", v) }
+        val signed = { v: Double -> (if (v >= 0) "+" else "−") + f2(abs(v)) + " U" }
+        val bg = SafeParse.stringToDouble(bgText)
         val data = buildString {
-            appendLine("권장 인슐린: ${String.format(Locale.US, "%.2f", w.calculatedTotalInsulin)} U (적용 비율 ${w.percentageCorrection}%)")
-            appendLine("혈당: ${if (useBg) "$bgText ${units.asText}" else "사용 안 함"}, ISF ${String.format(Locale.US, "%.1f", w.sens)}, 혈당 몫 ${String.format(Locale.US, "%.2f", w.insulinFromBG)} U")
-            appendLine("탄수화물: ${carbsText}g, IC ${String.format(Locale.US, "%.1f", w.ic)}, 탄수 몫 ${String.format(Locale.US, "%.2f", w.insulinFromCarbs)} U")
-            if (aiFoods.isNotEmpty() && aiCarbs?.toString() == carbsText) appendLine("탄수화물은 사진 추정값: $aiFoods")
-            appendLine("15분 추이 몫 ${String.format(Locale.US, "%.2f", w.insulinFromTrend)} U, IOB 차감 ${String.format(Locale.US, "%.2f", -w.insulinFromBolusIOB - w.insulinFromBasalIOB)} U")
-            if (useCob) appendLine("COB 몫 ${String.format(Locale.US, "%.2f", w.insulinFromCOB)} U")
-            if (useSb) appendLine("Superbolus 몫 ${String.format(Locale.US, "%.2f", w.insulinFromSuperBolus)} U")
-            appendLine("교정 ${String.format(Locale.US, "%.2f", w.insulinFromCorrection)} U, 비율 적용 전 합계 ${String.format(Locale.US, "%.2f", w.totalBeforePercentageAdjustment)} U")
+            appendLine("ISF ${f1(w.sens)}: 인슐린 1 U가 혈당을 ${f1(w.sens)} ${units.asText} 내림")
+            appendLine("IC ${f1(w.ic)}: 인슐린 1 U가 탄수화물 ${f1(w.ic)} g을 처리함")
+            if (useBg && bg > 0) {
+                if (abs(w.insulinFromBG) < 0.005) appendLine("혈당: ${formatBg(bg)}는 목표 범위 안 → 0 U")
+                else {
+                    val target = bg - w.insulinFromBG * w.sens
+                    val diff = bg - target
+                    appendLine("혈당: 지금 ${formatBg(bg)} − 목표 ${formatBg(target)} = ${formatBg(abs(diff))} ${if (diff > 0) "높음" else "낮음"} → ${formatBg(diff)} ÷ ISF ${f1(w.sens)} = ${signed(w.insulinFromBG)}")
+                }
+            }
+            if (useTrend && abs(w.insulinFromTrend) >= 0.005)
+                appendLine("15분 추이: 최근 15분 동안 혈당이 ${if (w.trend > 0) "오르는" else "내리는"} 중 (${profileUtil.fromMgdlToStringInUnits(w.trend * 3)}) ÷ ISF → ${signed(w.insulinFromTrend)}")
+            val iob = w.insulinFromBolusIOB + w.insulinFromBasalIOB
+            if (useIob && abs(iob) >= 0.005)
+                appendLine("IOB: 몸에 아직 남아 있는 인슐린 ${f2(iob)} U (볼루스 ${f2(w.insulinFromBolusIOB)} + 기저 ${f2(w.insulinFromBasalIOB)})만큼 빼기 → ${signed(-iob)}")
+            if (useCob && abs(w.insulinFromCOB) >= 0.005)
+                appendLine("COB: 아직 흡수되지 않은 탄수화물 ${f1(w.insulinFromCOB * w.ic)} g ÷ IC ${f1(w.ic)} → ${signed(w.insulinFromCOB)}")
+            if (w.insulinFromCarbs >= 0.005) {
+                val photo = if (aiFoods.isNotEmpty() && aiCarbs?.toString() == carbsText) " (사진 추정: $aiFoods)" else ""
+                appendLine("탄수화물: 먹을 ${carbsText} g$photo ÷ IC ${f1(w.ic)} = ${signed(w.insulinFromCarbs)}")
+            }
+            if (useSb && abs(w.insulinFromSuperBolus) >= 0.005)
+                appendLine("Superbolus: 앞으로 2시간 기저 인슐린 ${f2(w.insulinFromSuperBolus)} U를 지금 미리 넣음 (그동안 기저는 멈춤) → ${signed(w.insulinFromSuperBolus)}")
+            if (abs(w.insulinFromCorrection) >= 0.005) appendLine("교정: 직접 입력한 값 → ${signed(w.insulinFromCorrection)}")
+            if (w.percentageCorrection != 100)
+                appendLine("비율: 위 합계 ${f2(w.totalBeforePercentageAdjustment)} U × ${w.percentageCorrection}% 만 적용")
+            appendLine("최종 권장: ${f2(w.calculatedTotalInsulin)} U")
         }
         val signature = view.signature
         disposable += aiTextEngine.generate(CALC_AI_SYSTEM_PROMPT, data)
@@ -751,8 +776,14 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         private val AiLilac = Color(0xFFC4B5FD)
 
         private const val CALC_AI_SYSTEM_PROMPT =
-            "AndroidAPS Bolus 마법사가 계산한 권장 인슐린을 짧게 해설해.\n" +
-                "규칙: 인사, 서론 없이 바로 본론. 한국어 존댓말 2~3문장, 문장마다 60자 이내.\n" +
-                "어떤 항목이 더하고 빼서 이 값이 됐는지 아래 숫자만 써서 설명해. 새 계산이나 용량 권고는 하지 마. 목록, 마크다운 없이 평문."
+            "AndroidAPS 계산기(Bolus 마법사)의 계산식을 처음 보는 사람도 이해하게 쉬운 말로 풀어 설명해.
+" +
+                "규칙: 인사, 서론 없이 바로 시작. 한국어 존댓말. 아래 항목 순서대로 한 줄에 하나씩, 줄마다 60자 이내.
+" +
+                "각 줄은 '항목: 왜 더하거나 빼는지 + 계산식' 형태. 예) 혈당: 목표보다 46 높아서 46 ÷ 50 = 0.92 U 더해요.
+" +
+                "ISF, IC는 처음 나올 때 뜻을 괄호로 짧게. 숫자와 계산식은 주어진 그대로만 쓰고 새로 계산하지 마.
+" +
+                "마지막 줄은 최종 권장량. 용량 권고, 목록 기호, 마크다운 없이 평문."
     }
 }

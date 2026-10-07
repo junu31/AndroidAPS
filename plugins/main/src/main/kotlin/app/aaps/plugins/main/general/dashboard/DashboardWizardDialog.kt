@@ -362,7 +362,11 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             appendLine("합계: 위 항목을 모두 더하면 ${f2(w.totalBeforePercentageAdjustment)} U")
             if (w.percentageCorrection != 100)
                 appendLine("비율: 위 합계 ${f2(w.totalBeforePercentageAdjustment)} U × ${w.percentageCorrection}% 만 적용")
-            appendLine("최종 권장: ${f2(w.calculatedTotalInsulin)} U")
+            val beforeRound = w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0
+            appendLine(
+                "최종 권장: ${f2(w.calculatedTotalInsulin)} U" +
+                    if (abs(beforeRound - w.calculatedTotalInsulin) >= 0.005) " (펌프 주입 단위 $bolusStep U에 맞춰 ${f2(beforeRound)} U를 조정)" else ""
+            )
         }
         val signature = view.signature
         disposable += aiTextEngine.generate(CALC_AI_SYSTEM_PROMPT, data)

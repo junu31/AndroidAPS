@@ -1,5 +1,7 @@
 package app.aaps.ui.ai
 
+import app.aaps.core.interfaces.autotune.AutotuneDayTrace
+import app.aaps.core.interfaces.autotune.AutotuneTrace
 import com.google.common.truth.Truth.assertThat
 import org.junit.jupiter.api.Test
 
@@ -45,5 +47,44 @@ class WeeklyReviewMathTest {
         val before = WeeklyReviewMath.dayStarts(midnight + 2 * hour, midnight, 7)
         assertThat(before.last()).isEqualTo(midnight + 4 * hour - 48 * hour)
         assertThat(before.first()).isEqualTo(before.last() - 6 * 24 * hour)
+    }
+
+    private fun day(hours: Map<Int, Double>, ratios: List<Double> = emptyList()) =
+        AutotuneDayTrace(0, List(24) { hours[it] }, 33.0, ratios, 2, 100.0, 22.0, 30.0)
+
+    @Test
+    fun `basal range is explained by the 1-3 hours after it`() {
+        val trace = AutotuneTrace(listOf(day(mapOf(1 to 20.0, 5 to 10.0, 6 to 99.0)), day(mapOf(3 to -5.0)), day(emptyMap())), List(24) { 0 }, 1.2, 0.7)
+        val r = WeeklyReviewMath.basalReason(WeeklyReviewMath.BasalRange(0, 3, 0.70, 0.84), trace)
+        // range 00-03 is driven by hours 1..5; hour 6 does not count
+        assertThat(r.driverFrom).isEqualTo(1)
+        assertThat(r.driverTo).isEqualTo(6)
+        assertThat(r.perDay).containsExactly(30.0, -5.0, null).inOrder()
+        assertThat(r.daysUp).isEqualTo(1)
+        assertThat(r.daysDown).isEqualTo(1)
+        assertThat(r.capped).isTrue()
+        assertThat(r.direction).isEqualTo(WeeklyReviewMath.Direction.UP)
+    }
+
+    @Test
+    fun `late evening range wraps past midnight`() {
+        val trace = AutotuneTrace(listOf(day(mapOf(23 to 4.0, 0 to 6.0, 1 to 1.0))), List(24) { 0 }, 1.2, 0.7)
+        val r = WeeklyReviewMath.basalReason(WeeklyReviewMath.BasalRange(21, 23, 0.7, 0.7), trace)
+        assertThat(r.driverFrom).isEqualTo(22)
+        assertThat(r.driverTo).isEqualTo(2)
+        assertThat(r.perDay).containsExactly(11.0)
+    }
+
+    @Test
+    fun `isf median and ic totals`() {
+        val trace = AutotuneTrace(listOf(day(emptyMap(), listOf(0.8, 0.9, 1.0)), day(emptyMap(), listOf(1.1))), List(24) { 0 }, 1.2, 0.7)
+        val isf = WeeklyReviewMath.isfReason(trace, 33.0, 31.0)
+        assertThat(isf.points).isEqualTo(4)
+        assertThat(isf.medianRatio).isWithin(1e-9).of(0.95)
+        assertThat(isf.tunedDays).isEqualTo(0)
+        val ic = WeeklyReviewMath.icReason(trace, 5.3, 5.0)
+        assertThat(ic.meals).isEqualTo(4)
+        assertThat(ic.measuredIc).isWithin(1e-9).of(200.0 / 44.0)
+        assertThat(ic.avgBgChange).isWithin(1e-9).of(15.0)
     }
 }

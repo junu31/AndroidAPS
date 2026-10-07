@@ -127,4 +127,5 @@
     <string name="dashboard_loop_math_threshold">safety line %1$s</string>
     <string name="dashboard_loop_ai_flow">✦ Why did this happen? (last hour)</string>
     <string name="dashboard_loop_ai_flow_title">✦ Last hour</string>
+    <string name="dashboard_loop_math_min_uam_plain">No carbs entered: the higher of the IOB curve low and the UAM curve low (the loop looks up to several hours ahead) → %1$s</string>
 </resources>

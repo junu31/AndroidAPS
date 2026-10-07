@@ -320,6 +320,7 @@ private fun PredictionChart(math: LoopMath) {
         // mark where the chosen curve reaches the lowest predicted value
         math.curves.asReversed().firstNotNullOfOrNull { c ->
             c.values.withIndex().drop(12).firstOrNull { kotlin.math.abs(it.value - math.minPredMgdl) < 1.5 }
+                ?: c.values.withIndex().lastOrNull()?.takeIf { kotlin.math.abs(it.value - math.minPredMgdl) < 1.5 }
         }?.let { hit ->
             drawCircle(if (math.minPredWarn) DashColors.Low else DashColors.Text, 9f, Offset(x(hit.index), y(hit.value.toDouble())), style = Stroke(width = 3f))
         }

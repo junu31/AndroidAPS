@@ -127,4 +127,5 @@
     <string name="dashboard_loop_math_threshold">안전선 %1$s</string>
     <string name="dashboard_loop_ai_flow">✦ 왜 이렇게 됐나요? (최근 1시간)</string>
     <string name="dashboard_loop_ai_flow_title">✦ 최근 1시간 흐름</string>
+    <string name="dashboard_loop_math_min_uam_plain">탄수 입력이 없어서 IOB 선 최저와 UAM 선 최저 중 높은 쪽을 써요 (몇 시간 뒤까지 봄) → %1$s</string>
 </resources>

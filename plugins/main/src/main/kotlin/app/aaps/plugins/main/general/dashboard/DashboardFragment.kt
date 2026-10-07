@@ -637,7 +637,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val mmol = units == GlucoseUnit.MMOL
         val toMgdl = { v: Double -> if (mmol) v * Constants.MMOLL_TO_MGDL else v }
         val fmt = { mgdl: Double -> profileUtil.fromMgdlToStringInUnits(mgdl, units) }
-        val signed = { mgdl: Double -> (if (mgdl < 0) "− " else "+ ") + fmt(abs(mgdl)) }
+        val signed = { mgdl: Double -> if (abs(mgdl) < 0.5) fmt(0.0) else (if (mgdl < 0) "− " else "+ ") + fmt(abs(mgdl)) }
         val bg = request.glucoseStatus?.glucose ?: return null
         val iob = request.iob?.iob ?: return null
         val isf = LoopReasonParser.number(reason, "ISF")?.let(toMgdl) ?: return null
@@ -656,7 +656,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val sum = naive + dev
         val steps = mutableListOf(
             MathStep(rh.gs(R.string.dashboard_loop_math_bg), fmt(bg)),
-            MathStep(rh.gs(R.string.dashboard_loop_math_iob, decimalFormatter.to2Decimal(iob), fmt(isf)), signed(-drop), if (drop >= 0) StepKind.DOWN else StepKind.UP),
+            MathStep(rh.gs(R.string.dashboard_loop_math_iob, decimalFormatter.to2Decimal(iob), fmt(isf)), signed(-drop), if (abs(drop) < 0.5) StepKind.PLAIN else if (drop > 0) StepKind.DOWN else StepKind.UP),
             MathStep(rh.gs(R.string.dashboard_loop_math_dev), signed(dev), if (dev >= 0) StepKind.UP else StepKind.DOWN)
         )
         if (abs(eventual - sum) >= 1.5) {
@@ -681,13 +681,17 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             p?.UAM?.let { PredCurve(PredKind.UAM, it) }
         )
         // same windows as the algorithm: IOB / COB after the 90 min insulin peak, UAM after 1 h
-        val minIob = p?.IOB?.drop(18)?.minOrNull()?.toDouble()
-        val minCob = p?.COB?.drop(18)?.minOrNull()?.toDouble()
-        val minUam = p?.UAM?.drop(12)?.minOrNull()?.toDouble()
+        // (stored curves are cut once they go flat, so a short curve ends on its plateau)
+        val tailMin = { c: List<Int>?, from: Int -> c?.let { if (it.size > from) it.drop(from).minOrNull() else it.lastOrNull() }?.toDouble() }
+        val minIob = tailMin(p?.IOB, 18)
+        val minCob = tailMin(p?.COB, 18)
+        val minUam = tailMin(p?.UAM, 12)
         val carbsEntered = (request.mealData?.carbs ?: 0.0) > 0.0
         var minPredNote = when {
             carbsEntered && minCob != null                  -> rh.gs(R.string.dashboard_loop_math_min_cob, fmt(minCob), fmt(minPred))
-            !carbsEntered && minIob != null && minUam != null -> rh.gs(R.string.dashboard_loop_math_min_uam, fmt(minIob), fmt(minUam), fmt(minPred))
+            !carbsEntered && minIob != null && minUam != null && abs(maxOf(minIob, minUam) - minPred) < 1.5 ->
+                rh.gs(R.string.dashboard_loop_math_min_uam, fmt(minIob), fmt(minUam), fmt(minPred))
+            !carbsEntered && minUam != null                 -> rh.gs(R.string.dashboard_loop_math_min_uam_plain, fmt(minPred))
             minIob != null                                  -> rh.gs(R.string.dashboard_loop_math_min_iob, fmt(minIob), fmt(minPred))
             else                                            -> rh.gs(R.string.dashboard_loop_math_min_plain, fmt(minPred))
         }

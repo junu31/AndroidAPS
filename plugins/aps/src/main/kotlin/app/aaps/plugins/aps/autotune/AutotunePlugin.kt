@@ -7,6 +7,7 @@ import android.view.View
 import androidx.preference.PreferenceCategory
 import androidx.preference.PreferenceManager
 import androidx.preference.PreferenceScreen
+import app.aaps.core.data.configuration.Constants
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.plugin.PluginType
 import app.aaps.core.data.time.T
@@ -501,27 +502,37 @@ class AutotunePlugin @Inject constructor(
     }
 
     /**
-     * Personal-fork: tuned basal / DIA, but ISF and IC keep the time blocks of the input profile,
-     * each block scaled by tuned / current average (Autotune itself only tunes one average value).
+     * Personal-fork: tuned basal / DIA, but ISF and IC keep the time blocks of the input profile as stored in the
+     * profile editor (a profile switch merges neighbouring blocks with equal values), each block scaled so the
+     * 24 h average equals the tuned value (Autotune itself only tunes one average value).
      */
     private fun tunedKeepingBlocks(tuned: ATProfile): PureProfile? {
-        if (!::pumpProfile.isInitialized || pumpProfile.isf <= 0.0 || pumpProfile.ic <= 0.0) return null
+        if (!::pumpProfile.isInitialized || tuned.isf <= 0.0 || tuned.ic <= 0.0) return null
         val json = tuned.getProfile(false).let { pure -> ProfileSealed.Pure(value = pure, activePlugin = null).toPureNsJson(dateUtil) }
-        val input = pumpProfile.profile.toPureNsJson(dateUtil)
-        val mmol = pumpProfile.profile.units == GlucoseUnit.MMOL
-        fun scaled(key: String, ratio: Double, step: Double): JSONArray {
-            val src = input.getJSONArray(key)
+        val units = pumpProfile.profile.units
+        val input = activePlugin.activeProfileSource.profile?.getSpecificProfile(pumpProfile.profileName)
+            ?.takeIf { it.glucoseUnit == units }?.jsonObject
+            ?: pumpProfile.profile.toPureNsJson(dateUtil)
+        fun scaled(key: String, target: Double, step: Double): JSONArray? {
+            val src = input.optJSONArray(key) ?: return null
+            val starts = (0 until src.length()).map { src.getJSONObject(it).let { o -> o.optInt("timeAsSeconds", dateUtil.toSeconds(o.getString("time"))) } }
+            val values = (0 until src.length()).map { src.getJSONObject(it).getDouble("value") }
+            // time-weighted 24 h average of the input blocks
+            val avg = values.indices.sumOf { i -> values[i] * ((starts.getOrNull(i + 1) ?: 86400) - starts[i]) } / 86400.0
+            if (avg <= 0.0) return null
             return JSONArray().also { out ->
                 for (i in 0 until src.length()) {
                     val o = JSONObject(src.getJSONObject(i).toString())
-                    o.put("value", Round.roundTo(o.getDouble("value") * ratio, step))
+                    o.put("value", Round.roundTo(values[i] * target / avg, step))
                     out.put(o)
                 }
             }
         }
-        json.put("sens", scaled("sens", tuned.isf / pumpProfile.isf, if (mmol) 0.01 else 0.1))
-        json.put("carbratio", scaled("carbratio", tuned.ic / pumpProfile.ic, 0.01))
-        return pureProfileFromJson(json, dateUtil, pumpProfile.profile.units.asText)
+        val sens = scaled("sens", if (units == GlucoseUnit.MMOL) tuned.isf / Constants.MMOLL_TO_MGDL else tuned.isf, if (units == GlucoseUnit.MMOL) 0.01 else 0.1) ?: return null
+        val ic = scaled("carbratio", tuned.ic, 0.01) ?: return null
+        json.put("sens", sens)
+        json.put("carbratio", ic)
+        return pureProfileFromJson(json, dateUtil, units.asText)
     }
 
     override fun updateInputProfileWithTuned(): Boolean {

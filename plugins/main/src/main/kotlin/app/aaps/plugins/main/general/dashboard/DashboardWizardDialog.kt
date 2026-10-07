@@ -2,6 +2,7 @@ package app.aaps.plugins.main.general.dashboard
 
 import android.graphics.Color as AndroidColor
 import android.graphics.drawable.ColorDrawable
+import android.content.Context
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -27,10 +28,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -53,12 +52,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.aaps.core.data.model.GlucoseUnit
 import app.aaps.core.data.time.T
-import app.aaps.core.interfaces.ai.AiTextEngine
 import app.aaps.core.interfaces.constraints.ConstraintsChecker
 import app.aaps.core.interfaces.db.PersistenceLayer
 import app.aaps.core.interfaces.iob.IobCobCalculator
 import app.aaps.core.interfaces.logging.AAPSLogger
-import app.aaps.core.interfaces.logging.LTag
 import app.aaps.core.interfaces.plugin.ActivePlugin
 import app.aaps.core.interfaces.profile.Profile
 import app.aaps.core.interfaces.profile.ProfileFunction
@@ -74,7 +71,6 @@ import app.aaps.core.interfaces.utils.SafeParse
 import app.aaps.core.interfaces.utils.fabric.FabricPrivacy
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.IntKey
-import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.objects.constraints.ConstraintObject
 import app.aaps.core.objects.extensions.valueToUnits
@@ -109,7 +105,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     @Inject lateinit var dateUtil: DateUtil
     @Inject lateinit var bolusWizardProvider: Provider<BolusWizard>
     @Inject lateinit var uiInteraction: UiInteraction
-    @Inject lateinit var aiTextEngine: AiTextEngine
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var fabricPrivacy: FabricPrivacy
@@ -137,10 +132,10 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private var useCob by mutableStateOf(false)
     private var useSb by mutableStateOf(false)
     private var showCalc by mutableStateOf(true)
+    private var showEasy by mutableStateOf(true)
 
     // ---- results ----
     private var result by mutableStateOf<WizardView?>(null)
-    private var explain by mutableStateOf<CalcExplain?>(null)
 
     private var wizard: BolusWizard? = null
     private var calculatedPercentage = 100
@@ -151,9 +146,9 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private var maxCorrection = 0.0
     private var units = GlucoseUnit.MGDL
 
-    data class WizardRow(val label: String, val detail: String, val insulin: String)
-    data class WizardView(val rows: List<WizardRow>, val total: String, val percent: String?, val canDeliver: Boolean, val insulin: Double, val signature: String)
-    data class CalcExplain(val signature: String, val loading: Boolean, val text: String = "", val label: String = "", val error: Boolean = false)
+    /** easy: the formula in plain words (empty when the row adds nothing) */
+    data class WizardRow(val label: String, val detail: String, val insulin: String, val easy: String = "")
+    data class WizardView(val rows: List<WizardRow>, val total: String, val percent: String?, val canDeliver: Boolean, val insulin: Double, val roundingNote: String?)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -207,6 +202,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         if (useCob) useIob = true
         usePercentage = preferences.get(BooleanKey.WizardCorrectionPercent)
         showCalc = preferences.get(BooleanKey.WizardCalculationVisible)
+        showEasy = uiPrefs().getBoolean(KEY_EASY, true)
         ttAvailable = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now()) != null
         calculatedPercentage = preferences.get(IntKey.OverviewBolusPercentage)
         if (usePercentage) {
@@ -225,6 +221,8 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             .subscribe({ calculate() }, fabricPrivacy::logException)
         calculate()
     }
+
+    private fun uiPrefs() = requireContext().getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE)
 
     private fun formatBg(v: Double) = if (units == GlucoseUnit.MGDL) String.format(Locale.US, "%.0f", v) else String.format(Locale.US, "%.1f", v)
 
@@ -276,39 +274,82 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             else                                    -> "(${formatBg(bg)} − ${formatBg(bg - w.insulinFromBG * w.sens)}) ÷ ISF ${f1(w.sens)}"
         }
         val trendText = (if (w.trend > 0) "+" else "") + profileUtil.fromMgdlToStringInUnits(w.trend * 3)
+        val has = { v: Double -> abs(v) >= 0.005 }
+        val bgDiff = w.insulinFromBG * w.sens
+        val iob = w.insulinFromBolusIOB + w.insulinFromBasalIOB
         val rows = buildList {
-            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.bg_label), bgFormula, u(w.insulinFromBG)))
-            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.bg_trend_label), if (useTrend && w.glucoseStatus != null) "$trendText ÷ ISF ${f1(w.sens)}" else "", u(w.insulinFromTrend)))
+            add(
+                WizardRow(
+                    rh.gs(app.aaps.core.ui.R.string.bg_label), bgFormula, u(w.insulinFromBG),
+                    if (useBg && has(w.insulinFromBG))
+                        rh.gs(if (bgDiff > 0) R.string.dashboard_wizard_easy_bg_high else R.string.dashboard_wizard_easy_bg_low, formatBg(abs(bgDiff)), f1(w.sens))
+                    else ""
+                )
+            )
+            add(
+                WizardRow(
+                    rh.gs(app.aaps.core.ui.R.string.bg_trend_label), if (useTrend && w.glucoseStatus != null) "$trendText ÷ ISF ${f1(w.sens)}" else "", u(w.insulinFromTrend),
+                    if (useTrend && has(w.insulinFromTrend))
+                        rh.gs(if (w.trend > 0) R.string.dashboard_wizard_easy_trend_up else R.string.dashboard_wizard_easy_trend_down, profileUtil.fromMgdlToStringInUnits(abs(w.trend * 3)))
+                    else ""
+                )
+            )
             add(
                 WizardRow(
                     "IOB", if (useIob) rh.gs(R.string.dashboard_wizard_iob_formula, u(w.insulinFromBolusIOB), u(w.insulinFromBasalIOB)) else "",
-                    u(-w.insulinFromBolusIOB - w.insulinFromBasalIOB)
+                    u(-w.insulinFromBolusIOB - w.insulinFromBasalIOB),
+                    if (useIob && iob >= 0.005) rh.gs(R.string.dashboard_wizard_easy_iob) else ""
                 )
             )
-            add(WizardRow("COB", if (useCob) "${f1(cob)}g ÷ IC ${f1(w.ic)}" else "", if (useCob) u(w.insulinFromCOB) else ""))
-            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.carbs), "${carbs}g ÷ IC ${f1(w.ic)}", u(w.insulinFromCarbs)))
+            add(
+                WizardRow(
+                    "COB", if (useCob) "${f1(cob)}g ÷ IC ${f1(w.ic)}" else "", if (useCob) u(w.insulinFromCOB) else "",
+                    if (useCob && has(w.insulinFromCOB)) rh.gs(R.string.dashboard_wizard_easy_cob) else ""
+                )
+            )
+            add(
+                WizardRow(
+                    rh.gs(app.aaps.core.ui.R.string.carbs), "${carbs}g ÷ IC ${f1(w.ic)}", u(w.insulinFromCarbs),
+                    if (has(w.insulinFromCarbs)) rh.gs(R.string.dashboard_wizard_easy_carbs, f1(w.ic)) else ""
+                )
+            )
             if (preferences.get(BooleanKey.OverviewUseSuperBolus))
-                add(WizardRow(rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) rh.gs(R.string.dashboard_wizard_sb_formula) else "", u(w.insulinFromSuperBolus)))
-            add(WizardRow(rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection)))
+                add(
+                    WizardRow(
+                        rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) rh.gs(R.string.dashboard_wizard_sb_formula) else "", u(w.insulinFromSuperBolus),
+                        if (useSb && has(w.insulinFromSuperBolus)) rh.gs(R.string.dashboard_wizard_easy_sb) else ""
+                    )
+                )
+            add(
+                WizardRow(
+                    rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection),
+                    if (has(w.insulinFromCorrection)) rh.gs(R.string.dashboard_wizard_easy_correction) else ""
+                )
+            )
             // the percentage applied to the sum (only when it is not 100 %)
             if (w.percentageCorrection != 100)
                 add(
                     WizardRow(
                         rh.gs(R.string.dashboard_wizard_percent), "${u(w.totalBeforePercentageAdjustment)} × ${w.percentageCorrection}%",
-                        u(w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0)
+                        u(w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0),
+                        rh.gs(R.string.dashboard_wizard_easy_percent, w.percentageCorrection)
                     )
                 )
         }
+        // the sum differs from the result only by the pump's bolus step (and constraints)
+        val beforeRound = w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0
+        val roundingNote = if (w.calculatedTotalInsulin > 0 && has(beforeRound - w.calculatedTotalInsulin))
+            rh.gs(R.string.dashboard_wizard_easy_rounding, u(beforeRound), bolusStep.toString(), u(w.calculatedTotalInsulin))
+        else null
         val canDeliver = w.calculatedTotalInsulin > 0.0 || carbsAfterConstraint > 0
         val total = if (canDeliver) listOfNotNull(
             w.calculatedTotalInsulin.takeIf { it > 0 }?.let { u(it) },
             carbsAfterConstraint.takeIf { it > 0 }?.let { "${it}g" }
         ).joinToString("  ")
         else rh.gs(R.string.dashboard_wizard_missing_carbs, w.carbsEquivalent.toInt())
-        val signature = listOf(profileName, bgText, useBg, carbs, correctionText, usePercentage, carbTime, useTt, useTrend, useIob, useCob, useSb, w.calculatedTotalInsulin).joinToString("|")
         result = WizardView(
             rows, total, if (w.percentageCorrection != 100 || usePercentage) "${w.percentageCorrection}%" else null,
-            canDeliver, w.calculatedTotalInsulin, signature
+            canDeliver, w.calculatedTotalInsulin, roundingNote
         )
     }
 
@@ -319,65 +360,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         // same confirmation, constraints and delivery as the classic wizard
         context?.let { wizard?.confirmAndExecute(it) }
         dismiss()
-    }
-
-    private fun explainResult() {
-        val w = wizard ?: return
-        val view = result ?: return
-        if (!aiTextEngine.usesLocal && preferences.get(StringKey.OverviewAiCarbsApiKey).isBlank()) {
-            explain = CalcExplain(view.signature, loading = false, text = rh.gs(R.string.dashboard_loop_ai_no_engine), error = true)
-            return
-        }
-        explain = CalcExplain(view.signature, loading = true)
-        // the formulas are worked out here, the model only puts them into plain words (small local models are bad at arithmetic)
-        val f2 = { v: Double -> String.format(Locale.US, "%.2f", v) }
-        val f1 = { v: Double -> String.format(Locale.US, "%.1f", v) }
-        val signed = { v: Double -> (if (v >= 0) "+" else "−") + f2(abs(v)) + " U" }
-        val bg = SafeParse.stringToDouble(bgText)
-        val data = buildString {
-            appendLine("ISF ${f1(w.sens)}: 인슐린 1 U가 혈당을 ${f1(w.sens)} ${units.asText} 내림")
-            appendLine("IC ${f1(w.ic)}: 인슐린 1 U가 탄수화물 ${f1(w.ic)} g을 처리함")
-            if (useBg && bg > 0) {
-                if (abs(w.insulinFromBG) < 0.005) appendLine("혈당: ${formatBg(bg)}는 목표 범위 안 → 0 U")
-                else {
-                    val target = bg - w.insulinFromBG * w.sens
-                    val diff = bg - target
-                    appendLine("혈당: 지금 ${formatBg(bg)} − 목표 ${formatBg(target)} = ${formatBg(abs(diff))} ${if (diff > 0) "높음" else "낮음"} → ${formatBg(diff)} ÷ ISF ${f1(w.sens)} = ${signed(w.insulinFromBG)}")
-                }
-            }
-            if (useTrend && abs(w.insulinFromTrend) >= 0.005)
-                appendLine("15분 추이: 최근 15분 동안 혈당이 ${if (w.trend > 0) "오르는" else "내리는"} 중 (${profileUtil.fromMgdlToStringInUnits(w.trend * 3)}) ÷ ISF → ${signed(w.insulinFromTrend)}")
-            val iob = w.insulinFromBolusIOB + w.insulinFromBasalIOB
-            if (useIob && abs(iob) >= 0.005)
-                appendLine("IOB: 몸에 아직 남아 있는 인슐린 ${f2(iob)} U (볼루스 ${f2(w.insulinFromBolusIOB)} + 기저 ${f2(w.insulinFromBasalIOB)})만큼 빼기 → ${signed(-iob)}")
-            if (useCob && abs(w.insulinFromCOB) >= 0.005)
-                appendLine("COB: 아직 흡수되지 않은 탄수화물 ${f1(w.insulinFromCOB * w.ic)} g ÷ IC ${f1(w.ic)} → ${signed(w.insulinFromCOB)}")
-            if (w.insulinFromCarbs >= 0.005) {
-                val photo = if (aiFoods.isNotEmpty() && aiCarbs?.toString() == carbsText) " (사진 추정: $aiFoods)" else ""
-                appendLine("탄수화물: 먹을 ${carbsText} g$photo ÷ IC ${f1(w.ic)} = ${signed(w.insulinFromCarbs)}")
-            }
-            if (useSb && abs(w.insulinFromSuperBolus) >= 0.005)
-                appendLine("Superbolus: 앞으로 2시간 기저 인슐린 ${f2(w.insulinFromSuperBolus)} U를 지금 미리 넣음 (그동안 기저는 멈춤) → ${signed(w.insulinFromSuperBolus)}")
-            if (abs(w.insulinFromCorrection) >= 0.005) appendLine("교정: 직접 입력한 값 → ${signed(w.insulinFromCorrection)}")
-            appendLine("합계: 위 항목을 모두 더하면 ${f2(w.totalBeforePercentageAdjustment)} U")
-            if (w.percentageCorrection != 100)
-                appendLine("비율: 위 합계 ${f2(w.totalBeforePercentageAdjustment)} U × ${w.percentageCorrection}% 만 적용")
-            val beforeRound = w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0
-            appendLine(
-                "최종 권장: ${f2(w.calculatedTotalInsulin)} U" +
-                    if (abs(beforeRound - w.calculatedTotalInsulin) >= 0.005) " (펌프 주입 단위 $bolusStep U에 맞춰 ${f2(beforeRound)} U를 조정)" else ""
-            )
-        }
-        val signature = view.signature
-        disposable += aiTextEngine.generate(CALC_AI_SYSTEM_PROMPT, data)
-            .observeOn(aapsSchedulers.main)
-            .subscribe({ r ->
-                           val label = rh.gs(if (r.local) R.string.dashboard_loop_ai_label_local else R.string.dashboard_loop_ai_label, r.source, ((r.millis + 500) / 1000).toInt())
-                           explain = CalcExplain(signature, loading = false, text = r.text, label = label)
-                       }, { e ->
-                           aapsLogger.error(LTag.UI, "Calculator AI", e)
-                           explain = CalcExplain(signature, loading = false, text = rh.gs(R.string.dashboard_loop_ai_failed), error = true)
-                       })
     }
 
     private fun step(text: String, delta: Double, min: Double, max: Double, decimals: Int): String {
@@ -391,9 +373,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private fun WizardScreen() {
         val scroll = rememberScrollState()
         val r = result
-        val ex = explain
-        // keep the AI box in view when it appears
-        LaunchedEffect(ex?.loading) { if (ex != null) scroll.animateScrollTo(scroll.maxValue) }
         Column(
             Modifier
                 .padding(horizontal = 12.dp)
@@ -548,18 +527,34 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         .clickable { showCalc = !showCalc; preferences.put(BooleanKey.WizardCalculationVisible, showCalc) }
                         .padding(vertical = 4.dp)
                 ) {
-                    Text(rh.gs(R.string.dashboard_wizard_show_calc) + if (showCalc) " ▴" else " ▾", color = DashColors.Sub, fontSize = 11.sp)
+                    Text(rh.gs(R.string.dashboard_wizard_show_calc) + if (showCalc) " ▴" else " ▾", color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    if (showCalc)
+                        Text(
+                            (if (showEasy) "✓ " else "") + rh.gs(R.string.dashboard_wizard_easy),
+                            color = if (showEasy) DashColors.Accent else DashColors.Sub, fontSize = 11.sp, fontWeight = if (showEasy) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50))
+                                .background(if (showEasy) DashColors.Accent.copy(alpha = 0.1f) else Color.Transparent)
+                                .border(1.dp, if (showEasy) DashColors.Accent.copy(alpha = 0.6f) else DashColors.Line, RoundedCornerShape(50))
+                                .clickable { showEasy = !showEasy; uiPrefs().edit().putBoolean(KEY_EASY, showEasy).apply() }
+                                .padding(horizontal = 9.dp, vertical = 2.dp)
+                        )
                 }
                 if (showCalc) view.rows.forEach { row ->
+                    val easy = showEasy && row.easy.isNotEmpty()
                     Row(
                         Modifier
                             .fillMaxWidth()
                             .height(27.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(row.label, color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.width(80.dp), maxLines = 1)
+                        Text(
+                            row.label, color = if (easy) DashColors.Text else DashColors.Sub, fontSize = 12.5.sp, fontWeight = if (easy) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.width(80.dp), maxLines = 1
+                        )
                         Text(row.detail, color = DashColors.Dim, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(end = 10.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(row.insulin, color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.width(72.dp))
                     }
+                    if (easy) Text(row.easy, color = DashColors.Sub, fontSize = 11.5.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
                     Box(
                         Modifier
                             .fillMaxWidth()
@@ -574,49 +569,8 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     )
                     Text(view.total, color = if (view.canDeliver) DashColors.Accent else DashColors.Cob, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
-                // AI explanation, only when asked for
-                when {
-                    ex == null || (ex.error && !ex.loading)        -> {
-                        if (ex?.error == true) Text(ex.text, color = DashColors.Low, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
-                        AiButton(rh.gs(R.string.dashboard_loop_ai)) { explainResult() }
-                    }
-
-                    else                                           -> {
-                        val stale = ex.signature != view.signature
-                        Column(
-                            Modifier
-                                .padding(top = 10.dp)
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(AiPurple.copy(alpha = 0.08f))
-                                .border(1.dp, AiPurple.copy(alpha = 0.25f), RoundedCornerShape(12.dp))
-                                .padding(horizontal = 12.dp, vertical = 10.dp)
-                        ) {
-                            Row {
-                                Text(rh.gs(R.string.dashboard_loop_ai_title), color = AiLilac, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                                Text(
-                                    when {
-                                        ex.loading -> rh.gs(R.string.dashboard_loop_ai_loading)
-                                        stale      -> rh.gs(R.string.dashboard_wizard_ai_stale_label)
-                                        else       -> ex.label
-                                    }, color = DashColors.Dim, fontSize = 10.5.sp
-                                )
-                            }
-                            if (ex.loading)
-                                LinearProgressIndicator(
-                                    color = AiPurple, trackColor = DashColors.Card2, modifier = Modifier
-                                        .padding(top = 8.dp)
-                                        .fillMaxWidth()
-                                )
-                            else Text(
-                                ex.text, color = DashColors.Text, fontSize = 12.5.sp, lineHeight = 19.sp,
-                                modifier = Modifier
-                                    .padding(top = 4.dp)
-                                    .alpha(if (stale) 0.45f else 1f)
-                            )
-                            if (!ex.loading && stale) AiButton(rh.gs(R.string.dashboard_wizard_ai_again)) { explainResult() }
-                        }
-                    }
+                if (showCalc && showEasy) view.roundingNote?.let {
+                    Text(it, color = DashColors.Sub, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
                 }
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ActionButton(rh.gs(app.aaps.core.ui.R.string.cancel), DashColors.Card, DashColors.Text, Modifier.weight(1f)) { dismiss() }
@@ -745,21 +699,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     }
 
     @Composable
-    private fun AiButton(text: String, onClick: () -> Unit) {
-        Box(
-            Modifier
-                .padding(top = 10.dp)
-                .fillMaxWidth()
-                .height(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(AiPurple.copy(alpha = 0.12f))
-                .border(1.dp, AiPurple.copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                .clickable(onClick = onClick),
-            contentAlignment = Alignment.Center
-        ) { Text(text, color = AiLilac, fontSize = 13.sp, fontWeight = FontWeight.Bold) }
-    }
-
-    @Composable
     private fun ActionButton(text: String, bg: Color, fg: Color, modifier: Modifier, onClick: () -> Unit) {
         Box(
             modifier
@@ -779,11 +718,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         private val AiPurple = Color(0xFFA78BFA)
         private val AiLilac = Color(0xFFC4B5FD)
 
-        private const val CALC_AI_SYSTEM_PROMPT =
-            "AndroidAPS 계산기(Bolus 마법사)의 계산식을 처음 보는 사람도 이해하게 쉬운 말로 풀어 설명해.\n" +
-                "규칙: 인사, 서론 없이 바로 시작. 한국어 존댓말. 아래 항목 순서대로 한 줄에 하나씩, 줄마다 60자 이내.\n" +
-                "각 줄은 '항목: 왜 더하거나 빼는지 + 계산식' 형태. 예) 혈당: 목표보다 46 높아서 46 ÷ 50 = 0.92 U 더해요.\n" +
-                "ISF, IC는 처음 나올 때 뜻을 괄호로 짧게. 숫자와 계산식은 주어진 그대로만 쓰고 새로 계산하지 마.\n" +
-                "마지막 줄은 최종 권장량. 용량 권고, 목록 기호, 마크다운 없이 평문."
+        private const val KEY_EASY = "wizard_easy"
     }
 }

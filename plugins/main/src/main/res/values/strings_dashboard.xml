@@ -84,12 +84,22 @@
     <string name="dashboard_wizard_photo">Photo</string>
     <string name="dashboard_wizard_result">Result</string>
     <string name="dashboard_wizard_ok">Bolus ›</string>
-    <string name="dashboard_wizard_ai_again">Values changed · ✦ explain again</string>
-    <string name="dashboard_wizard_ai_stale_label">previous values</string>
     <string name="dashboard_wizard_minutes">min</string>
     <string name="dashboard_wizard_in_target">in target</string>
     <string name="dashboard_wizard_iob_formula">bolus %1$s + basal %2$s</string>
     <string name="dashboard_wizard_sb_formula">basal of the next 2 h</string>
     <string name="dashboard_wizard_entered">entered</string>
     <string name="dashboard_wizard_percent">Percentage</string>
+    <string name="dashboard_wizard_easy">Plain words</string>
+    <string name="dashboard_wizard_easy_bg_high">%1$s above target. 1 U lowers BG by %2$s</string>
+    <string name="dashboard_wizard_easy_bg_low">%1$s below target, so it is taken off. 1 U lowers BG by %2$s</string>
+    <string name="dashboard_wizard_easy_trend_up">Rising %1$s in the last 15 min, so a little more</string>
+    <string name="dashboard_wizard_easy_trend_down">Falling %1$s in the last 15 min, so a little less</string>
+    <string name="dashboard_wizard_easy_iob">Insulin still active in the body is taken off</string>
+    <string name="dashboard_wizard_easy_cob">Carbs not absorbed yet are covered too</string>
+    <string name="dashboard_wizard_easy_carbs">1 U covers %1$s g of carbs</string>
+    <string name="dashboard_wizard_easy_sb">The next 2 h of basal given now (basal stops meanwhile)</string>
+    <string name="dashboard_wizard_easy_correction">The value you entered is added as is</string>
+    <string name="dashboard_wizard_easy_percent">Only %1$d%% of the sum is given</string>
+    <string name="dashboard_wizard_easy_rounding">Sum %1$s · rounded to the pump step %2$s U → %3$s</string>
 </resources>

@@ -97,6 +97,9 @@ android {
 
         // For Dagger injected instrumentation tests in app module
         testInstrumentationRunner = "app.aaps.runners.InjectedTestRunner"
+
+        // Personal-fork: the on-device LLM libraries are large; keep phones (arm64) and the emulator (x86_64) only
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
     }
 
     flavorDimensions.add("standard")

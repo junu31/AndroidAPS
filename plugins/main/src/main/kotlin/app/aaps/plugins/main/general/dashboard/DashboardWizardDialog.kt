@@ -448,7 +448,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     onValue = { carbTime = SafeParse.stringToInt(it).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
                     onMinus = { carbTime = (carbTime - 5).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
                     onPlus = { carbTime = (carbTime + 5).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
-                    extra = { SmallAction(if (alarm) "⏰" else "⏰̸", if (alarm) DashColors.High else DashColors.Dim) { alarm = !alarm; calculate() } },
+                    extra = { SmallAction("⏰", if (alarm) DashColors.High else DashColors.Dim, dim = !alarm) { alarm = !alarm; calculate() } },
                     modifier = Modifier.weight(1f), compact = true
                 )
             }
@@ -619,14 +619,23 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         modifier: Modifier = Modifier, border: Color = DashColors.Line,
         extra: (@Composable () -> Unit)? = null, compact: Boolean = false
     ) {
-        FieldBox(modifier, border) {
+        // label on its own line so narrow (half width) fields do not cut it
+        Column(
+            modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(DashColors.Card2)
+                .border(1.dp, border, RoundedCornerShape(10.dp))
+                .padding(horizontal = 10.dp, vertical = 7.dp)
+        ) {
+            FieldLabel(label, labelColor)
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 3.dp)) {
             PmButton("−", onMinus)
             Column(
                 Modifier
                     .weight(1f)
                     .padding(horizontal = 8.dp)
             ) {
-                FieldLabel(label, labelColor)
                 Row(verticalAlignment = Alignment.Bottom) {
                     BasicTextField(
                         value, { v -> onValue(v.filter { it.isDigit() || it == '.' || it == '-' }) }, singleLine = true,
@@ -643,6 +652,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 Spacer(Modifier.width(6.dp))
             }
             PmButton("+", onPlus)
+            }
         }
     }
 
@@ -659,10 +669,11 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     }
 
     @Composable
-    private fun SmallAction(text: String, color: Color, onClick: () -> Unit) {
+    private fun SmallAction(text: String, color: Color, dim: Boolean = false, onClick: () -> Unit) {
         Text(
             text, color = color, fontSize = 11.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
             modifier = Modifier
+                .alpha(if (dim) 0.35f else 1f)
                 .clip(RoundedCornerShape(8.dp))
                 .border(1.dp, color.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                 .clickable(onClick = onClick)

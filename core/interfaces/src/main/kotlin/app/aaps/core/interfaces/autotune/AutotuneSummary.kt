@@ -17,5 +17,7 @@ data class AutotuneSummary(
     /** the input profile still has its original values (can be overwritten with the tuned ones) */
     val canUpdate: Boolean,
     /** the input profile was overwritten with the tuned values (can be reverted) */
-    val canRevert: Boolean
+    val canRevert: Boolean,
+    /** what each tuned day looked at (null for runs saved before this was recorded) */
+    val trace: AutotuneTrace? = null
 )

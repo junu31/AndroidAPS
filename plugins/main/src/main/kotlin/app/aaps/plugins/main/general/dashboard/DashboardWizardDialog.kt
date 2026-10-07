@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -672,9 +673,12 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         textStyle = TextStyle(color = DashColors.Text, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Bold),
                         cursorBrush = SolidColor(DashColors.Accent),
-                        modifier = Modifier.width(if (compact) 46.dp else 72.dp)
+                        // as wide as the number, so the unit right after it is never pushed out
+                        modifier = Modifier
+                            .width(IntrinsicSize.Min)
+                            .widthIn(min = 14.dp, max = if (compact) 64.dp else 96.dp)
                     )
-                    Text(unit, color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
+                    Text(" $unit", color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }
             }
             extra?.let {

@@ -87,4 +87,9 @@
     <string name="dashboard_wizard_ai_again">Values changed · ✦ explain again</string>
     <string name="dashboard_wizard_ai_stale_label">previous values</string>
     <string name="dashboard_wizard_minutes">min</string>
+    <string name="dashboard_wizard_in_target">in target</string>
+    <string name="dashboard_wizard_iob_formula">bolus %1$s + basal %2$s</string>
+    <string name="dashboard_wizard_sb_formula">basal of the next 2 h</string>
+    <string name="dashboard_wizard_entered">entered</string>
+    <string name="dashboard_wizard_percent">Percentage</string>
 </resources>

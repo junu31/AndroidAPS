@@ -266,21 +266,36 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         calculatedCorrection = w.calculatedCorrection
 
         val u = { v: Double -> rh.gs(app.aaps.core.ui.R.string.format_insulin_units, v) }
+        // formulas built from the engine's own results (BolusWizard keeps the target private: target = BG - BG insulin x ISF)
+        val f1 = { v: Double -> String.format(Locale.getDefault(), "%.1f", v) }
+        val bgFormula = when {
+            !useBg || bg <= 0                       -> ""
+            abs(w.insulinFromBG) < 0.005            -> "${formatBg(bg)} · " + rh.gs(R.string.dashboard_wizard_in_target)
+            else                                    -> "(${formatBg(bg)} − ${formatBg(bg - w.insulinFromBG * w.sens)}) ÷ ISF ${f1(w.sens)}"
+        }
+        val trendText = (if (w.trend > 0) "+" else "") + profileUtil.fromMgdlToStringInUnits(w.trend * 3)
         val rows = buildList {
-            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.bg_label), String.format(Locale.getDefault(), "%s ISF: %.1f", formatBg(bg), w.sens), u(w.insulinFromBG)))
+            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.bg_label), bgFormula, u(w.insulinFromBG)))
+            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.bg_trend_label), if (useTrend && w.glucoseStatus != null) "$trendText ÷ ISF ${f1(w.sens)}" else "", u(w.insulinFromTrend)))
             add(
                 WizardRow(
-                    rh.gs(app.aaps.core.ui.R.string.bg_trend_label),
-                    if (useTrend && w.glucoseStatus != null) (if (w.trend > 0) "+" else "") + profileUtil.fromMgdlToStringInUnits(w.trend * 3) + " " + units.asText else "",
-                    u(w.insulinFromTrend)
+                    "IOB", if (useIob) rh.gs(R.string.dashboard_wizard_iob_formula, u(w.insulinFromBolusIOB), u(w.insulinFromBasalIOB)) else "",
+                    u(-w.insulinFromBolusIOB - w.insulinFromBasalIOB)
                 )
             )
-            add(WizardRow("IOB", "", u(-w.insulinFromBolusIOB - w.insulinFromBasalIOB)))
-            add(WizardRow("COB", if (useCob) String.format(Locale.getDefault(), "%.1fg IC: %.1f", cob, w.ic) else "", if (useCob) u(w.insulinFromCOB) else ""))
-            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.carbs), String.format(Locale.getDefault(), "%.0fg IC: %.1f", carbs.toDouble(), w.ic), u(w.insulinFromCarbs)))
+            add(WizardRow("COB", if (useCob) "${f1(cob)}g ÷ IC ${f1(w.ic)}" else "", if (useCob) u(w.insulinFromCOB) else ""))
+            add(WizardRow(rh.gs(app.aaps.core.ui.R.string.carbs), "${carbs}g ÷ IC ${f1(w.ic)}", u(w.insulinFromCarbs)))
             if (preferences.get(BooleanKey.OverviewUseSuperBolus))
-                add(WizardRow(rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) "2h" else "", u(w.insulinFromSuperBolus)))
-            add(WizardRow(rh.gs(R.string.dashboard_wizard_correction), "", u(w.insulinFromCorrection)))
+                add(WizardRow(rh.gs(app.aaps.core.ui.R.string.superbolus), if (useSb) rh.gs(R.string.dashboard_wizard_sb_formula) else "", u(w.insulinFromSuperBolus)))
+            add(WizardRow(rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection)))
+            // the percentage applied to the sum (only when it is not 100 %)
+            if (w.percentageCorrection != 100)
+                add(
+                    WizardRow(
+                        rh.gs(R.string.dashboard_wizard_percent), "${u(w.totalBeforePercentageAdjustment)} × ${w.percentageCorrection}%",
+                        u(w.totalBeforePercentageAdjustment * w.percentageCorrection / 100.0)
+                    )
+                )
         }
         val canDeliver = w.calculatedTotalInsulin > 0.0 || carbsAfterConstraint > 0
         val total = if (canDeliver) listOfNotNull(
@@ -500,7 +515,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                             .height(27.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(row.label, color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.width(80.dp), maxLines = 1)
-                        Text(row.detail, color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(row.detail, color = DashColors.Dim, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(end = 10.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text(row.insulin, color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.width(72.dp))
                     }
                     Box(

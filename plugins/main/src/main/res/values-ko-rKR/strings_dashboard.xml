@@ -87,4 +87,9 @@
     <string name="dashboard_wizard_ai_again">값이 바뀌었어요 · ✦ 다시 설명</string>
     <string name="dashboard_wizard_ai_stale_label">이전 값 기준</string>
     <string name="dashboard_wizard_minutes">분</string>
+    <string name="dashboard_wizard_in_target">목표 범위 안</string>
+    <string name="dashboard_wizard_iob_formula">볼루스 %1$s + 기저 %2$s</string>
+    <string name="dashboard_wizard_sb_formula">이후 2시간 기저</string>
+    <string name="dashboard_wizard_entered">직접 입력</string>
+    <string name="dashboard_wizard_percent">비율</string>
 </resources>

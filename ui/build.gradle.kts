@@ -34,6 +34,7 @@ dependencies {
     implementation(libs.com.google.code.gson)
     // Personal-fork: on-device LLM for the AI explanations
     implementation(libs.com.google.mediapipe.tasks.genai)
+    implementation(libs.com.google.ai.edge.litertlm.android)
 
     ksp(libs.com.google.dagger.compiler)
     ksp(libs.com.google.dagger.android.processor)

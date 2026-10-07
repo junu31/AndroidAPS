@@ -257,9 +257,9 @@
     <string name="weekly_review_overwrite_confirm">Replace basal, ISF and IC of %1$s with the suggested values?\nYou can undo it with \'Revert\'.</string>
     <string name="weekly_review_revert_confirm">Restore %1$s to the values from before the overwrite?</string>
     <string name="local_model_file">Local model file</string>
-    <string name="local_model_pick">Choose the model file (.task)</string>
+    <string name="local_model_pick">Choose the model file (.task or .litertlm)</string>
     <string name="local_model_copying">Copying %1$s…</string>
     <string name="local_model_ready">Local model ready: %1$s</string>
     <string name="local_model_copy_failed">Copying the model failed</string>
-    <string name="local_model_wrong_type">Choose a .task model file</string>
+    <string name="local_model_wrong_type">Choose a .task or .litertlm model file</string>
 </resources>

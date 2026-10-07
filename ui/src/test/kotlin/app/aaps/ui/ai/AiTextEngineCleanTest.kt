@@ -19,6 +19,7 @@ class AiTextEngineCleanTest {
 
     @Test
     fun `model label from file name`() {
-        assertThat(AiTextEngineImpl.modelLabel("/x/llm/gemma-3n-E2B-it-int4.task")).isEqualTo("Gemma 3n")
+        assertThat(AiTextEngineImpl.modelLabel("/x/llm/gemma-3n-E2B-it-int4.task")).isEqualTo("Gemma 3n E2B")
+        assertThat(AiTextEngineImpl.modelLabel("/x/llm/gemma-4-E4B-it.litertlm")).isEqualTo("Gemma 4 E4B")
     }
 }

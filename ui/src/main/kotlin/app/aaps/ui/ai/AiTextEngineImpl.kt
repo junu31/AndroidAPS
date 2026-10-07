@@ -17,6 +17,7 @@ import javax.inject.Singleton
 class AiTextEngineImpl @Inject constructor(
     private val gemini: GeminiCarbService,
     private val localLlm: LocalLlm,
+    private val liteRtLm: LiteRtLm,
     private val preferences: Preferences,
     private val aapsLogger: AAPSLogger
 ) : AiTextEngine {
@@ -29,7 +30,10 @@ class AiTextEngineImpl @Inject constructor(
             val path = preferences.get(StringKey.AiLocalModelPath)
             check(path.isNotEmpty() && File(path).canRead()) { "No local model file" }
             val start = System.currentTimeMillis()
-            val text = cleanLocal(localLlm.generate(path, LocalLlm.gemmaPrompt(systemPrompt, userText)))
+            // .litertlm (Gemma 4) runs on LiteRT-LM, .task (Gemma 3n) on MediaPipe
+            val raw = if (path.endsWith(".litertlm", ignoreCase = true)) liteRtLm.generate(path, systemPrompt, userText)
+            else localLlm.generate(path, LocalLlm.gemmaPrompt(systemPrompt, userText))
+            val text = cleanLocal(raw)
             check(text.isNotEmpty()) { "Empty answer from the local model" }
             AiTextEngine.Result(text, modelLabel(path), local = true, millis = System.currentTimeMillis() - start)
         }.subscribeOn(Schedulers.io())
@@ -63,10 +67,11 @@ class AiTextEngineImpl @Inject constructor(
             return t.lines().map { it.trim().removePrefix("- ").removePrefix("* ") }.filter { it.isNotEmpty() }.joinToString("\n")
         }
 
-        /** "gemma-3n-E2B-it-int4.task" -> "Gemma 3n" */
+        /** "gemma-3n-E2B-it-int4.task" -> "Gemma 3n E2B", "gemma-4-E4B-it.litertlm" -> "Gemma 4 E4B" */
         fun modelLabel(path: String): String {
             val name = File(path).nameWithoutExtension
-            return Regex("""gemma[-_ ]?(\d+n?)""", RegexOption.IGNORE_CASE).find(name)?.let { "Gemma ${it.groupValues[1]}" } ?: name
+            return Regex("""gemma[-_ ]?(\d+n?)(?:[-_ ](e\d+b))?""", RegexOption.IGNORE_CASE).find(name)
+                ?.let { m -> listOf("Gemma", m.groupValues[1], m.groupValues[2].uppercase()).filter { it.isNotEmpty() }.joinToString(" ") } ?: name
         }
     }
 }

@@ -672,9 +672,9 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         textStyle = TextStyle(color = DashColors.Text, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Bold),
                         cursorBrush = SolidColor(DashColors.Accent),
-                        modifier = Modifier.width(if (compact) 52.dp else 72.dp)
+                        modifier = Modifier.width(if (compact) 46.dp else 72.dp)
                     )
-                    Text(unit, color = DashColors.Dim, fontSize = 11.sp)
+                    Text(unit, color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }
             }
             extra?.let {

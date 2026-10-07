@@ -120,7 +120,7 @@
     <string name="dashboard_loop_math_verdict_high">Eventual %1$s &gt; target %2$s → more insulin is needed</string>
     <string name="dashboard_loop_math_verdict_low">Eventual %1$s &lt; target %2$s → less insulin</string>
     <string name="dashboard_loop_math_verdict_near">Eventual %1$s is close to target %2$s</string>
-    <string name="dashboard_loop_math_verdict_safe">Lowest safety prediction %1$s ≥ safety line %2$s → no risk of going low (SMB allowed)</string>
+    <string name="dashboard_loop_math_verdict_safe">Lowest safety prediction %1$s ≥ safety line %2$s → no risk of going low</string>
     <string name="dashboard_loop_math_verdict_unsafe">Lowest safety prediction %1$s &lt; safety line %2$s → SMB blocked, insulin reduced</string>
     <string name="dashboard_loop_math_target">target %1$s</string>
     <string name="dashboard_loop_math_threshold">safety line %1$s</string>

@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -372,21 +373,32 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 .verticalScroll(scroll)
                 .padding(16.dp)
         ) {
+            // title with the profile selector on the right
+            var open by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("🧮 " + rh.gs(app.aaps.core.ui.R.string.boluswizard), color = DashColors.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-                sensorBgText?.let { Text(rh.gs(app.aaps.core.ui.R.string.bg_label) + " $it", color = DashColors.Sub, fontSize = 11.sp) }
-            }
-            // profile
-            var open by remember { mutableStateOf(false) }
-            FieldBox(Modifier.padding(top = 12.dp), onClick = { open = !open }) {
-                Column(Modifier.weight(1f)) {
-                    FieldLabel(rh.gs(app.aaps.core.ui.R.string.profile))
-                    Text(profileNames.getOrNull(profileIndex).orEmpty(), color = DashColors.Text, fontSize = 15.sp, fontWeight = FontWeight.Bold)
+                Row(
+                    Modifier
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DashColors.Card2)
+                        .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                        .clickable { open = !open }
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        rh.gs(app.aaps.core.ui.R.string.profile) + " ", color = DashColors.Dim, fontSize = 11.sp
+                    )
+                    Text(
+                        profileNames.getOrNull(profileIndex).orEmpty(), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 130.dp)
+                    )
+                    Text(if (open) " ▴" else " ▾", color = DashColors.Sub, fontSize = 12.sp)
                 }
-                Text(if (open) "▴" else "▾", color = DashColors.Sub)
             }
             if (open) Column(
                 Modifier
+                    .padding(top = 6.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
                     .background(DashColors.Card2)

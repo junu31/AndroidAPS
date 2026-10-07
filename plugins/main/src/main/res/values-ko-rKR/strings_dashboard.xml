@@ -117,7 +117,6 @@
     <string name="dashboard_loop_math_min_uam">탄수 입력이 없어서 IOB 선 최저(%1$s)와 UAM 선 최저(%2$s) 중 높은 쪽을 써요 → %3$s</string>
     <string name="dashboard_loop_math_min_iob">IOB 선 최저(%1$s) → %2$s</string>
     <string name="dashboard_loop_math_min_plain">루프 값 %1$s</string>
-    <string name="dashboard_loop_math_min_capped">(평균 예측을 넘지 않게 낮춤)</string>
     <string name="dashboard_loop_math_verdict_high">예상 %1$s &gt; 목표 %2$s → 인슐린이 더 필요해요</string>
     <string name="dashboard_loop_math_verdict_low">예상 %1$s &lt; 목표 %2$s → 인슐린을 줄여요</string>
     <string name="dashboard_loop_math_verdict_near">예상 %1$s이 목표 %2$s 근처예요</string>

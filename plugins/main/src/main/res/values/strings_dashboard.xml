@@ -117,7 +117,6 @@
     <string name="dashboard_loop_math_min_uam">No carbs entered: the higher of the IOB curve low (%1$s) and the UAM curve low (%2$s) → %3$s</string>
     <string name="dashboard_loop_math_min_iob">IOB curve low (%1$s) → %2$s</string>
     <string name="dashboard_loop_math_min_plain">Loop value %1$s</string>
-    <string name="dashboard_loop_math_min_capped">(lowered so it does not exceed the average prediction)</string>
     <string name="dashboard_loop_math_verdict_high">Eventual %1$s &gt; target %2$s → more insulin is needed</string>
     <string name="dashboard_loop_math_verdict_low">Eventual %1$s &lt; target %2$s → less insulin</string>
     <string name="dashboard_loop_math_verdict_near">Eventual %1$s is close to target %2$s</string>

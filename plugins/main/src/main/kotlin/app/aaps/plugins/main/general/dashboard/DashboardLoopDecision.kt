@@ -298,8 +298,11 @@ private fun PredKind.color() = when (this) {
 @Composable
 private fun PredictionChart(math: LoopMath) {
     val all = math.curves.flatMap { it.values }
-    val lo = minOf(all.minOrNull()?.toDouble() ?: 0.0, math.thresholdMgdl, math.minPredMgdl) - 8
+    // the safety line only joins the scale when the curves come near it, so high curves are not squashed
+    val curveLo = minOf(all.minOrNull()?.toDouble() ?: math.minPredMgdl, math.minPredMgdl)
+    val lo = minOf(curveLo, math.targetMgdl, if (curveLo - math.thresholdMgdl < 60) math.thresholdMgdl else Double.MAX_VALUE) - 8
     val hi = maxOf(all.maxOrNull()?.toDouble() ?: 0.0, math.targetMgdl) + 8
+    val showThreshold = math.thresholdMgdl >= lo
     val steps = (math.curves.maxOfOrNull { it.values.size } ?: 2).coerceAtLeast(2) - 1
     Canvas(
         Modifier
@@ -311,7 +314,8 @@ private fun PredictionChart(math: LoopMath) {
         val y = { v: Double -> ((hi - v) / (hi - lo) * size.height).toFloat() }
         val dash = PathEffect.dashPathEffect(floatArrayOf(8f, 8f))
         drawLine(DashColors.Target.copy(alpha = 0.6f), Offset(0f, y(math.targetMgdl)), Offset(size.width, y(math.targetMgdl)), 2f, pathEffect = dash)
-        drawLine(DashColors.Low.copy(alpha = 0.6f), Offset(0f, y(math.thresholdMgdl)), Offset(size.width, y(math.thresholdMgdl)), 2f, pathEffect = dash)
+        if (showThreshold)
+            drawLine(DashColors.Low.copy(alpha = 0.6f), Offset(0f, y(math.thresholdMgdl)), Offset(size.width, y(math.thresholdMgdl)), 2f, pathEffect = dash)
         math.curves.forEach { c ->
             val path = Path()
             c.values.forEachIndexed { i, v -> if (i == 0) path.moveTo(x(i), y(v.toDouble())) else path.lineTo(x(i), y(v.toDouble())) }
@@ -338,6 +342,6 @@ private fun PredictionChart(math: LoopMath) {
         }
         Spacer(Modifier.weight(1f))
         Text(stringResource(R.string.dashboard_loop_math_target, math.targetText), color = DashColors.Target, fontSize = 10.sp)
-        Text(stringResource(R.string.dashboard_loop_math_threshold, math.thresholdText), color = DashColors.Low, fontSize = 10.sp)
+        if (showThreshold) Text(stringResource(R.string.dashboard_loop_math_threshold, math.thresholdText), color = DashColors.Low, fontSize = 10.sp)
     }
 }

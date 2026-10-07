@@ -687,7 +687,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
         val minCob = tailMin(p?.COB, 18)
         val minUam = tailMin(p?.UAM, 12)
         val carbsEntered = (request.mealData?.carbs ?: 0.0) > 0.0
-        var minPredNote = when {
+        val minPredNote = when {
             carbsEntered && minCob != null                  -> rh.gs(R.string.dashboard_loop_math_min_cob, fmt(minCob), fmt(minPred))
             !carbsEntered && minIob != null && minUam != null && abs(maxOf(minIob, minUam) - minPred) < 1.5 ->
                 rh.gs(R.string.dashboard_loop_math_min_uam, fmt(minIob), fmt(minUam), fmt(minPred))
@@ -695,8 +695,6 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             minIob != null                                  -> rh.gs(R.string.dashboard_loop_math_min_iob, fmt(minIob), fmt(minPred))
             else                                            -> rh.gs(R.string.dashboard_loop_math_min_plain, fmt(minPred))
         }
-        val chosen = if (!carbsEntered && minIob != null && minUam != null) maxOf(minIob, minUam) else null
-        if (chosen != null && minPred < chosen - 1.5) minPredNote += " " + rh.gs(R.string.dashboard_loop_math_min_capped)
 
         // what the two numbers decided
         val verdicts = buildList {

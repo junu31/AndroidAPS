@@ -119,6 +119,7 @@ interface DashboardActions {
     fun onScale(hours: Int)
     fun showInfo(title: String, text: String)
     fun onWeeklyReview()
+    fun onMealRecords()
     fun onRecentBoluses()
     fun onExplainDecision()
 }
@@ -159,7 +160,7 @@ fun DashboardScreen(
                 SectionTitle(stringResource(R.string.dashboard_glucose_stats))
                 StatsCard(it)
             }
-            state.weeklyReviewLast?.let { WeeklyReviewCard(it, actions) }
+            ReviewTiles(state.weeklyReviewLast, state.meal, actions)
             state.buttons.acceptTemp?.let { AcceptTempButton(it, actions) }
             if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
                 SecondaryActions(state.buttons, actions)
@@ -844,45 +845,58 @@ private fun StatusLights(items: List<StatusLight>) {
     }
 }
 
-/** Entry to the weekly AI review (Autotune of the last 7 days), shown only when Autotune is enabled. */
+/**
+ * Entries to the weekly AI review (Autotune of the last 7 days, only when Autotune is enabled; null = hidden)
+ * and to the meal records, side by side.
+ */
 @Composable
-private fun WeeklyReviewCard(last: String, actions: DashboardActions) {
+private fun ReviewTiles(weeklyLast: String?, meal: MealTile, actions: DashboardActions) {
     val purple = Color(0xFFA78BFA)
-    Row(
-        Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Brush.linearGradient(listOf(purple.copy(alpha = 0.14f), DashColors.Accent.copy(alpha = 0.08f))))
-            .border(1.dp, purple.copy(alpha = 0.45f), RoundedCornerShape(16.dp))
-            .clicks({ actions.onWeeklyReview() })
-            .padding(horizontal = 14.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+        if (weeklyLast != null)
+            ReviewTile(
+                stringResource(R.string.dashboard_weekly_review),
+                if (weeklyLast.isEmpty()) stringResource(R.string.dashboard_weekly_review_never) else stringResource(R.string.dashboard_weekly_review_last, weeklyLast),
+                purple, 0, Modifier.weight(1f), { Icon(painterResource(R.drawable.ic_dashboard_ai), contentDescription = null, tint = purple, modifier = Modifier.size(16.dp)) }
+            ) { actions.onWeeklyReview() }
+        ReviewTile(
+            stringResource(R.string.meal_records),
+            stringResource(R.string.meal_tile_sub, meal.tracked, meal.pending),
+            DashColors.Accent, meal.unseen, Modifier.weight(1f), { Text("🍽", fontSize = 14.sp) }
+        ) { actions.onMealRecords() }
+    }
+}
+
+@Composable
+private fun ReviewTile(title: String, sub: String, color: Color, badge: Int, modifier: Modifier, icon: @Composable () -> Unit, onClick: () -> Unit) {
+    Column(
+        modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Brush.linearGradient(listOf(color.copy(alpha = 0.12f), DashColors.Card)))
+            .border(1.dp, color.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+            .clicks({ onClick() })
+            .padding(horizontal = 12.dp, vertical = 10.dp)
     ) {
-        Box(
-            Modifier
-                .size(38.dp)
-                .clip(RoundedCornerShape(10.dp))
-                .background(purple.copy(alpha = 0.18f)),
-            contentAlignment = Alignment.Center
-        ) { Icon(painterResource(R.drawable.ic_dashboard_ai), contentDescription = null, tint = purple, modifier = Modifier.size(20.dp)) }
-        Column(
-            Modifier
-                .weight(1f)
-                .padding(start = 12.dp)
-        ) {
-            Text(stringResource(R.string.dashboard_weekly_review), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            icon()
             Text(
-                if (last.isEmpty()) stringResource(R.string.dashboard_weekly_review_never) else stringResource(R.string.dashboard_weekly_review_last, last),
-                color = DashColors.Sub, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis
+                title, color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .weight(1f, fill = false)
             )
+            if (badge > 0)
+                Text(
+                    "$badge", color = Color(0xFF1A1300), fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(DashColors.High)
+                        .padding(horizontal = 5.dp)
+                )
         }
-        Text(
-            stringResource(R.string.dashboard_weekly_review_open), color = Color(0xFF1B1230), fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
-            modifier = Modifier
-                .clip(RoundedCornerShape(8.dp))
-                .background(purple)
-                .padding(horizontal = 12.dp, vertical = 8.dp)
-        )
+        Text(sub, color = DashColors.Sub, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
     }
 }
 

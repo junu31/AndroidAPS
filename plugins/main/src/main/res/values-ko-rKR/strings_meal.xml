@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Personal-fork: meal tracking -->
+    <string name="meal_records">식사 기록</string>
+    <string name="meal_tile_sub">추적 %1$d · 평가 대기 %2$d</string>
+    <string name="meal_channel">식사 평가</string>
+    <string name="meal_notif_done">%1$s 평가 완료 · %2$s</string>
+    <string name="meal_notif_excluded">%1$s 평가 제외</string>
+    <string name="meal_notif_text">범위 유지 %1$d%% · 최고 %2$d · 루프·추가 +%3$.1f U\n실제 필요 %4$.1f U (프로필 대비 %5$s%%)</string>
+
+    <string name="meal_grade_ok">적정</string>
+    <string name="meal_grade_under">부족</string>
+    <string name="meal_grade_over">과다</string>
+    <string name="meal_grade_timing">타이밍</string>
+    <string name="meal_grade_excluded">제외</string>
+    <string name="meal_pending">평가 대기</string>
+
+    <string name="meal_ex_other_meal">평가 시간 중 다른 식사 탄수가 겹쳐서 평가에서 뺐어요</string>
+    <string name="meal_ex_sensor">센서 값이 많이 비어서 평가할 수 없었어요</string>
+    <string name="meal_ex_activity">활동 임시 목표(운동)가 있어서 평가에서 뺐어요</string>
+    <string name="meal_ex_profile">평가 시간 중 프로필이 바뀌어서 평가에서 뺐어요</string>
+    <string name="meal_ex_no_insulin">인슐린·혈당 기록으로 필요량을 계산할 수 없었어요</string>
+    <string name="meal_ex_user">직접 평가에서 제외했어요 (제안 계산에 쓰지 않아요)</string>
+
+    <string name="meal_type_fast">빠른 탄수</string>
+    <string name="meal_type_mixed">혼합</string>
+    <string name="meal_type_fat">고지방</string>
+    <string name="meal_type_fat_protein">고지방·고단백</string>
+    <string name="meal_hours_short">%1$dh</string>
+    <string name="meal_type_title">유형 · 평가 시간</string>
+    <string name="meal_type_ai">AI: 지방 %1$s g · 단백질 %2$s g → %3$s</string>
+
+    <!-- calculator -->
+    <string name="meal_food">음식</string>
+    <string name="meal_food_none">음식 선택 (선택 사항)</string>
+    <string name="meal_new_food">새 음식</string>
+    <string name="meal_search_new">검색 · 새 음식</string>
+    <string name="meal_search_hint">음식 검색 또는 새 이름</string>
+    <string name="meal_name">이름</string>
+    <string name="meal_add_new">＋ “%1$s” 새 음식으로 등록</string>
+    <string name="meal_rename">이름을 “%1$s”(으)로 바꾸기</string>
+    <string name="meal_done">완료</string>
+    <string name="meal_similar">비슷한 음식: %1$s (기록 %2$d건) — 이 음식으로 연결</string>
+    <string name="meal_track">이 식사 평가 추적</string>
+    <string name="meal_track_hours">식후 %1$d시간 뒤 평가</string>
+    <string name="meal_history_title">%1$s 지난 기록</string>
+    <string name="meal_history_counts">평가 %1$d · 제외 %2$d · 대기 %3$d</string>
+    <string name="meal_history_line">%1$d g · 필요 %2$s</string>
+    <string name="meal_max">최고 %1$d</string>
+    <string name="meal_suggest_need">평가된 기록이 %1$d건 이상이면 제안해요 (지금 %2$d건)</string>
+    <string name="meal_suggest_gpu">기록상 이 음식은 인슐린 1 U에 탄수 %1$s g (현재 IC %2$s)</string>
+    <string name="meal_suggest_calc">기록 기준 %1$d ÷ %2$s = %3$s U − 현재 %1$d ÷ %4$s = %5$s U → %6$s</string>
+    <string name="meal_suggest_capped">상한 ±%1$d%% 적용</string>
+    <string name="meal_suggest_hypo">최근 기록에 저혈당이 있어서 증량은 제안하지 않아요</string>
+    <string name="meal_suggest_none">기록과 현재 프로필이 거의 같아요 — 조정 없음</string>
+    <string name="meal_apply">기록 반영 → 교정 %1$s</string>
+    <string name="meal_applied">✓ 반영됨 (교정 %1$s) · 눌러서 되돌리기</string>
+    <string name="meal_calc_detail">%1$s 기록 반영</string>
+    <string name="meal_calc_easy">%1$s은(는) 지난 %2$d번 평가에서 인슐린 1 U에 탄수 %3$s g이었어요. 현재 프로필과의 차이만큼 더하거나 빼요</string>
+
+    <!-- records screen -->
+    <string name="meal_tracked_foods">추적 %1$d개 음식</string>
+    <string name="meal_search">음식 검색</string>
+    <string name="meal_filter_all">전체</string>
+    <string name="meal_filter_adjust">조정 필요</string>
+    <string name="meal_filter_pending">평가 대기 %1$d</string>
+    <string name="meal_filter_legacy">AI 이전 이력</string>
+    <string name="meal_empty">아직 기록이 없어요. 계산기에서 음식을 고르고 「평가 추적」을 켜고 주입하면 여기에 쌓여요.</string>
+    <string name="meal_counts">평가 %1$d / %2$d</string>
+    <string name="meal_untracked">추적 꺼짐</string>
+    <string name="meal_split">분할 권장</string>
+    <string name="meal_not_enough">기록 부족</string>
+    <string name="meal_from_two">%1$d건부터 제안</string>
+    <string name="meal_gpu">1 U당 %1$s g</string>
+    <string name="meal_vs_ic">현재 IC %1$s 대비</string>
+    <string name="meal_fat">지방 %1$s g</string>
+    <string name="meal_protein">단백질 %1$s g</string>
+    <string name="meal_no_eval">평가 없음</string>
+    <string name="meal_food_summary">평가 %1$d · 제외 %2$d · %3$s</string>
+    <string name="meal_track_short">추적</string>
+    <string name="meal_food_suggest">기록상 1 U당 %1$s g (현재 IC %2$s) → 같은 양이면 %3$s</string>
+    <string name="meal_food_suggest_note">최근 기록일수록 비중이 커요 · 상한 ±%1$d%% · 계산기의 「기록 반영」으로 적용</string>
+    <string name="meal_time_longer">평가가 끝날 때도 오르던 기록이 많아요 → %1$s로 바꾸기</string>
+    <string name="meal_time_shorter">늘 일찍 안정됐어요 → %1$s로 바꾸기</string>
+    <string name="meal_ai_pattern">AI 패턴 요약</string>
+    <string name="meal_ai_busy">AI가 정리하는 중…</string>
+    <string name="meal_ai_need">평가된 기록이 2건 이상이면 AI가 패턴을 정리해요</string>
+    <string name="meal_ai_error">AI 요약 실패: %1$s</string>
+    <string name="meal_list_title">식사 기록</string>
+    <string name="meal_eval_at">%1$s 평가 예정</string>
+    <string name="meal_evaluated_at">평가 %1$s</string>
+    <string name="meal_delete">이 음식과 기록 삭제</string>
+    <string name="meal_delete_confirm">한 번 더 누르면 삭제돼요</string>
+    <string name="meal_wait_text">%1$s에 자동으로 평가해요. 끝나면 알림이 와요.</string>
+    <string name="meal_kv_tir">목표 범위 (70~180)</string>
+    <string name="meal_kv_min">최저 BG</string>
+    <string name="meal_kv_bolus">식사 볼러스</string>
+    <string name="meal_kv_loop">루프 추가 (SMB·기저)</string>
+    <string name="meal_kv_manual">직접 추가 주입</string>
+    <string name="meal_kv_hypo">저혈당 처치 탄수</string>
+    <string name="meal_kv_needed">실제 필요 인슐린</string>
+    <string name="meal_kv_ratio">프로필 대비</string>
+    <string name="meal_reason_main">범위 유지 %1$d%%, 최고 %2$d. 루프·추가 주입 %3$s U, 끝 혈당은 시작보다 %4$s → %5$d g에 실제 %6$s U가 필요했어요 (1 U당 %7$s g).</string>
+    <string name="meal_reason_hypo_carbs">저혈당 처치 탄수 %1$d g은 빼고 계산했어요.</string>
+    <string name="meal_reason_low">70 미만이 있었어요 (최저 %1$d).</string>
+    <string name="meal_reason_no_low">저혈당 없음.</string>
+    <string name="meal_reason_timing">초반에 낮았다가 2시간 이후 높아졌어요 — 총량보다 볼러스 시점·분할을 볼 때예요.</string>
+    <string name="meal_reason_rising">평가가 끝날 때도 오르는 중이었어요.</string>
+    <string name="meal_profile_title">당시 프로필 ↔ 현재</string>
+    <string name="meal_now">현재</string>
+    <string name="meal_profile_pct">프로필 비율</string>
+    <string name="meal_profile_alone">이 기록 하나만 보면 지금 %1$d g에 %2$s U</string>
+    <string name="meal_legend_meal">식사 %1$d g · %2$s U</string>
+    <string name="meal_after_min">%1$d분 뒤</string>
+    <string name="meal_memo_title">메모</string>
+    <string name="meal_memo_tags">빠른 태그</string>
+    <string name="meal_memo_text">자유 메모</string>
+    <string name="meal_memo_exclude">이 기록 평가에서 제외</string>
+    <string name="meal_memo_exclude_sub">다음 제안 계산에서 빠져요</string>
+    <string name="meal_memo_warn">⚠ 이 태그는 평가를 흐릴 수 있어요 — 눌러서 평가에서 제외</string>
+    <string name="meal_memo_save">저장</string>
+    <string name="meal_tag_big">곱빼기</string>
+    <string name="meal_tag_small">양 적게</string>
+    <string name="meal_tag_slow">늦게·천천히 먹음</string>
+    <string name="meal_tag_late_bolus">볼러스 늦게</string>
+    <string name="meal_tag_exercise">운동</string>
+    <string name="meal_tag_sick">아픔·스트레스</string>
+    <string name="meal_tag_sensor">센서 이상</string>
+</resources>

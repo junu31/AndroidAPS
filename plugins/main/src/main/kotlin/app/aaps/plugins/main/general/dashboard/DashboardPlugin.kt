@@ -21,6 +21,7 @@ import app.aaps.core.validators.preferences.AdaptiveListPreference
 import java.io.File
 import app.aaps.core.validators.preferences.AdaptiveSwitchPreference
 import app.aaps.plugins.main.R
+import app.aaps.plugins.main.general.dashboard.meal.MealTracker
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -33,7 +34,8 @@ class DashboardPlugin @Inject constructor(
     aapsLogger: AAPSLogger,
     rh: ResourceHelper,
     private val uiInteraction: UiInteraction,
-    private val preferences: Preferences
+    private val preferences: Preferences,
+    private val mealTracker: MealTracker
 ) : PluginBase(
     PluginDescription()
         .mainType(PluginType.GENERAL)
@@ -48,6 +50,17 @@ class DashboardPlugin @Inject constructor(
         .description(R.string.description_dashboard),
     aapsLogger, rh
 ) {
+
+    // meal tracking evaluates due meals on every new BG while the plugin runs
+    override fun onStart() {
+        super.onStart()
+        mealTracker.start()
+    }
+
+    override fun onStop() {
+        mealTracker.stop()
+        super.onStop()
+    }
 
     // kept so the listener is not garbage collected (SharedPreferences holds listeners weakly)
     private var modelPathListener: SharedPreferences.OnSharedPreferenceChangeListener? = null

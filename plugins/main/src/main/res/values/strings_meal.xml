@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Personal-fork: meal tracking -->
+    <string name="meal_records">Meal records</string>
+    <string name="meal_tile_sub">Tracked %1$d · waiting %2$d</string>
+    <string name="meal_channel">Meal evaluation</string>
+    <string name="meal_notif_done">%1$s evaluated · %2$s</string>
+    <string name="meal_notif_excluded">%1$s not evaluated</string>
+    <string name="meal_notif_text">In range %1$d%% · max %2$d · loop + extra +%3$.1f U\nReally needed %4$.1f U (vs profile %5$s%%)</string>
+
+    <string name="meal_grade_ok">OK</string>
+    <string name="meal_grade_under">Too little</string>
+    <string name="meal_grade_over">Too much</string>
+    <string name="meal_grade_timing">Timing</string>
+    <string name="meal_grade_excluded">Excluded</string>
+    <string name="meal_pending">Waiting</string>
+
+    <string name="meal_ex_other_meal">Other meal carbs during the window, so it was not evaluated</string>
+    <string name="meal_ex_sensor">Too many missing sensor values to evaluate</string>
+    <string name="meal_ex_activity">Activity temp target (exercise), so it was not evaluated</string>
+    <string name="meal_ex_profile">The profile changed during the window, so it was not evaluated</string>
+    <string name="meal_ex_no_insulin">The needed insulin could not be calculated from the records</string>
+    <string name="meal_ex_user">Excluded by you (not used for suggestions)</string>
+
+    <string name="meal_type_fast">Fast carbs</string>
+    <string name="meal_type_mixed">Mixed</string>
+    <string name="meal_type_fat">High fat</string>
+    <string name="meal_type_fat_protein">High fat and protein</string>
+    <string name="meal_hours_short">%1$dh</string>
+    <string name="meal_type_title">Type · evaluation time</string>
+    <string name="meal_type_ai">AI: fat %1$s g · protein %2$s g → %3$s</string>
+
+    <!-- calculator -->
+    <string name="meal_food">Food</string>
+    <string name="meal_food_none">Choose food (optional)</string>
+    <string name="meal_new_food">new</string>
+    <string name="meal_search_new">Search · new food</string>
+    <string name="meal_search_hint">Search food or type a new name</string>
+    <string name="meal_name">Name</string>
+    <string name="meal_add_new">＋ Add “%1$s” as a new food</string>
+    <string name="meal_rename">Rename to “%1$s”</string>
+    <string name="meal_done">Done</string>
+    <string name="meal_similar">Similar food: %1$s (%2$d records) — use this food</string>
+    <string name="meal_track">Track and evaluate this meal</string>
+    <string name="meal_track_hours">evaluated %1$d h after the meal</string>
+    <string name="meal_history_title">%1$s · past meals</string>
+    <string name="meal_history_counts">evaluated %1$d · excluded %2$d · waiting %3$d</string>
+    <string name="meal_history_line">%1$d g · needed %2$s</string>
+    <string name="meal_max">max %1$d</string>
+    <string name="meal_suggest_need">Suggestions start with %1$d evaluated meals (now %2$d)</string>
+    <string name="meal_suggest_gpu">From the records 1 U covered %1$s g of this food (current IC %2$s)</string>
+    <string name="meal_suggest_calc">records %1$d ÷ %2$s = %3$s U − now %1$d ÷ %4$s = %5$s U → %6$s</string>
+    <string name="meal_suggest_capped">limited to ±%1$d%%</string>
+    <string name="meal_suggest_hypo">A recent meal went low, so no increase is suggested</string>
+    <string name="meal_suggest_none">Records and current profile agree — no change</string>
+    <string name="meal_apply">Use records → correction %1$s</string>
+    <string name="meal_applied">✓ Applied (correction %1$s) · tap to undo</string>
+    <string name="meal_calc_detail">from %1$s records</string>
+    <string name="meal_calc_easy">In the last %2$d evaluations 1 U covered %3$s g of %1$s. The difference to the current profile is added or removed</string>
+
+    <!-- records screen -->
+    <string name="meal_tracked_foods">%1$d tracked foods</string>
+    <string name="meal_search">Search food</string>
+    <string name="meal_filter_all">All</string>
+    <string name="meal_filter_adjust">Needs change</string>
+    <string name="meal_filter_pending">Waiting %1$d</string>
+    <string name="meal_filter_legacy">AI history (before)</string>
+    <string name="meal_empty">No records yet. Choose a food in the calculator, switch on tracking and deliver.</string>
+    <string name="meal_counts">evaluated %1$d / %2$d</string>
+    <string name="meal_untracked">not tracked</string>
+    <string name="meal_split">consider split</string>
+    <string name="meal_not_enough">not enough</string>
+    <string name="meal_from_two">suggests from %1$d</string>
+    <string name="meal_gpu">%1$s g per 1 U</string>
+    <string name="meal_vs_ic">vs current IC %1$s</string>
+    <string name="meal_fat">fat %1$s g</string>
+    <string name="meal_protein">protein %1$s g</string>
+    <string name="meal_no_eval">no evaluation</string>
+    <string name="meal_food_summary">evaluated %1$d · excluded %2$d · %3$s</string>
+    <string name="meal_track_short">Track</string>
+    <string name="meal_food_suggest">From the records %1$s g per 1 U (current IC %2$s) → same amount %3$s</string>
+    <string name="meal_food_suggest_note">Recent meals weigh more · limit ±%1$d%% · applied with “Use records” in the calculator</string>
+    <string name="meal_time_longer">Often still rising at the end → change to %1$s</string>
+    <string name="meal_time_shorter">Always settled early → change to %1$s</string>
+    <string name="meal_ai_pattern">AI pattern summary</string>
+    <string name="meal_ai_busy">AI is summarising…</string>
+    <string name="meal_ai_need">With 2 or more evaluated meals the AI can summarise the pattern</string>
+    <string name="meal_ai_error">AI summary failed: %1$s</string>
+    <string name="meal_list_title">Meals</string>
+    <string name="meal_eval_at">evaluated at %1$s</string>
+    <string name="meal_evaluated_at">evaluated %1$s</string>
+    <string name="meal_delete">Delete this food and its records</string>
+    <string name="meal_delete_confirm">Tap again to delete</string>
+    <string name="meal_wait_text">Evaluated automatically at %1$s. You get a notification.</string>
+    <string name="meal_kv_tir">In range (70–180)</string>
+    <string name="meal_kv_min">Lowest BG</string>
+    <string name="meal_kv_bolus">Meal bolus</string>
+    <string name="meal_kv_loop">Loop extra (SMB, basal)</string>
+    <string name="meal_kv_manual">Extra boluses</string>
+    <string name="meal_kv_hypo">Hypo treatment carbs</string>
+    <string name="meal_kv_needed">Really needed</string>
+    <string name="meal_kv_ratio">vs profile</string>
+    <string name="meal_reason_main">In range %1$d%%, max %2$d. Loop and extra %3$s U, end BG vs start %4$s → %5$d g really needed %6$s U (%7$s g per 1 U).</string>
+    <string name="meal_reason_hypo_carbs">Hypo treatment carbs (%1$d g) are taken out.</string>
+    <string name="meal_reason_low">Went below 70 (lowest %1$d).</string>
+    <string name="meal_reason_no_low">No low.</string>
+    <string name="meal_reason_timing">Low early, high after 2 h — look at bolus timing or splitting rather than the amount.</string>
+    <string name="meal_reason_rising">Still rising when the evaluation ended.</string>
+    <string name="meal_profile_title">Profile then ↔ now</string>
+    <string name="meal_now">now</string>
+    <string name="meal_profile_pct">Profile percentage</string>
+    <string name="meal_profile_alone">This meal alone says %2$s U for %1$d g now</string>
+    <string name="meal_legend_meal">meal %1$d g · %2$s U</string>
+    <string name="meal_after_min">after %1$d min</string>
+    <string name="meal_memo_title">Memo</string>
+    <string name="meal_memo_tags">Quick tags</string>
+    <string name="meal_memo_text">Note</string>
+    <string name="meal_memo_exclude">Exclude from evaluation</string>
+    <string name="meal_memo_exclude_sub">not used for the next suggestions</string>
+    <string name="meal_memo_warn">⚠ This tag can blur the evaluation — tap to exclude</string>
+    <string name="meal_memo_save">Save</string>
+    <string name="meal_tag_big">Large portion</string>
+    <string name="meal_tag_small">Small portion</string>
+    <string name="meal_tag_slow">Ate late or slowly</string>
+    <string name="meal_tag_late_bolus">Bolus late</string>
+    <string name="meal_tag_exercise">Exercise</string>
+    <string name="meal_tag_sick">Sick or stressed</string>
+    <string name="meal_tag_sensor">Sensor issue</string>
+</resources>

@@ -419,9 +419,13 @@ class AiCarbsDialog : DaggerDialogFragment() {
         val fm = parentFragmentManager
         if (returnResult) {
             val foods = lastEstimate?.items.orEmpty().joinToString(" · ") { "${it.name} ${formatG(it.carbsG)}g" }
+            val name = lastEstimate?.items.orEmpty().map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(" + ")
             fm.setFragmentResult(
                 UiInteraction.AI_CARBS_RESULT_KEY,
-                bundleOf(UiInteraction.AI_CARBS_RESULT_CARBS to value, UiInteraction.AI_CARBS_RESULT_FOODS to foods)
+                bundleOf(UiInteraction.AI_CARBS_RESULT_CARBS to value, UiInteraction.AI_CARBS_RESULT_FOODS to foods, UiInteraction.AI_CARBS_RESULT_NAME to name).apply {
+                    lastEstimate?.fatG?.let { putDouble(UiInteraction.AI_CARBS_RESULT_FAT, it) }
+                    lastEstimate?.proteinG?.let { putDouble(UiInteraction.AI_CARBS_RESULT_PROTEIN, it) }
+                }
             )
             dismiss()
             return

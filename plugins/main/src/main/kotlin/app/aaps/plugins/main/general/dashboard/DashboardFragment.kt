@@ -158,6 +158,7 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     @Inject lateinit var commandQueue: CommandQueue
     @Inject lateinit var tddCalculator: TddCalculator
     @Inject lateinit var autotune: Autotune
+    @Inject lateinit var mealTracker: app.aaps.plugins.main.general.dashboard.meal.MealTracker
 
     private val disposable = CompositeDisposable()
     private val handler = Handler(HandlerThread(this::class.simpleName + "Handler").also { it.start() }.looper)
@@ -294,6 +295,9 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             .toObservable(EventRunningModeChange::class.java)
             .observeOn(aapsSchedulers.io)
             .subscribe({ processAps() }, fabricPrivacy::logException)
+        disposable += mealTracker.changes
+            .observeOn(aapsSchedulers.io)
+            .subscribe({ updateMealTile() }, fabricPrivacy::logException)
 
         refreshLoop = Runnable {
             refreshAll()
@@ -807,6 +811,18 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
             .take(5)
             .map { RecentBolus(dateUtil.timeString(it.timestamp), fmt(it.amount, "%.2f"), it.type == BS.Type.SMB) }
         post { it.copy(stats = stats, weeklyReviewLast = reviewLast, recentBoluses = recent) }
+        updateMealTile()
+    }
+
+    private fun updateMealTile() {
+        val data = mealTracker.data()
+        val meals = data.meals.filter { !it.legacy }
+        val tile = MealTile(
+            tracked = data.foods.count { it.tracked },
+            pending = meals.count { it.confirmed && it.eval == null },
+            unseen = meals.count { it.eval != null && !it.seen }
+        )
+        post { it.copy(meal = tile) }
     }
 
     // ---------- Graph ----------
@@ -1041,6 +1057,9 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
     }
 
     override fun onWeeklyReview() = withBolusProtection { uiInteraction.runWeeklyReviewDialog(childFragmentManager) }
+    override fun onMealRecords() {
+        app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog().show(childFragmentManager, "MealRecords")
+    }
 
     override fun showInfo(title: String, text: String) {
         activity?.let { OKDialog.show(it, title, text) }

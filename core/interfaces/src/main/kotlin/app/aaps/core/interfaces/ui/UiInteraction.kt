@@ -32,6 +32,10 @@ interface UiInteraction {
         const val AI_CARBS_RESULT_KEY = "ai_carbs_result"
         const val AI_CARBS_RESULT_CARBS = "carbs"
         const val AI_CARBS_RESULT_FOODS = "foods"
+        /** suggested meal name (item names) and fat / protein in g (missing when unknown) */
+        const val AI_CARBS_RESULT_NAME = "name"
+        const val AI_CARBS_RESULT_FAT = "fat"
+        const val AI_CARBS_RESULT_PROTEIN = "protein"
 
         /**
          * Preference from [Preferences]

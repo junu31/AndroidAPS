@@ -1,0 +1,105 @@
+package app.aaps.plugins.main.general.dashboard.meal
+
+/*
+ * Personal-fork: meal tracking. Stored as JSON (Gson), so every field has a default
+ * (Gson then uses the no-arg constructor and missing fields keep their defaults).
+ */
+
+/** Food type picked from fat / protein; decides how long after the meal it is evaluated. */
+enum class FoodType(val hours: Int) { FAST(3), MIXED(4), FAT(5), FAT_PROTEIN(6) }
+
+enum class MealGrade { OK, UNDER, OVER, TIMING, EXCLUDED }
+
+/** Why a meal could not be used (shown to the user, never used for a suggestion). */
+enum class ExcludeReason { NONE, OTHER_MEAL, SENSOR_GAP, ACTIVITY, PROFILE_SWITCH, NO_INSULIN, USER }
+
+data class MealFood(
+    val id: String = "",
+    val name: String = "",
+    val type: FoodType = FoodType.MIXED,
+    val tracked: Boolean = false,
+    val created: Long = 0
+)
+
+/** Something that happened during the evaluation window, minutes after the meal. */
+data class MealEvent(val min: Int = 0, val kind: String = "", val amount: Double = 0.0) {
+
+    companion object {
+
+        const val MEAL_BOLUS = "meal"
+        const val BOLUS = "bolus"
+        const val SMB = "smb"
+        const val CARBS = "carbs"
+    }
+}
+
+data class MealEval(
+    val grade: MealGrade = MealGrade.EXCLUDED,
+    val exclude: ExcludeReason = ExcludeReason.NONE,
+    val tirPct: Int = 0,
+    val maxBg: Int = 0,
+    val maxAtMin: Int = 0,
+    val minBg: Int = 0,
+    val startBg: Int = 0,
+    val endBg: Int = 0,
+    val mealBolus: Double = 0.0,
+    val smb: Double = 0.0,
+    val basalExtra: Double = 0.0,
+    val manualExtra: Double = 0.0,
+    val hypoCarbs: Double = 0.0,
+    /** insulin that acted during the window (bolus + net basal, from the insulin activity) */
+    val usedInsulin: Double = 0.0,
+    /** insulin the meal really needed: used + (end BG − start BG) / ISF − hypo carbs / IC */
+    val neededInsulin: Double = 0.0,
+    /** carbs / IC of the profile at the meal */
+    val expectedInsulin: Double = 0.0,
+    val ratioPct: Int = 0,
+    val risingAtEnd: Boolean = false
+)
+
+data class MealRecord(
+    val id: String = "",
+    val foodId: String = "",
+    val foodName: String = "",
+    /** carbs time (bolus time + carb time offset) */
+    val time: Long = 0,
+    val deliverTime: Long = 0,
+    val carbs: Double = 0.0,
+    val fat: Double? = null,
+    val protein: Double? = null,
+    val type: FoodType = FoodType.MIXED,
+    val tracked: Boolean = true,
+    /** the wizard total and the part that came from the history ("기록 반영") */
+    val bolus: Double = 0.0,
+    val historyAdjust: Double = 0.0,
+    /** false until the wizard bolus is found in the database (the user may still cancel the confirmation) */
+    val confirmed: Boolean = false,
+    // profile at the meal
+    val profileName: String = "",
+    val ic: Double = 0.0,
+    val isfMgdl: Double = 0.0,
+    val percentage: Int = 100,
+    val evalAt: Long = 0,
+    val eval: MealEval? = null,
+    /** BG every 5 min from [time] (mg/dL, 0 = missing), kept so the graph survives a phone change */
+    val curve: List<Int> = emptyList(),
+    val events: List<MealEvent> = emptyList(),
+    val memoTags: List<String> = emptyList(),
+    val memo: String = "",
+    val excludedByUser: Boolean = false,
+    val seen: Boolean = false,
+    /** imported from the old AI carbs history: no evaluation */
+    val legacy: Boolean = false,
+    val legacyText: String = ""
+) {
+
+    /** evaluated and usable for a suggestion */
+    val usable: Boolean get() = !legacy && !excludedByUser && eval != null && eval.grade != MealGrade.EXCLUDED && eval.neededInsulin > 0 && carbs > 0
+}
+
+data class MealData(
+    val version: Int = 1,
+    val foods: List<MealFood> = emptyList(),
+    val meals: List<MealRecord> = emptyList(),
+    val aiHistoryImported: Boolean = false
+)

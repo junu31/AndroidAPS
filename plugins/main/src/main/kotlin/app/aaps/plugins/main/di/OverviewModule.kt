@@ -29,6 +29,7 @@ abstract class OverviewModule {
     @ContributesAndroidInjector abstract fun contributesOverviewFragment(): OverviewFragment
     @ContributesAndroidInjector abstract fun contributesDashboardFragment(): DashboardFragment
     @ContributesAndroidInjector abstract fun contributesDashboardWizardDialog(): app.aaps.plugins.main.general.dashboard.DashboardWizardDialog
+    @ContributesAndroidInjector abstract fun contributesMealRecordsDialog(): app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog
     @ContributesAndroidInjector abstract fun graphDataInjector(): GraphData
 
     @Module
@@ -47,5 +48,6 @@ abstract class OverviewModule {
 
         @Binds fun bindOverviewMenus(overviewMenusImpl: OverviewMenusImpl): OverviewMenus
         @Binds fun bindOverviewData(overviewData: OverviewDataImpl): OverviewData
+        @Binds fun bindMealBackup(mealStore: app.aaps.plugins.main.general.dashboard.meal.MealStore): app.aaps.core.interfaces.meal.MealBackup
     }
 }

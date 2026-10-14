@@ -23,6 +23,8 @@ data class DashboardState(
     val loopDecision: LoopDecision? = null,
     /** null = Autotune not enabled (card hidden); "" = never reviewed; otherwise e.g. "6 days ago" */
     val weeklyReviewLast: String? = null,
+    /** meal tracking tile: tracked foods, meals waiting for the evaluation, evaluations not opened yet */
+    val meal: MealTile = MealTile(),
     val buttons: Buttons = Buttons(),
     val pumpStatus: String = "",
     val calcProgressPct: Int = 100,
@@ -138,3 +140,5 @@ data class Buttons(
     val acceptTemp: String? = null,
     val userActions: List<UserAction> = emptyList()
 )
+
+data class MealTile(val tracked: Int = 0, val pending: Int = 0, val unseen: Int = 0)

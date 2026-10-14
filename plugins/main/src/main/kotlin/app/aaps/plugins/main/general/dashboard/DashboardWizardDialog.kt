@@ -11,6 +11,7 @@ import android.view.Window
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -78,9 +79,22 @@ import app.aaps.core.objects.profile.ProfileSealed
 import app.aaps.core.objects.wizard.BolusWizard
 import app.aaps.core.ui.toast.ToastUtils
 import app.aaps.plugins.main.R
+import app.aaps.plugins.main.general.dashboard.meal.FoodType
+import app.aaps.plugins.main.general.dashboard.meal.GradeChip
+import app.aaps.plugins.main.general.dashboard.meal.MealChip
+import app.aaps.plugins.main.general.dashboard.meal.MealFood
+import app.aaps.plugins.main.general.dashboard.meal.MealGrade
+import app.aaps.plugins.main.general.dashboard.meal.MealMath
+import app.aaps.plugins.main.general.dashboard.meal.MealRecord
+import app.aaps.plugins.main.general.dashboard.meal.MealStore
+import app.aaps.plugins.main.general.dashboard.meal.MealSwitch
+import app.aaps.plugins.main.general.dashboard.meal.MealTracker
+import app.aaps.plugins.main.general.dashboard.meal.MealUi
 import dagger.android.support.DaggerDialogFragment
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Provider
@@ -89,7 +103,7 @@ import kotlin.math.abs
 /**
  * Personal-fork: Dashboard calculator. Same inputs, defaults and engine as the classic Bolus wizard
  * ([BolusWizard.doCalc] / [BolusWizard.confirmAndExecute], which are only called, not changed), plus the AI photo carbs
- * (Gemini) feeding the carbs field and an on-demand AI explanation of the result.
+ * (Gemini) feeding the carbs field, formulas with plain-words explanations and meal tracking (food, evaluation, "기록 반영").
  */
 class DashboardWizardDialog : DaggerDialogFragment() {
 
@@ -108,6 +122,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     @Inject lateinit var rxBus: RxBus
     @Inject lateinit var aapsSchedulers: AapsSchedulers
     @Inject lateinit var fabricPrivacy: FabricPrivacy
+    @Inject lateinit var mealTracker: MealTracker
 
     private val disposable = CompositeDisposable()
 
@@ -134,6 +149,22 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private var showCalc by mutableStateOf(true)
     private var showEasy by mutableStateOf(true)
 
+    // ---- meal tracking: food of this meal, its history and the "기록 반영" suggestion ----
+    private var recentFoods by mutableStateOf(listOf<MealFood>())
+    private var food by mutableStateOf<MealFood?>(null)
+    private var foodIsNew by mutableStateOf(false)
+    private var tracked by mutableStateOf(false)
+    private var aiFat by mutableStateOf<Double?>(null)
+    private var aiProtein by mutableStateOf<Double?>(null)
+    private var foodSheet by mutableStateOf(false)
+    private var foodQuery by mutableStateOf("")
+    private var foodHistory by mutableStateOf(listOf<MealRecord>())
+    private var suggestion by mutableStateOf<MealMath.Suggestion?>(null)
+    private var historyApplied by mutableStateOf<Double?>(null)
+    private var currentIc by mutableStateOf(0.0)
+    private var lastCarbs = 0
+    private var lastHistoryAdjust = 0.0
+
     // ---- results ----
     private var result by mutableStateOf<WizardView?>(null)
 
@@ -158,6 +189,12 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             carbsText = carbs.toString()
             aiCarbs = carbs
             aiFoods = bundle.getString(UiInteraction.AI_CARBS_RESULT_FOODS).orEmpty()
+            aiFat = if (bundle.containsKey(UiInteraction.AI_CARBS_RESULT_FAT)) bundle.getDouble(UiInteraction.AI_CARBS_RESULT_FAT) else null
+            aiProtein = if (bundle.containsKey(UiInteraction.AI_CARBS_RESULT_PROTEIN)) bundle.getDouble(UiInteraction.AI_CARBS_RESULT_PROTEIN) else null
+            // the AI names the meal as a new food; an existing food is only linked when the user taps it
+            val name = bundle.getString(UiInteraction.AI_CARBS_RESULT_NAME).orEmpty().trim()
+            if (name.isNotEmpty() && (food == null || foodIsNew))
+                selectFood(MealFood(MealStore.newId(), name, MealMath.typeFor(aiFat, aiProtein), false, dateUtil.now()), isNew = true)
             calculate()
         }
     }
@@ -204,6 +241,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         showCalc = preferences.get(BooleanKey.WizardCalculationVisible)
         showEasy = uiPrefs().getBoolean(KEY_EASY, true)
         ttAvailable = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now()) != null
+        recentFoods = mealTracker.recentFoods()
         calculatedPercentage = preferences.get(IntKey.OverviewBolusPercentage)
         if (usePercentage) {
             // same as the classic wizard: without a recent BG the percentage falls back to 100 %
@@ -264,6 +302,12 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         wizard = w
         calculatedPercentage = w.calculatedPercentage
         calculatedCorrection = w.calculatedCorrection
+        currentIc = w.ic
+        lastCarbs = carbsAfterConstraint
+        suggestion = food?.takeIf { !foodIsNew }?.let { MealMath.suggest(foodHistory, carbsAfterConstraint.toDouble(), w.ic, bolusStep) }
+        // the correction came from "기록 반영" while it still holds that value
+        val fromHistory = historyApplied?.takeIf { !usePercentage && abs(correction - it) < 0.001 }
+        lastHistoryAdjust = fromHistory ?: 0.0
 
         val u = { v: Double -> rh.gs(app.aaps.core.ui.R.string.format_insulin_units, v) }
         // formulas built from the engine's own results (BolusWizard keeps the target private: target = BG - BG insulin x ISF)
@@ -322,8 +366,14 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 )
             add(
                 WizardRow(
-                    rh.gs(R.string.dashboard_wizard_correction), if (usePercentage) "" else rh.gs(R.string.dashboard_wizard_entered), u(w.insulinFromCorrection),
-                    if (has(w.insulinFromCorrection)) rh.gs(R.string.dashboard_wizard_easy_correction) else ""
+                    rh.gs(R.string.dashboard_wizard_correction),
+                    if (usePercentage) "" else if (fromHistory != null) rh.gs(R.string.meal_calc_detail, food?.name.orEmpty()) else rh.gs(R.string.dashboard_wizard_entered),
+                    u(w.insulinFromCorrection),
+                    when {
+                        !has(w.insulinFromCorrection) -> ""
+                        fromHistory != null           -> rh.gs(R.string.meal_calc_easy, food?.name.orEmpty(), suggestion?.records ?: 0, f1(suggestion?.gramsPerUnit ?: 0.0))
+                        else                          -> rh.gs(R.string.dashboard_wizard_easy_correction)
+                    }
                 )
             )
             // the percentage applied to the sum (only when it is not 100 %)
@@ -357,6 +407,16 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         if (okClicked) return
         okClicked = true
         calculate()
+        // meal tracking: kept only if the bolus below is really confirmed (MealTracker checks the database)
+        food?.let { f ->
+            if (lastCarbs > 0) {
+                val fromAi = aiCarbs != null && aiCarbs.toString() == carbsText
+                mealTracker.register(
+                    f, tracked, lastCarbs.toDouble(), if (fromAi) aiFat else null, if (fromAi) aiProtein else null,
+                    carbTime, wizard?.calculatedTotalInsulin ?: 0.0, lastHistoryAdjust
+                )
+            }
+        }
         // same confirmation, constraints and delivery as the classic wizard
         context?.let { wizard?.confirmAndExecute(it) }
         dismiss()
@@ -461,6 +521,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         .background(AiPurple.copy(alpha = 0.07f))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
+            MealSection()
             // correction (U or %) and carb time + alarm
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Stepper(
@@ -577,6 +638,252 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     if (view.canDeliver)
                         ActionButton(rh.gs(R.string.dashboard_wizard_ok), DashColors.Accent, DashColors.Bg, Modifier.weight(1.4f)) { deliver() }
                 }
+            }
+        }
+    }
+
+    // ---------- meal tracking ----------
+
+    private fun selectFood(f: MealFood?, isNew: Boolean = false) {
+        food = f
+        foodIsNew = isNew
+        tracked = f != null && !isNew && f.tracked
+        foodHistory = if (f != null && !isNew) mealTracker.mealsOf(f.id) else emptyList()
+        if (historyApplied != null) undoHistory(recalc = false)
+        foodSheet = false
+        foodQuery = ""
+        calculate()
+    }
+
+    private fun applyHistory(units: Double) {
+        // the history amount goes into the correction field in U (only for this calculation)
+        usePercentage = false
+        correctionText = String.format(Locale.US, "%.2f", units)
+        historyApplied = units
+        calculate()
+    }
+
+    private fun undoHistory(recalc: Boolean = true) {
+        if (!usePercentage && historyApplied?.let { abs(SafeParse.stringToDouble(correctionText) - it) < 0.001 } == true) correctionText = "0"
+        historyApplied = null
+        if (recalc) calculate()
+    }
+
+    @Composable
+    private fun MealSection() {
+        val f = food
+        FieldBox(
+            Modifier.padding(top = 8.dp), border = if (f != null) DashColors.Accent.copy(alpha = 0.45f) else DashColors.Line,
+            onClick = { foodSheet = !foodSheet; foodQuery = if (foodIsNew) f?.name.orEmpty() else "" }
+        ) {
+            Column(Modifier.weight(1f)) {
+                FieldLabel(rh.gs(R.string.meal_food))
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                    Text(
+                        if (f == null) rh.gs(R.string.meal_food_none) else "🍽 " + f.name, color = if (f == null) DashColors.Dim else DashColors.Text,
+                        fontSize = 14.sp, fontWeight = if (f != null) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    if (f != null && foodIsNew)
+                        Text(
+                            rh.gs(R.string.meal_new_food), color = AiPurple, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .padding(start = 6.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(AiPurple.copy(alpha = 0.15f))
+                                .padding(horizontal = 5.dp, vertical = 1.dp)
+                        )
+                    if (f != null) Text("  " + MealUi.typeLabel(rh, f.type), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1)
+                }
+            }
+            if (f != null) SmallAction("✕", DashColors.Sub) { selectFood(null) }
+        }
+        if (f == null && !foodSheet)
+            Row(
+                Modifier
+                    .padding(top = 6.dp)
+                    .horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                recentFoods.take(6).forEach { MealChip(it.name, false) { selectFood(it) } }
+                MealChip("🔍 " + rh.gs(R.string.meal_search_new), false) { foodSheet = true }
+            }
+        // a new AI name close to a food that already has records: offer to link it
+        val similar = if (f != null && foodIsNew) recentFoods.firstOrNull { MealUi.similar(it.name, f.name) } else null
+        if (similar != null)
+            Text(
+                rh.gs(R.string.meal_similar, similar.name, mealTracker.mealsOf(similar.id).size), color = DashColors.Accent, fontSize = 11.5.sp,
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .clickable { selectFood(similar) }
+            )
+        if (foodSheet) FoodSheet(f)
+        if (f != null) {
+            Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("📈 " + rh.gs(R.string.meal_track), color = DashColors.Text, fontSize = 12.5.sp)
+                Text(
+                    "  " + rh.gs(R.string.meal_track_hours, f.type.hours), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+                MealSwitch(tracked) { tracked = !tracked }
+            }
+            if (!foodIsNew && foodHistory.isNotEmpty()) HistoryCard(f)
+        }
+    }
+
+    @Composable
+    private fun FoodSheet(f: MealFood?) {
+        Column(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(14.dp))
+                .background(Color(0xFF1A1F27))
+                .border(1.dp, PopupLine, RoundedCornerShape(14.dp))
+                .padding(10.dp)
+        ) {
+            FieldLabel(rh.gs(if (f != null && foodIsNew) R.string.meal_name else R.string.meal_search_hint))
+            BasicTextField(
+                foodQuery, { foodQuery = it }, singleLine = true,
+                textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(DashColors.Card)
+                    .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 10.dp, vertical = 8.dp)
+            )
+            val q = foodQuery.trim()
+            recentFoods.filter { q.isEmpty() || MealUi.similar(it.name, q) }.take(6).forEach { item ->
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { selectFood(item) }
+                        .padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(item.name, color = DashColors.Text, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(MealUi.typeLabel(rh, item.type) + if (item.tracked) "  📈" else "", color = DashColors.Dim, fontSize = 11.sp)
+                }
+            }
+            if (q.isNotEmpty() && recentFoods.none { MealUi.norm(it.name) == MealUi.norm(q) }) {
+                val rename = f != null && foodIsNew
+                Text(
+                    rh.gs(if (rename) R.string.meal_rename else R.string.meal_add_new, q), color = DashColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (rename && f != null) {
+                                food = f.copy(name = q)
+                                foodSheet = false
+                            } else selectFood(MealFood(MealStore.newId(), q, MealMath.typeFor(aiFat, aiProtein), false, dateUtil.now()), isNew = true)
+                        }
+                        .padding(vertical = 8.dp)
+                )
+            }
+            if (f != null) {
+                FieldLabel(rh.gs(R.string.meal_type_title))
+                Row(
+                    Modifier
+                        .padding(top = 4.dp)
+                        .horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    FoodType.entries.forEach { t -> MealChip(MealUi.typeLabel(rh, t), f.type == t) { food = f.copy(type = t) } }
+                }
+                if (aiFat != null || aiProtein != null)
+                    Text(
+                        rh.gs(R.string.meal_type_ai, aiFat?.let { f1(it) } ?: "?", aiProtein?.let { f1(it) } ?: "?", MealTracker.typeText(rh, MealMath.typeFor(aiFat, aiProtein))),
+                        color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp)
+                    )
+            }
+            Text(
+                rh.gs(R.string.meal_done), color = DashColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { foodSheet = false }
+                    .padding(top = 8.dp)
+            )
+        }
+    }
+
+    private fun f1(v: Double) = String.format(Locale.getDefault(), "%.1f", v)
+
+    private fun signedU(v: Double) = (if (v > 0) "+" else "") + String.format(Locale.getDefault(), "%.2f", v) + " U"
+
+    @Composable
+    private fun HistoryCard(f: MealFood) {
+        val amber = DashColors.High
+        val meals = foodHistory
+        val day = SimpleDateFormat("M/d", Locale.getDefault())
+        Column(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(12.dp))
+                .background(DashColors.Card2)
+                .border(1.dp, amber.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
+                .padding(10.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    rh.gs(R.string.meal_history_title, f.name), color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    rh.gs(R.string.meal_history_counts, meals.count { it.usable }, meals.count { it.eval != null && !it.usable }, meals.count { it.eval == null }),
+                    color = DashColors.Sub, fontSize = 10.5.sp
+                )
+            }
+            meals.take(3).forEach { m ->
+                val e = m.eval
+                Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+                    GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null)
+                    Text(
+                        "  " + day.format(Date(m.time)) + "  " + rh.gs(
+                            R.string.meal_history_line, m.carbs.toInt(),
+                            e?.takeIf { it.neededInsulin > 0 }?.let { MealTracker.signed(it.ratioPct) + "%" } ?: "—"
+                        ),
+                        color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.weight(1f), maxLines = 1
+                    )
+                    if (e != null && e.maxBg > 0) Text(rh.gs(R.string.meal_max, e.maxBg), color = DashColors.Dim, fontSize = 11.sp)
+                }
+                val memo = (m.memoTags + listOfNotNull(m.memo.takeIf { it.isNotBlank() })).joinToString(" · ")
+                if (memo.isNotEmpty()) Text("📝 $memo", color = AiLilac, fontSize = 11.sp, maxLines = 2, modifier = Modifier.padding(start = 4.dp, top = 1.dp))
+            }
+            Box(
+                Modifier
+                    .padding(vertical = 8.dp)
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(DashColors.Line)
+            )
+            val s = suggestion
+            if (s == null) Text(rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.usable }), color = DashColors.Sub, fontSize = 11.5.sp)
+            else {
+                Text(rh.gs(R.string.meal_suggest_gpu, f1(s.gramsPerUnit), f1(currentIc)), color = DashColors.Text, fontSize = 12.sp)
+                Text(
+                    rh.gs(
+                        R.string.meal_suggest_calc, lastCarbs, f1(s.gramsPerUnit), String.format(Locale.getDefault(), "%.2f", s.historyInsulin), f1(currentIc),
+                        String.format(Locale.getDefault(), "%.2f", s.currentInsulin), signedU(s.units)
+                    ),
+                    color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+                )
+                if (s.capped) Text(rh.gs(R.string.meal_suggest_capped, (MealMath.CAP * 100).toInt()), color = DashColors.Sub, fontSize = 11.sp)
+                if (s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_hypo), color = DashColors.Low, fontSize = 11.sp)
+                if (abs(s.units) >= 0.001) {
+                    val applied = historyApplied?.let { !usePercentage && abs(SafeParse.stringToDouble(correctionText) - it) < 0.001 } == true
+                    Text(
+                        if (applied) rh.gs(R.string.meal_applied, signedU(historyApplied ?: 0.0)) else rh.gs(R.string.meal_apply, signedU(s.units)),
+                        color = amber, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(amber.copy(alpha = if (applied) 0.06f else 0.15f))
+                            .border(1.dp, amber.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                            .clickable { if (applied) undoHistory() else applyHistory(s.units) }
+                            .padding(vertical = 9.dp)
+                    )
+                } else if (!s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_none), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }

@@ -116,7 +116,8 @@ class ImportExportPrefsImpl @Inject constructor(
     private val configBuilder: ConfigBuilder,
     private val cloudStorageManager: CloudStorageManager,
     private val exportOptionsDialog: ExportOptionsDialog,
-    private val importSourceDialog: ImportSourceDialog
+    private val importSourceDialog: ImportSourceDialog,
+    private val mealBackup: app.aaps.core.interfaces.meal.MealBackup
 ) : ImportExportPrefs {
 
     companion object {
@@ -332,6 +333,8 @@ class ImportExportPrefsImpl @Inject constructor(
                 else
                     aapsLogger.warn(LTag.CORE, "Not exportable key: $key $value")
             }
+            // Personal-fork: meal tracking records ride along as one extra entry (other apps just keep it as an unused setting)
+            mealBackup.exportBackup()?.let { entries[app.aaps.core.interfaces.meal.MealBackup.PREF_KEY] = it }
             val prefs = Prefs(entries, prepareMetadata(context))
             encryptedPrefsFormat.savePreferences(newFile, prefs, password)
             resultOk = true // Assuming export was executed successfully (or it would have thrown an exception)
@@ -876,6 +879,11 @@ class ImportExportPrefsImpl @Inject constructor(
                             activePlugin.beforeImport()
                             sp.clear()
                             for ((key, value) in prefs.values) {
+                                // Personal-fork: meal tracking records go back to their own file, not into the settings
+                                if (key == app.aaps.core.interfaces.meal.MealBackup.PREF_KEY) {
+                                    mealBackup.importBackup(value)
+                                    continue
+                                }
                                 if (value == "true" || value == "false") {
                                     sp.putBoolean(key, value.toBoolean())
                                 } else {

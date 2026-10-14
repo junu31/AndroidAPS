@@ -249,6 +249,11 @@ class MainActivity : DaggerAppCompatActivityWithResult() {
                                     return true
                                 }
                     */
+                    R.id.nav_meal_records       -> {
+                        app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog().show(supportFragmentManager, "MealRecords")
+                        true
+                    }
+
                     R.id.nav_defaultprofile     -> {
                         startActivity(Intent(this@MainActivity, ProfileHelperActivity::class.java).setAction("info.nightscout.androidaps.MainActivity"))
                         true

@@ -105,6 +105,12 @@
     <string name="meal_reason_hypo_carbs">Hypo treatment carbs (%1$d g) are taken out.</string>
     <string name="meal_reason_cob_before">Carbs from earlier food still on board at the start (%1$d g) are taken out.</string>
     <string name="meal_reason_cob_after">Carbs not absorbed at the end (%1$d g) are added.</string>
+    <string name="meal_rel_high">reliability high</string>
+    <string name="meal_rel_medium">reliability medium</string>
+    <string name="meal_rel_low">reliability low</string>
+    <string name="meal_rel_unknown">reliability unknown</string>
+    <string name="meal_rel_short">%1$s · counts less in the suggestion</string>
+    <string name="meal_reason_reliability">Start: %1$s (deviation in the 30 min before %2$s mg/dL per 5 min).</string>
     <string name="meal_reason_low">Went below 70 (lowest %1$d).</string>
     <string name="meal_reason_no_low">No low.</string>
     <string name="meal_reason_timing">Low early, high after 2 h — look at bolus timing or splitting rather than the amount.</string>

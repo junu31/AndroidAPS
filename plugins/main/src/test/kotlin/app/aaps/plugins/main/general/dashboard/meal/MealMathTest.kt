@@ -75,6 +75,25 @@ class MealMathTest {
     }
 
     @Test
+    fun `reliability follows the deviations before the meal`() {
+        assertThat(MealMath.reliabilityFor(listOf(1.0, -2.0, 0.5))).isEqualTo(Reliability.HIGH)
+        assertThat(MealMath.reliabilityFor(listOf(4.0, 5.0, -3.0))).isEqualTo(Reliability.MEDIUM)
+        assertThat(MealMath.reliabilityFor(listOf(8.0, 7.0, 6.5))).isEqualTo(Reliability.LOW)
+        assertThat(MealMath.reliabilityFor(emptyList())).isEqualTo(Reliability.UNKNOWN)
+        assertThat(MealMath.evaluate(input(flat(120), 7.0).copy(startDeviations = listOf(8.0, 7.0))).reliability).isEqualTo(Reliability.LOW)
+    }
+
+    @Test
+    fun `low reliability meals weigh less and do not count for the minimum`() {
+        fun rel(needed: Double, r: Reliability) = meal(70.0, needed).let { it.copy(eval = it.eval!!.copy(reliability = r)) }
+        // one calm meal and one unsettled meal: not enough
+        assertThat(MealMath.suggest(listOf(rel(8.5, Reliability.HIGH), rel(14.0, Reliability.LOW)), 70.0, 10.0, 0.01)).isNull()
+        // the unsettled 14 U meal (third, weight 0.5 x 0.3) pulls the average up only a little
+        val s = MealMath.suggest(listOf(rel(8.5, Reliability.HIGH), rel(8.5, Reliability.HIGH), rel(14.0, Reliability.LOW)), 70.0, 10.0, 0.01)!!
+        assertThat(s.historyInsulin).isWithin(0.01).of((8.5 + 0.7 * 8.5 + 0.5 * 0.3 * 14.0) / (1 + 0.7 + 0.15))
+    }
+
+    @Test
     fun `sensor gap excludes`() {
         val gaps = flat(120).mapIndexed { i, v -> if (i % 2 == 0) null else v }
         assertThat(MealMath.evaluate(input(gaps, 7.0)).exclude).isEqualTo(ExcludeReason.SENSOR_GAP)

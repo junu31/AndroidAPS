@@ -10,6 +10,9 @@ enum class FoodType(val hours: Int) { FAST(3), MIXED(4), FAT(5), FAT_PROTEIN(6) 
 
 enum class MealGrade { OK, UNDER, OVER, TIMING, EXCLUDED }
 
+/** How far the start can be trusted, from the deviations (BG change not explained by insulin) before the meal. */
+enum class Reliability(val weight: Double) { HIGH(1.0), MEDIUM(0.6), LOW(0.3), UNKNOWN(0.6) }
+
 /** Why a meal could not be used (shown to the user, never used for a suggestion). */
 enum class ExcludeReason { NONE, OTHER_MEAL, SENSOR_GAP, ACTIVITY, PROFILE_SWITCH, NO_INSULIN, USER }
 
@@ -57,7 +60,10 @@ data class MealEval(
     /** carbs / IC of the profile at the meal */
     val expectedInsulin: Double = 0.0,
     val ratioPct: Int = 0,
-    val risingAtEnd: Boolean = false
+    val risingAtEnd: Boolean = false,
+    val reliability: Reliability = Reliability.UNKNOWN,
+    /** mean deviation per 5 min in the 30 min before the meal (mg/dL, signed), null = no autosens data */
+    val startDeviation: Double? = null
 )
 
 data class MealRecord(
@@ -98,6 +104,9 @@ data class MealRecord(
 
     /** evaluated and usable for a suggestion */
     val usable: Boolean get() = !legacy && !excludedByUser && eval != null && eval.grade != MealGrade.EXCLUDED && eval.neededInsulin > 0 && carbs > 0
+
+    /** usable and counted for the minimum number of meals (a low reliability start only adds weight) */
+    val countable: Boolean get() = usable && eval?.reliability != Reliability.LOW
 }
 
 data class MealData(

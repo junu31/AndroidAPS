@@ -178,11 +178,15 @@ class MealTracker @Inject constructor(
         // COB from the autosens data: before the meal (earlier food) and at the end (not absorbed yet)
         val cobBefore = iobCobCalculator.ads.getAutosensDataAtTime(start - T.mins(5).msecs())?.cob ?: 0.0
         val cobAfter = iobCobCalculator.ads.getAutosensDataAtTime(end)?.cob ?: 0.0
+        // deviations in the 30 min before the meal: how calm the start was
+        val startDeviations = (1..6).mapNotNull { k ->
+            iobCobCalculator.ads.getAutosensDataAtTime(start - k * step)?.takeIf { it.validDeviation }?.deviation
+        }
         val eval = MealMath.evaluate(
             MealMath.EvalInput(
                 carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
-                manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter,
+                manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
                 activityTarget = activityTarget, profileSwitch = profileSwitch
             )
         )
@@ -248,6 +252,15 @@ class MealTracker @Inject constructor(
                 ExcludeReason.PROFILE_SWITCH -> R.string.meal_ex_profile
                 ExcludeReason.NO_INSULIN     -> R.string.meal_ex_no_insulin
                 ExcludeReason.USER, ExcludeReason.NONE -> R.string.meal_ex_user
+            }
+        )
+
+        fun reliabilityText(rh: ResourceHelper, r: Reliability): String = rh.gs(
+            when (r) {
+                Reliability.HIGH    -> R.string.meal_rel_high
+                Reliability.MEDIUM  -> R.string.meal_rel_medium
+                Reliability.LOW     -> R.string.meal_rel_low
+                Reliability.UNKNOWN -> R.string.meal_rel_unknown
             }
         )
 

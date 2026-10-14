@@ -559,6 +559,8 @@ class MealRecordsDialog : DaggerDialogFragment() {
             rh.gs(R.string.meal_reason_main, e.tirPct, e.maxBg, f2(e.smb + e.basalExtra + e.manualExtra), MealTracker.signed(e.endBg - e.startBg), m.carbs.toInt(), f2(e.neededInsulin), f1(m.carbs / e.neededInsulin))
         )
         if (e.hypoCarbs > 0) parts += rh.gs(R.string.meal_reason_hypo_carbs, e.hypoCarbs.toInt())
+        parts += e.startDeviation?.let { rh.gs(R.string.meal_reason_reliability, MealTracker.reliabilityText(rh, e.reliability), (if (it > 0) "+" else "") + f1(it)) }
+            ?: MealTracker.reliabilityText(rh, e.reliability) + "."
         if (e.cobBefore >= 1) parts += rh.gs(R.string.meal_reason_cob_before, e.cobBefore.toInt())
         if (e.cobAfter >= 1) parts += rh.gs(R.string.meal_reason_cob_after, e.cobAfter.toInt())
         parts += if (e.minBg in 1 until MealMath.LOW) rh.gs(R.string.meal_reason_low, e.minBg) else rh.gs(R.string.meal_reason_no_low)

@@ -851,6 +851,13 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     )
                     if (e != null && e.maxBg > 0) Text(rh.gs(R.string.meal_max, e.maxBg), color = DashColors.Dim, fontSize = 11.sp)
                 }
+                // a less trusted start counts less in the suggestion
+                if (m.usable && e!!.reliability != app.aaps.plugins.main.general.dashboard.meal.Reliability.HIGH)
+                    Text(
+                        rh.gs(R.string.meal_rel_short, MealTracker.reliabilityText(rh, e.reliability)), fontSize = 10.5.sp,
+                        color = if (e.reliability == app.aaps.plugins.main.general.dashboard.meal.Reliability.LOW) DashColors.Low else DashColors.Sub,
+                        modifier = Modifier.padding(start = 4.dp, top = 1.dp)
+                    )
                 val memo = (m.memoTags + listOfNotNull(m.memo.takeIf { it.isNotBlank() })).joinToString(" · ")
                 if (memo.isNotEmpty()) Text("📝 $memo", color = AiLilac, fontSize = 11.sp, maxLines = 2, modifier = Modifier.padding(start = 4.dp, top = 1.dp))
             }
@@ -864,8 +871,8 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             val s = suggestion
             if (s == null)
                 Text(
-                    if (meals.count { it.usable } >= MealMath.MIN_RECORDS) rh.gs(R.string.meal_suggest_carbs)
-                    else rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.usable }),
+                    if (meals.count { it.countable } >= MealMath.MIN_RECORDS) rh.gs(R.string.meal_suggest_carbs)
+                    else rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.countable }),
                     color = DashColors.Sub, fontSize = 11.5.sp
                 )
             else {

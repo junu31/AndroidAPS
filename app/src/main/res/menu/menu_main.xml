@@ -39,6 +39,12 @@
             app:showAsAction="never"
             android:title="@string/nav_survey" />
     -->
+    <!-- Personal-fork: meal tracking records -->
+    <item
+        android:id="@+id/nav_meal_records"
+        android:orderInCategory="1"
+        app:showAsAction="never"
+        android:title="@string/meal_records" />
     <item
         android:id="@+id/nav_defaultprofile"
         android:orderInCategory="1"

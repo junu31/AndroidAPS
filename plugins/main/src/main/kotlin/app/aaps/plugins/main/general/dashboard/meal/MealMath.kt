@@ -38,6 +38,20 @@ object MealMath {
         }
     }
 
+    /** mean |deviation| per 5 min before the meal: below [DEV_HIGH] high, below [DEV_MEDIUM] medium, else low */
+    const val DEV_HIGH = 3.0
+    const val DEV_MEDIUM = 6.0
+
+    fun reliabilityFor(deviations: List<Double>): Reliability {
+        if (deviations.isEmpty()) return Reliability.UNKNOWN
+        val mean = deviations.sumOf { abs(it) } / deviations.size
+        return when {
+            mean < DEV_HIGH   -> Reliability.HIGH
+            mean < DEV_MEDIUM -> Reliability.MEDIUM
+            else              -> Reliability.LOW
+        }
+    }
+
     /** Carbs entered during the window other than the meal itself. bgNear = lowest BG within ±15 min. */
     data class OtherCarbs(val min: Int, val grams: Double, val bgNear: Int?)
 
@@ -57,13 +71,18 @@ object MealMath {
         /** COB right before the meal (earlier food, not this meal) and at the end of the window (not absorbed yet) */
         val cobBefore: Double = 0.0,
         val cobAfter: Double = 0.0,
+        /** deviations (mg/dL per 5 min) in the 30 min before the meal */
+        val startDeviations: List<Double> = emptyList(),
         val activityTarget: Boolean = false,
         val profileSwitch: Boolean = false
     )
 
     fun evaluate(i: EvalInput): MealEval {
         val known = i.bg.filterNotNull()
-        val base = MealEval(mealBolus = i.mealBolus, smb = i.smb, basalExtra = i.basalExtra, manualExtra = i.manualExtra)
+        val base = MealEval(
+            mealBolus = i.mealBolus, smb = i.smb, basalExtra = i.basalExtra, manualExtra = i.manualExtra,
+            reliability = reliabilityFor(i.startDeviations), startDeviation = i.startDeviations.takeIf { it.isNotEmpty() }?.let { r2(it.average()) }
+        )
         fun excluded(r: ExcludeReason) = base.copy(grade = MealGrade.EXCLUDED, exclude = r)
         val start = i.bg.take(3).firstOrNull { it != null }
         if (i.bg.isEmpty() || known.size < i.bg.size * 0.7 || start == null) return excluded(ExcludeReason.SENSOR_GAP)
@@ -132,8 +151,9 @@ object MealMath {
     /** [meals] of one food, newest first. Null when there are not enough evaluated meals. */
     fun suggest(meals: List<MealRecord>, carbs: Double, currentIc: Double, step: Double): Suggestion? {
         val usable = meals.filter { it.usable }.take(WEIGHTS.size)
-        if (usable.size < MIN_RECORDS || carbs <= 0 || currentIc <= 0) return null
-        val w = WEIGHTS.take(usable.size)
+        if (usable.count { it.countable } < MIN_RECORDS || carbs <= 0 || currentIc <= 0) return null
+        // newer meals and calmer starts weigh more
+        val w = usable.indices.map { WEIGHTS[it] * usable[it].eval!!.reliability.weight }
         val perGram = usable.indices.sumOf { w[it] * usable[it].eval!!.neededInsulin / usable[it].carbs } / w.sum()
         val history = carbs * perGram
         val current = carbs / currentIc

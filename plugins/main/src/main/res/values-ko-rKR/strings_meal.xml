@@ -24,6 +24,8 @@
     <string name="meal_entry_title">입력 당시 상태</string>
     <string name="meal_entry_bg">혈당</string>
     <string name="meal_entry_delta">15분 변화</string>
+    <string name="meal_entry_carbs">입력 탄수</string>
+    <string name="meal_entry_fat_protein">지방 / 단백질 (AI)</string>
     <string name="meal_entry_bolus">식사 볼러스</string>
     <string name="meal_entry_history">기록 반영</string>
     <string name="meal_ex_user">직접 평가에서 제외했어요 (제안 계산에 쓰지 않아요)</string>

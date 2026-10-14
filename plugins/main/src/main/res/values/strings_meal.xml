@@ -28,6 +28,16 @@
     <string name="meal_entry_fat_protein">Fat / protein (AI)</string>
     <string name="meal_entry_bolus">Meal bolus</string>
     <string name="meal_entry_history">From records</string>
+    <string name="meal_ex_manual_other">A bolus during the window was for other food, so it was not evaluated</string>
+    <string name="meal_needs_answer">answer needed</string>
+    <string name="meal_notif_needs_answer">%1$s evaluated · answer needed</string>
+    <string name="meal_notif_needs_answer_text">Tell what the bolus given by hand during the meal was for</string>
+    <string name="meal_ask_title">%1$s being evaluated · extra bolus</string>
+    <string name="meal_ask_text">What was the %2$s U bolus at %1$s for?</string>
+    <string name="meal_ask_meal">Correction for %1$s</string>
+    <string name="meal_ask_other">Other food</string>
+    <string name="meal_manual_title">Boluses by hand during the meal</string>
+    <string name="meal_manual_sub">Correction for this meal counts as its insulin; other food excludes the meal</string>
     <string name="meal_ex_user">Excluded by you (not used for suggestions)</string>
 
     <string name="meal_type_fast">Fast carbs</string>

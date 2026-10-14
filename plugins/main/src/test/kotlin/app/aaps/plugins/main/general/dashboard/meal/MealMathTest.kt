@@ -99,6 +99,14 @@ class MealMathTest {
     }
 
     @Test
+    fun `bolus for other food excludes, unanswered bolus is not usable`() {
+        assertThat(MealMath.evaluate(input(flat(120), 9.0).copy(manualOther = true)).exclude).isEqualTo(ExcludeReason.MANUAL_OTHER)
+        val pending = MealMath.evaluate(input(flat(120), 9.0).copy(manualPending = true))
+        assertThat(pending.needsAnswer).isTrue()
+        assertThat(MealRecord(id = "x", carbs = 70.0, eval = pending).usable).isFalse()
+    }
+
+    @Test
     fun `sensor gap excludes`() {
         val gaps = flat(120).mapIndexed { i, v -> if (i % 2 == 0) null else v }
         assertThat(MealMath.evaluate(input(gaps, 7.0)).exclude).isEqualTo(ExcludeReason.SENSOR_GAP)

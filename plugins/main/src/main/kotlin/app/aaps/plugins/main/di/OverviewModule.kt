@@ -30,6 +30,7 @@ abstract class OverviewModule {
     @ContributesAndroidInjector abstract fun contributesDashboardFragment(): DashboardFragment
     @ContributesAndroidInjector abstract fun contributesDashboardWizardDialog(): app.aaps.plugins.main.general.dashboard.DashboardWizardDialog
     @ContributesAndroidInjector abstract fun contributesMealRecordsDialog(): app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog
+    @ContributesAndroidInjector abstract fun contributesMealAnswerReceiver(): app.aaps.plugins.main.general.dashboard.meal.MealAnswerReceiver
     @ContributesAndroidInjector abstract fun graphDataInjector(): GraphData
 
     @Module

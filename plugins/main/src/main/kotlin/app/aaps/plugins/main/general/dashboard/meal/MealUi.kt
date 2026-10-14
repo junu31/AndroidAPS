@@ -60,10 +60,14 @@ internal object MealUi {
 }
 
 @Composable
-internal fun GradeChip(rh: ResourceHelper, g: MealGrade?, pending: Boolean = false) {
-    val c = if (pending) DashColors.Sub else MealUi.gradeColor(g)
+internal fun GradeChip(rh: ResourceHelper, g: MealGrade?, pending: Boolean = false, ask: Boolean = false) {
+    val c = if (pending) DashColors.Sub else if (ask) DashColors.High else MealUi.gradeColor(g)
     Text(
-        if (pending) "⏳ " + rh.gs(R.string.meal_pending) else MealUi.gradeIcon(g) + " " + MealTracker.gradeText(rh, g ?: MealGrade.EXCLUDED),
+        when {
+            pending -> "⏳ " + rh.gs(R.string.meal_pending)
+            ask     -> "❓ " + rh.gs(R.string.meal_needs_answer)
+            else    -> MealUi.gradeIcon(g) + " " + MealTracker.gradeText(rh, g ?: MealGrade.EXCLUDED)
+        },
         color = c, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
         modifier = Modifier
             .clip(RoundedCornerShape(6.dp))

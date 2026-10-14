@@ -524,7 +524,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
             val e = r.eval
             Card(border = if (e != null && !r.seen) DashColors.Accent.copy(alpha = 0.55f) else DashColors.Line, onClick = { openMeal(r) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    GradeChip(rh, if (r.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null)
+                    GradeChip(rh, if (r.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
                     Text("  " + dayTime.format(Date(r.time)), color = DashColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
                     Text(
                         if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(r.evalAt)))
@@ -593,7 +593,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
         Header(m.foodName + " · " + dayTime.format(Date(m.time)), if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(m.evalAt))) else rh.gs(R.string.meal_evaluated_at, time.format(Date(m.evalAt))), onBack = { back() })
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null)
+                GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
                 Text(
                     MealUi.typeLabel(rh, m.type), color = DashColors.Sub, fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End,
                     modifier = Modifier.weight(1f)
@@ -624,9 +624,35 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 Text(reasonText(m, e), color = DashColors.Sub, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
+        ManualCard(m)
         EntryCard(m)
         if (e != null && e.neededInsulin > 0) ProfileCompare(m, e)
         MemoCard(m)
+    }
+
+    /** boluses by hand during the window: for this meal (correction) or for other food */
+    @Composable
+    private fun ManualCard(m: MealRecord) {
+        if (m.manualBoluses.isEmpty()) return
+        Card(border = if (m.manualBoluses.any { it.answer.isEmpty() }) DashColors.High.copy(alpha = 0.6f) else DashColors.Line) {
+            Text(rh.gs(R.string.meal_manual_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(rh.gs(R.string.meal_manual_sub), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+            m.manualBoluses.sortedBy { it.time }.forEach { b ->
+                Text(
+                    time.format(Date(b.time)) + " · " + f2(b.amount) + " U", color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+                Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    MealChip(rh.gs(R.string.meal_ask_meal, m.foodName), b.answer == ManualBolus.MEAL) { answer(m, b, ManualBolus.MEAL) }
+                    MealChip(rh.gs(R.string.meal_ask_other), b.answer == ManualBolus.OTHER, DashColors.High) { answer(m, b, ManualBolus.OTHER) }
+                }
+            }
+        }
+    }
+
+    private fun answer(m: MealRecord, b: ManualBolus, answer: String) {
+        disposable += io.reactivex.rxjava3.core.Completable.fromAction { mealTracker.answer(m.id, b.time, answer) }
+            .subscribeOn(aapsSchedulers.io).observeOn(aapsSchedulers.main).subscribe({ data = mealTracker.data() }, {})
     }
 
     /** BG, IOB, COB and the carbs entered with the meal, and what the calculator gave */

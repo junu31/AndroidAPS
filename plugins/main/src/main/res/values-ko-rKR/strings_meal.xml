@@ -28,6 +28,16 @@
     <string name="meal_entry_fat_protein">지방 / 단백질 (AI)</string>
     <string name="meal_entry_bolus">식사 볼러스</string>
     <string name="meal_entry_history">기록 반영</string>
+    <string name="meal_ex_manual_other">평가 중에 다른 음식용 주입이 있어서 평가에서 뺐어요</string>
+    <string name="meal_needs_answer">확인 필요</string>
+    <string name="meal_notif_needs_answer">%1$s 평가 완료 · 확인 필요</string>
+    <string name="meal_notif_needs_answer_text">평가 중에 손으로 넣은 주입이 무엇이었는지 알려 주세요</string>
+    <string name="meal_ask_title">%1$s 평가 중 · 추가 주입 확인</string>
+    <string name="meal_ask_text">%1$s 주입 %2$s U는 무엇이었나요?</string>
+    <string name="meal_ask_meal">%1$s 교정용</string>
+    <string name="meal_ask_other">다른 음식용</string>
+    <string name="meal_manual_title">평가 중 손으로 넣은 주입</string>
+    <string name="meal_manual_sub">이 식사 교정용이면 필요량에 포함하고, 다른 음식용이면 이 식사는 평가에서 빠져요</string>
     <string name="meal_ex_user">직접 평가에서 제외했어요 (제안 계산에 쓰지 않아요)</string>
 
     <string name="meal_type_fast">빠른 탄수</string>

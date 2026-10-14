@@ -119,6 +119,8 @@
 
         <!-- Receive ignore 5m, 15m, 30m requests for carb notifications -->
         <receiver android:name="app.aaps.plugins.aps.loop.CarbSuggestionReceiver" />
+        <!-- Personal-fork: answers to "what was this bolus?" during a meal evaluation -->
+        <receiver android:name="app.aaps.plugins.main.general.dashboard.meal.MealAnswerReceiver" android:exported="false" />
 
         <!-- Auto start -->
         <receiver

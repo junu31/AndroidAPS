@@ -841,7 +841,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             meals.take(3).forEach { m ->
                 val e = m.eval
                 Row(Modifier.padding(top = 5.dp), verticalAlignment = Alignment.CenterVertically) {
-                    GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null)
+                    GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
                     Text(
                         "  " + day.format(Date(m.time)) + "  " + rh.gs(
                             R.string.meal_history_line, m.carbs.toInt(),

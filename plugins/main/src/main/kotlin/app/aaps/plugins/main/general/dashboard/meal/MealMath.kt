@@ -75,6 +75,9 @@ object MealMath {
         val startDeviations: List<Double> = emptyList(),
         /** a meal bolus was planned but none was delivered (e.g. suspended loop, pump error) */
         val notDelivered: Boolean = false,
+        /** a bolus by hand was for other food / is not answered yet */
+        val manualOther: Boolean = false,
+        val manualPending: Boolean = false,
         val activityTarget: Boolean = false,
         val profileSwitch: Boolean = false
     )
@@ -101,6 +104,7 @@ object MealMath {
             risingAtEnd = rising(i.bg)
         )
         if (i.notDelivered) return stats.copy(exclude = ExcludeReason.NOT_DELIVERED)
+        if (i.manualOther) return stats.copy(exclude = ExcludeReason.MANUAL_OTHER)
         if (i.activityTarget) return stats.copy(exclude = ExcludeReason.ACTIVITY)
         if (i.profileSwitch) return stats.copy(exclude = ExcludeReason.PROFILE_SWITCH)
         val (hypo, other) = i.otherCarbs.partition { it.grams <= HYPO_CARBS && it.bgNear != null && it.bgNear < HYPO_BG }
@@ -125,6 +129,7 @@ object MealMath {
             else                                              -> MealGrade.OK
         }
         return stats.copy(
+            needsAnswer = i.manualPending,
             grade = grade, hypoCarbs = hypoCarbs, cobBefore = i.cobBefore, cobAfter = i.cobAfter, usedInsulin = r2(used), neededInsulin = r2(needed), expectedInsulin = r2(expected),
             ratioPct = round(ratio).toInt()
         )

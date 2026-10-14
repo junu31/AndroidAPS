@@ -114,6 +114,7 @@ class MealTracker @Inject constructor(
     @Synchronized
     fun checkDue() {
         confirmPending()
+        askManualBoluses()
         val now = dateUtil.now()
         data().meals.filter { it.confirmed && it.tracked && !it.legacy && it.eval == null && it.evalAt <= now }.forEach { meal ->
             val evaluated = try {
@@ -159,6 +160,65 @@ class MealTracker @Inject constructor(
         }
     }
 
+    /** Boluses by hand while a tracked meal is still in its window: ask right away what they were for. */
+    private fun askManualBoluses() {
+        val now = dateUtil.now()
+        data().meals.filter { it.confirmed && it.tracked && !it.legacy && it.eval == null }.forEach { meal ->
+            val end = meal.time + T.hours(meal.type.hours.toLong()).msecs()
+            val new = manualBolusesOf(meal, minOf(end, now)).filter { b -> meal.manualBoluses.none { it.time == b.time } }
+            if (new.isEmpty()) return@forEach
+            update { d -> d.copy(meals = d.meals.map { if (it.id == meal.id) it.copy(manualBoluses = it.manualBoluses + new) else it }) }
+            new.forEach { askNotification(meal, it) }
+        }
+    }
+
+    /** NORMAL boluses after the meal bolus (by hand, any dialog); the loop's SMBs are not asked */
+    private fun manualBolusesOf(meal: MealRecord, until: Long): List<ManualBolus> =
+        persistenceLayer.getBolusesFromTimeToTime(meal.deliverTime + T.mins(15).msecs() + 1, until, true)
+            .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }
+            .map { ManualBolus(it.timestamp, it.amount) }
+
+    /** The user's answer (notification button or the meal screen); re-evaluates when the evaluation is done already. */
+    fun answer(mealId: String, time: Long, answer: String) {
+        update { d -> d.copy(meals = d.meals.map { m -> if (m.id == mealId) m.copy(manualBoluses = m.manualBoluses.map { if (it.time == time) it.copy(answer = answer) else it }) else m }) }
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(askId(mealId, time))
+        val meal = data().meals.firstOrNull { it.id == mealId } ?: return
+        if (meal.eval != null)
+            try {
+                evaluate(meal)?.let { e -> update { d -> d.copy(meals = d.meals.map { if (it.id == mealId) e.copy(seen = true) else it }) } }
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Meal tracking: re-evaluation failed", e)
+            }
+    }
+
+    private fun askId(mealId: String, time: Long) = NOTIFICATION_BASE + 0x10000 + ((mealId.hashCode() xor time.hashCode()) and 0xFFFF)
+
+    private fun askNotification(meal: MealRecord, b: ManualBolus) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, rh.gs(R.string.meal_channel), NotificationManager.IMPORTANCE_DEFAULT))
+        fun action(answer: String, code: Int, label: String): NotificationCompat.Action {
+            val intent = Intent(context, MealAnswerReceiver::class.java)
+                .putExtra(MealAnswerReceiver.EXTRA_MEAL, meal.id).putExtra(MealAnswerReceiver.EXTRA_TIME, b.time).putExtra(MealAnswerReceiver.EXTRA_ANSWER, answer)
+            val pi = PendingIntent.getBroadcast(context, askId(meal.id, b.time) * 2 + code, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            return NotificationCompat.Action(app.aaps.core.ui.R.drawable.notif_icon, label, pi)
+        }
+        val text = rh.gs(R.string.meal_ask_text, dateUtil.timeString(b.time), String.format(java.util.Locale.getDefault(), "%.2f", b.amount))
+        val n = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(app.aaps.core.ui.R.drawable.notif_icon)
+            .setContentTitle(rh.gs(R.string.meal_ask_title, meal.foodName))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .addAction(action(ManualBolus.MEAL, 0, rh.gs(R.string.meal_ask_meal, meal.foodName)))
+            .addAction(action(ManualBolus.OTHER, 1, rh.gs(R.string.meal_ask_other)))
+            .setAutoCancel(true)
+            .build()
+        try {
+            nm.notify(askId(meal.id, b.time), n)
+        } catch (e: SecurityException) {
+            aapsLogger.error(LTag.CORE, "Meal tracking: notification not allowed", e)
+        }
+    }
+
     /** Re-run the evaluation (e.g. after the user changed the exclusion). Returns the new record. */
     fun evaluate(meal: MealRecord): MealRecord? {
         val start = meal.time
@@ -194,35 +254,46 @@ class MealTracker @Inject constructor(
             .any { it.isValid && it.reason == TT.Reason.ACTIVITY && it.timestamp < end && it.timestamp + it.duration > start }
         val profileSwitch = persistenceLayer.getEffectiveProfileSwitchesFromTimeToTime(start + 1, end, true).isNotEmpty()
         // COB from the autosens data: before the meal (earlier food) and at the end (not absorbed yet)
-        val cobBefore = iobCobCalculator.ads.getAutosensDataAtTime(start - T.mins(5).msecs())?.cob ?: 0.0
-        val cobAfter = iobCobCalculator.ads.getAutosensDataAtTime(end)?.cob ?: 0.0
+        // (a re-evaluation days later may find no autosens data any more: keep the earlier values then)
+        val cobBefore = iobCobCalculator.ads.getAutosensDataAtTime(start - T.mins(5).msecs())?.cob ?: meal.eval?.cobBefore ?: 0.0
+        val cobAfter = iobCobCalculator.ads.getAutosensDataAtTime(end)?.cob ?: meal.eval?.cobAfter ?: 0.0
         // deviations in the 30 min before the meal: how calm the start was
         val startDeviations = (1..6).mapNotNull { k ->
             iobCobCalculator.ads.getAutosensDataAtTime(start - k * step)?.takeIf { it.validDeviation }?.deviation
         }
-        val eval = MealMath.evaluate(
+        // boluses by hand: answers given so far are kept, new ones are added unanswered
+        val asked = manualBolusesOf(meal, end).map { b -> meal.manualBoluses.firstOrNull { it.time == b.time } ?: b }
+        val evaluated = MealMath.evaluate(
             MealMath.EvalInput(
                 carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
                 manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
-                notDelivered = mealBoluses.isEmpty(), activityTarget = activityTarget, profileSwitch = profileSwitch
+                notDelivered = mealBoluses.isEmpty(), manualOther = asked.any { it.answer == ManualBolus.OTHER },
+                manualPending = asked.any { it.answer.isEmpty() }, activityTarget = activityTarget, profileSwitch = profileSwitch
             )
         )
+        val eval = if (startDeviations.isEmpty() && meal.eval != null) evaluated.copy(reliability = meal.eval.reliability, startDeviation = meal.eval.startDeviation) else evaluated
         val events = mealBoluses.map { MealEvent(minOf(it.timestamp), MealEvent.MEAL_BOLUS, it.amount) } +
             smbs.map { MealEvent(minOf(it.timestamp), MealEvent.SMB, it.amount) } +
             manual.map { MealEvent(minOf(it.timestamp), MealEvent.BOLUS, it.amount) } +
             other.map { MealEvent(it.min, MealEvent.CARBS, it.grams) }
-        return meal.copy(eval = eval, curve = bg.map { it ?: 0 }, events = events, seen = false)
+        return meal.copy(eval = eval, curve = bg.map { it ?: 0 }, events = events, seen = false, manualBoluses = asked)
     }
 
     private fun notify(meal: MealRecord) {
         val e = meal.eval ?: return
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, rh.gs(R.string.meal_channel), NotificationManager.IMPORTANCE_DEFAULT))
-        val title = if (e.grade == MealGrade.EXCLUDED) rh.gs(R.string.meal_notif_excluded, meal.foodName)
-        else rh.gs(R.string.meal_notif_done, meal.foodName, gradeText(rh, e.grade))
-        val text = if (e.grade == MealGrade.EXCLUDED) excludeText(rh, e.exclude)
-        else rh.gs(R.string.meal_notif_text, e.tirPct, e.maxBg, e.smb + e.basalExtra + e.manualExtra, e.neededInsulin, signed(e.ratioPct))
+        val title = when {
+            e.grade == MealGrade.EXCLUDED -> rh.gs(R.string.meal_notif_excluded, meal.foodName)
+            e.needsAnswer                 -> rh.gs(R.string.meal_notif_needs_answer, meal.foodName)
+            else                          -> rh.gs(R.string.meal_notif_done, meal.foodName, gradeText(rh, e.grade))
+        }
+        val text = when {
+            e.grade == MealGrade.EXCLUDED -> excludeText(rh, e.exclude)
+            e.needsAnswer                 -> rh.gs(R.string.meal_notif_needs_answer_text)
+            else                          -> rh.gs(R.string.meal_notif_text, e.tirPct, e.maxBg, e.smb + e.basalExtra + e.manualExtra, e.neededInsulin, signed(e.ratioPct))
+        }
         val open = PendingIntent.getActivity(
             context, 0, Intent(context, uiInteraction.mainActivity).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
@@ -270,6 +341,7 @@ class MealTracker @Inject constructor(
                 ExcludeReason.PROFILE_SWITCH -> R.string.meal_ex_profile
                 ExcludeReason.NO_INSULIN     -> R.string.meal_ex_no_insulin
                 ExcludeReason.NOT_DELIVERED  -> R.string.meal_ex_not_delivered
+                ExcludeReason.MANUAL_OTHER   -> R.string.meal_ex_manual_other
                 ExcludeReason.USER, ExcludeReason.NONE -> R.string.meal_ex_user
             }
         )

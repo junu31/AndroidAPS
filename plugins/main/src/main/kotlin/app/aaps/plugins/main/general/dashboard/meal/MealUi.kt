@@ -56,6 +56,12 @@ internal object MealUi {
         return x.isNotEmpty() && y.isNotEmpty() && (x == y || (x.length >= 2 && y.contains(x)) || (y.length >= 2 && x.contains(y)))
     }
 
+    /** search box: the name contains what was typed (from one letter on) */
+    fun matches(name: String, query: String): Boolean {
+        val q = norm(query)
+        return q.isEmpty() || norm(name).contains(q)
+    }
+
     fun norm(s: String) = s.lowercase().filter { it.isLetterOrDigit() }
 }
 

@@ -264,7 +264,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
         // tracked foods; an untracked food is listed only while it still has records
         val foods = data.foods
             .filter { f -> f.tracked || meals(f.id).isNotEmpty() }
-            .filter { query.isBlank() || MealUi.similar(it.name, query) }
+            .filter { query.isBlank() || MealUi.matches(it.name, query) }
             .sortedByDescending { f -> meals(f.id).firstOrNull()?.time ?: f.created }
             .filter { f ->
                 when (filter) {

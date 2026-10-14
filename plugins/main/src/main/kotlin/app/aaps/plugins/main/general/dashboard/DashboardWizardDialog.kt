@@ -759,7 +759,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
             val q = foodQuery.trim()
-            recentFoods.filter { q.isEmpty() || MealUi.similar(it.name, q) }.take(6).forEach { item ->
+            recentFoods.filter { q.isEmpty() || MealUi.matches(it.name, q) }.take(6).forEach { item ->
                 Row(
                     Modifier
                         .fillMaxWidth()

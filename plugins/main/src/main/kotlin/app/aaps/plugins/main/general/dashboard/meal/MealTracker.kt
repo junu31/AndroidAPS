@@ -175,11 +175,15 @@ class MealTracker @Inject constructor(
         val activityTarget = persistenceLayer.getTemporaryTargetDataFromTime(start - T.hours(2).msecs(), true).blockingGet()
             .any { it.isValid && it.reason == TT.Reason.ACTIVITY && it.timestamp < end && it.timestamp + it.duration > start }
         val profileSwitch = persistenceLayer.getEffectiveProfileSwitchesFromTimeToTime(start + 1, end, true).isNotEmpty()
+        // COB from the autosens data: before the meal (earlier food) and at the end (not absorbed yet)
+        val cobBefore = iobCobCalculator.ads.getAutosensDataAtTime(start - T.mins(5).msecs())?.cob ?: 0.0
+        val cobAfter = iobCobCalculator.ads.getAutosensDataAtTime(end)?.cob ?: 0.0
         val eval = MealMath.evaluate(
             MealMath.EvalInput(
                 carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
-                manualExtra = manual.sumOf { it.amount }, otherCarbs = other, activityTarget = activityTarget, profileSwitch = profileSwitch
+                manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter,
+                activityTarget = activityTarget, profileSwitch = profileSwitch
             )
         )
         val events = mealBoluses.map { MealEvent(minOf(it.timestamp), MealEvent.MEAL_BOLUS, it.amount) } +

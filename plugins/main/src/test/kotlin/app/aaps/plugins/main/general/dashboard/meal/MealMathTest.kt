@@ -65,6 +65,16 @@ class MealMathTest {
     }
 
     @Test
+    fun `earlier carbs are taken out, carbs left at the end are added`() {
+        // 9.5 U acted (incl. IOB from before), BG flat; 10 g of earlier food was still on board (IC 10 -> 1 U)
+        val before = MealMath.evaluate(input(flat(120), 9.5).copy(cobBefore = 10.0))
+        assertThat(before.neededInsulin).isWithin(0.01).of(8.5)
+        // 5 g of this meal not absorbed yet when the window ended -> 0.5 U more
+        val after = MealMath.evaluate(input(flat(120), 8.5).copy(cobAfter = 5.0))
+        assertThat(after.neededInsulin).isWithin(0.01).of(9.0)
+    }
+
+    @Test
     fun `sensor gap excludes`() {
         val gaps = flat(120).mapIndexed { i, v -> if (i % 2 == 0) null else v }
         assertThat(MealMath.evaluate(input(gaps, 7.0)).exclude).isEqualTo(ExcludeReason.SENSOR_GAP)

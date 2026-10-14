@@ -54,6 +54,9 @@ object MealMath {
         val basalExtra: Double,
         val manualExtra: Double,
         val otherCarbs: List<OtherCarbs> = emptyList(),
+        /** COB right before the meal (earlier food, not this meal) and at the end of the window (not absorbed yet) */
+        val cobBefore: Double = 0.0,
+        val cobAfter: Double = 0.0,
         val activityTarget: Boolean = false,
         val profileSwitch: Boolean = false
     )
@@ -83,7 +86,9 @@ object MealMath {
         val hypoCarbs = hypo.sumOf { it.grams }
         val used = i.activity.sumOf { it } * STEP_MIN
         if (i.ic <= 0 || i.isfMgdl <= 0 || i.carbs <= 0) return stats.copy(exclude = ExcludeReason.NO_INSULIN)
-        val needed = used + (end - start) / i.isfMgdl - hypoCarbs / i.ic
+        // IOB from before the meal needs no extra term: its action is in "used" and its effect in the BG change.
+        // Carbs are different: earlier food still absorbing is taken out, this meal's carbs not absorbed yet are added.
+        val needed = used + (end - start) / i.isfMgdl + (i.cobAfter - i.cobBefore - hypoCarbs) / i.ic
         val expected = i.carbs / i.ic
         if (needed <= 0.1) return stats.copy(exclude = ExcludeReason.NO_INSULIN, usedInsulin = r2(used), hypoCarbs = hypoCarbs)
         val ratio = (needed / expected - 1) * 100
@@ -98,7 +103,7 @@ object MealMath {
             else                                              -> MealGrade.OK
         }
         return stats.copy(
-            grade = grade, hypoCarbs = hypoCarbs, usedInsulin = r2(used), neededInsulin = r2(needed), expectedInsulin = r2(expected),
+            grade = grade, hypoCarbs = hypoCarbs, cobBefore = i.cobBefore, cobAfter = i.cobAfter, usedInsulin = r2(used), neededInsulin = r2(needed), expectedInsulin = r2(expected),
             ratioPct = round(ratio).toInt()
         )
     }

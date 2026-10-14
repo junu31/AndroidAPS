@@ -103,6 +103,8 @@
     <string name="meal_kv_ratio">프로필 대비</string>
     <string name="meal_reason_main">범위 유지 %1$d%%, 최고 %2$d. 루프·추가 주입 %3$s U, 끝 혈당은 시작보다 %4$s → %5$d g에 실제 %6$s U가 필요했어요 (1 U당 %7$s g).</string>
     <string name="meal_reason_hypo_carbs">저혈당 처치 탄수 %1$d g은 빼고 계산했어요.</string>
+    <string name="meal_reason_cob_before">식사 전에 남아 있던 다른 음식 탄수 %1$d g은 빼고 계산했어요.</string>
+    <string name="meal_reason_cob_after">평가가 끝날 때 아직 흡수 안 된 탄수 %1$d g은 더해서 계산했어요.</string>
     <string name="meal_reason_low">70 미만이 있었어요 (최저 %1$d).</string>
     <string name="meal_reason_no_low">저혈당 없음.</string>
     <string name="meal_reason_timing">초반에 낮았다가 2시간 이후 높아졌어요 — 총량보다 볼러스 시점·분할을 볼 때예요.</string>

@@ -47,9 +47,12 @@ data class MealEval(
     val basalExtra: Double = 0.0,
     val manualExtra: Double = 0.0,
     val hypoCarbs: Double = 0.0,
+    /** carbs still on board right before the meal (other food) and at the end of the window */
+    val cobBefore: Double = 0.0,
+    val cobAfter: Double = 0.0,
     /** insulin that acted during the window (bolus + net basal, from the insulin activity) */
     val usedInsulin: Double = 0.0,
-    /** insulin the meal really needed: used + (end BG − start BG) / ISF − hypo carbs / IC */
+    /** insulin the meal really needed: used + (end BG − start BG) / ISF + (COB after − COB before − hypo carbs) / IC */
     val neededInsulin: Double = 0.0,
     /** carbs / IC of the profile at the meal */
     val expectedInsulin: Double = 0.0,

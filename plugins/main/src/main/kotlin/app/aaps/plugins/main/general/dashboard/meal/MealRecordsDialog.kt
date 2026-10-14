@@ -559,6 +559,8 @@ class MealRecordsDialog : DaggerDialogFragment() {
             rh.gs(R.string.meal_reason_main, e.tirPct, e.maxBg, f2(e.smb + e.basalExtra + e.manualExtra), MealTracker.signed(e.endBg - e.startBg), m.carbs.toInt(), f2(e.neededInsulin), f1(m.carbs / e.neededInsulin))
         )
         if (e.hypoCarbs > 0) parts += rh.gs(R.string.meal_reason_hypo_carbs, e.hypoCarbs.toInt())
+        if (e.cobBefore >= 1) parts += rh.gs(R.string.meal_reason_cob_before, e.cobBefore.toInt())
+        if (e.cobAfter >= 1) parts += rh.gs(R.string.meal_reason_cob_after, e.cobAfter.toInt())
         parts += if (e.minBg in 1 until MealMath.LOW) rh.gs(R.string.meal_reason_low, e.minBg) else rh.gs(R.string.meal_reason_no_low)
         if (e.grade == MealGrade.TIMING) parts += rh.gs(R.string.meal_reason_timing)
         if (e.risingAtEnd) parts += rh.gs(R.string.meal_reason_rising)

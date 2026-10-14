@@ -103,6 +103,8 @@
     <string name="meal_kv_ratio">vs profile</string>
     <string name="meal_reason_main">In range %1$d%%, max %2$d. Loop and extra %3$s U, end BG vs start %4$s → %5$d g really needed %6$s U (%7$s g per 1 U).</string>
     <string name="meal_reason_hypo_carbs">Hypo treatment carbs (%1$d g) are taken out.</string>
+    <string name="meal_reason_cob_before">Carbs from earlier food still on board at the start (%1$d g) are taken out.</string>
+    <string name="meal_reason_cob_after">Carbs not absorbed at the end (%1$d g) are added.</string>
     <string name="meal_reason_low">Went below 70 (lowest %1$d).</string>
     <string name="meal_reason_no_low">No low.</string>
     <string name="meal_reason_timing">Low early, high after 2 h — look at bolus timing or splitting rather than the amount.</string>

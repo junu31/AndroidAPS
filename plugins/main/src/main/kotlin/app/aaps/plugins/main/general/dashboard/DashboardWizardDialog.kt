@@ -131,7 +131,8 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private var profileIndex by mutableIntStateOf(0)
     private var bgText by mutableStateOf("0")
     private var sensorBgText by mutableStateOf<String?>(null)
-    private var carbsText by mutableStateOf("0")
+    // empty like the classic wizard (a "0" would stay in front of the typed value)
+    private var carbsText by mutableStateOf("")
     private var aiCarbs by mutableStateOf<Int?>(null)
     private var aiFoods by mutableStateOf("")
     private var usePercentage by mutableStateOf(false)
@@ -285,7 +286,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         } else preferences.get(IntKey.OverviewBolusPercentage)
         val carbsAfterConstraint = constraintChecker.applyCarbsConstraints(ConstraintObject(carbs, aapsLogger)).value()
         if (abs(carbs - carbsAfterConstraint) > 0.01) {
-            carbsText = "0"
+            carbsText = ""
             ToastUtils.warnToast(context, rh.gs(R.string.dashboard_wizard_carbs_constraint))
             return
         }
@@ -966,7 +967,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         // as wide as the number, so the unit right after it is never pushed out
                         modifier = Modifier
                             .width(IntrinsicSize.Min)
-                            .widthIn(min = 14.dp, max = if (compact) 64.dp else 96.dp)
+                            .widthIn(min = if (value.isEmpty()) 40.dp else 14.dp, max = if (compact) 64.dp else 96.dp)
                     )
                     Text(" $unit", color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }

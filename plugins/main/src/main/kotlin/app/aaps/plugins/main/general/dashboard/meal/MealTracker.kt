@@ -59,7 +59,7 @@ class MealTracker @Inject constructor(
 
     fun start() {
         disposable.clear()
-        disposable += Observable.merge(rxBus.toObservable(EventNewBG::class.java).map { }, Observable.just(Unit))
+        disposable += Observable.merge(rxBus.toObservable(EventNewBG::class.java).map { }, Observable.timer(1, TimeUnit.MINUTES).map { })
             .throttleLatest(1, TimeUnit.MINUTES)
             .observeOn(aapsSchedulers.io)
             .subscribe({ checkDue() }, { aapsLogger.error(LTag.CORE, "Meal tracking", it) })

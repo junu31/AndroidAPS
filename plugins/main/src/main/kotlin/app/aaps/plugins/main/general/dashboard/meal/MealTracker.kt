@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.abs
+import kotlin.math.round
 import kotlin.math.roundToInt
 
 /**
@@ -91,12 +92,21 @@ class MealTracker @Inject constructor(
         val time = now + T.mins(carbTimeMin.toLong()).msecs()
         val profile = profileFunction.getProfile(time) ?: profileFunction.getProfile()
         val sec = MidnightUtils.secondsFromMidnight(time)
+        // state at entry: last BG and its change over 15 min, IOB (bolus + basal), COB
+        val last = persistenceLayer.getLastGlucoseValue()?.takeIf { now - it.timestamp < T.mins(15).msecs() }
+        val before = last?.let { l ->
+            persistenceLayer.getBgReadingsDataFromTimeToTime(l.timestamp - T.mins(20).msecs(), l.timestamp - T.mins(10).msecs(), true)
+                .minByOrNull { abs(it.timestamp - (l.timestamp - T.mins(15).msecs())) }
+        }
+        val iob = iobCobCalculator.calculateIobFromBolus().iob + iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().basaliob
         val record = MealRecord(
             id = MealStore.newId(), foodId = food.id, foodName = food.name, time = time, deliverTime = now, carbs = carbs, fat = fat, protein = protein,
             type = food.type, tracked = tracked, bolus = bolus, historyAdjust = historyAdjust,
             profileName = profileFunction.getProfileName(), ic = profile?.getIcTimeFromMidnight(sec) ?: 0.0,
             isfMgdl = profile?.getIsfMgdlTimeFromMidnight(sec) ?: 0.0, percentage = profile?.percentage ?: 100,
-            evalAt = time + T.hours(food.type.hours.toLong()).msecs()
+            evalAt = time + T.hours(food.type.hours.toLong()).msecs(),
+            entryBg = last?.value?.roundToInt(), entryDelta15 = if (last != null && before != null) (last.value - before.value).roundToInt() else null,
+            entryIob = (round(iob * 100) / 100), entryCob = iobCobCalculator.getCobInfo("Meal tracking").displayCob
         )
         update { it.copy(meals = it.meals + record) }
     }
@@ -117,14 +127,21 @@ class MealTracker @Inject constructor(
         }
     }
 
-    /** The wizard stores a bolus calculator result when the user confirms; no result within 20 min = cancelled. */
+    /**
+     * The wizard stores a bolus calculator result when the user confirms; when insulin was planned the meal bolus
+     * must also be delivered (a suspended loop / LGS or a pump error stores no bolus). Nothing within 20 min = cancelled.
+     */
     private fun confirmPending() {
         val now = dateUtil.now()
         val pending = data().meals.filter { !it.confirmed && !it.legacy }
         if (pending.isEmpty()) return
         val results = persistenceLayer.getBolusCalculatorResultsFromTime(pending.minOf { it.deliverTime } - T.mins(1).msecs(), true).blockingGet()
         pending.forEach { meal ->
-            val found = results.any { it.isValid && it.timestamp in meal.deliverTime - T.mins(1).msecs()..meal.deliverTime + T.mins(20).msecs() && abs(it.carbs - meal.carbs) < 0.5 }
+            val window = meal.deliverTime - T.mins(1).msecs()..meal.deliverTime + T.mins(20).msecs()
+            val calc = results.any { it.isValid && it.timestamp in window && abs(it.carbs - meal.carbs) < 0.5 }
+            val delivered = persistenceLayer.getBolusesFromTimeToTime(window.first, window.last, true)
+                .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }.sumOf { it.amount }
+            val found = calc && (meal.bolus <= 0.0 || delivered > 0)
             when {
                 // a new food is stored only once its first meal is confirmed (a cancelled confirmation leaves nothing)
                 found                                                -> update { d ->
@@ -132,7 +149,8 @@ class MealTracker @Inject constructor(
                         d.foods.map { if (it.id == meal.foodId) it.copy(name = meal.foodName, tracked = meal.tracked, type = meal.type) else it }
                     else d.foods + MealFood(meal.foodId, meal.foodName, meal.type, meal.tracked, meal.deliverTime)
                     // an untracked meal only keeps the food in the recent list
-                    val meals = if (meal.tracked) d.meals.map { if (it.id == meal.id) it.copy(confirmed = true) else it } else d.meals.filter { it.id != meal.id }
+                    val meals = if (meal.tracked) d.meals.map { if (it.id == meal.id) it.copy(confirmed = true, bolus = if (delivered > 0) delivered else it.bolus) else it }
+                    else d.meals.filter { it.id != meal.id }
                     d.copy(foods = foods, meals = meals)
                 }
 
@@ -187,7 +205,7 @@ class MealTracker @Inject constructor(
                 carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
                 manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
-                activityTarget = activityTarget, profileSwitch = profileSwitch
+                notDelivered = meal.bolus > 0 && mealBoluses.isEmpty(), activityTarget = activityTarget, profileSwitch = profileSwitch
             )
         )
         val events = mealBoluses.map { MealEvent(minOf(it.timestamp), MealEvent.MEAL_BOLUS, it.amount) } +
@@ -251,6 +269,7 @@ class MealTracker @Inject constructor(
                 ExcludeReason.ACTIVITY       -> R.string.meal_ex_activity
                 ExcludeReason.PROFILE_SWITCH -> R.string.meal_ex_profile
                 ExcludeReason.NO_INSULIN     -> R.string.meal_ex_no_insulin
+                ExcludeReason.NOT_DELIVERED  -> R.string.meal_ex_not_delivered
                 ExcludeReason.USER, ExcludeReason.NONE -> R.string.meal_ex_user
             }
         )

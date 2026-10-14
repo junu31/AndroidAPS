@@ -535,8 +535,30 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 Text(reasonText(m, e), color = DashColors.Sub, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
+        EntryCard(m)
         if (e != null && e.neededInsulin > 0) ProfileCompare(m, e)
         MemoCard(m)
+    }
+
+    /** BG, IOB and COB when the meal was entered, and what the calculator gave */
+    @Composable
+    private fun EntryCard(m: MealRecord) {
+        if (m.entryBg == null && m.entryIob == null) return
+        Card {
+            Text(rh.gs(R.string.meal_entry_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kv(rh.gs(R.string.meal_entry_bg), m.entryBg?.toString() ?: "—", Modifier.weight(1f))
+                Kv(rh.gs(R.string.meal_entry_delta), m.entryDelta15?.let { MealTracker.signed(it) } ?: "—", Modifier.weight(1f))
+            }
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kv("IOB", m.entryIob?.let { "${f2(it)} U" } ?: "—", Modifier.weight(1f))
+                Kv("COB", m.entryCob?.let { "${it.toInt()} g" } ?: "—", Modifier.weight(1f))
+            }
+            Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Kv(rh.gs(R.string.meal_entry_bolus), "${f2(m.bolus)} U", Modifier.weight(1f))
+                Kv(rh.gs(R.string.meal_entry_history), if (m.historyAdjust != 0.0) (if (m.historyAdjust > 0) "+" else "") + f2(m.historyAdjust) + " U" else "—", Modifier.weight(1f))
+            }
+        }
     }
 
     @Composable

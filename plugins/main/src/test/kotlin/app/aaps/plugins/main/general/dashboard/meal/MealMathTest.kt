@@ -94,6 +94,11 @@ class MealMathTest {
     }
 
     @Test
+    fun `no delivered meal bolus excludes`() {
+        assertThat(MealMath.evaluate(input(flat(120), 1.0).copy(notDelivered = true)).exclude).isEqualTo(ExcludeReason.NOT_DELIVERED)
+    }
+
+    @Test
     fun `sensor gap excludes`() {
         val gaps = flat(120).mapIndexed { i, v -> if (i % 2 == 0) null else v }
         assertThat(MealMath.evaluate(input(gaps, 7.0)).exclude).isEqualTo(ExcludeReason.SENSOR_GAP)

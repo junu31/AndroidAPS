@@ -14,7 +14,7 @@ enum class MealGrade { OK, UNDER, OVER, TIMING, EXCLUDED }
 enum class Reliability(val weight: Double) { HIGH(1.0), MEDIUM(0.6), LOW(0.3), UNKNOWN(0.6) }
 
 /** Why a meal could not be used (shown to the user, never used for a suggestion). */
-enum class ExcludeReason { NONE, OTHER_MEAL, SENSOR_GAP, ACTIVITY, PROFILE_SWITCH, NO_INSULIN, USER }
+enum class ExcludeReason { NONE, OTHER_MEAL, SENSOR_GAP, ACTIVITY, PROFILE_SWITCH, NO_INSULIN, USER, NOT_DELIVERED }
 
 data class MealFood(
     val id: String = "",
@@ -78,7 +78,7 @@ data class MealRecord(
     val protein: Double? = null,
     val type: FoodType = FoodType.MIXED,
     val tracked: Boolean = true,
-    /** the wizard total and the part that came from the history ("기록 반영") */
+    /** the wizard total (replaced by the delivered meal bolus once confirmed) and the part that came from the history ("기록 반영") */
     val bolus: Double = 0.0,
     val historyAdjust: Double = 0.0,
     /** false until the wizard bolus is found in the database (the user may still cancel the confirmation) */
@@ -89,6 +89,11 @@ data class MealRecord(
     val isfMgdl: Double = 0.0,
     val percentage: Int = 100,
     val evalAt: Long = 0,
+    // state when the meal was entered (BG mg/dL, its change over 15 min, IOB, COB), null = not recorded
+    val entryBg: Int? = null,
+    val entryDelta15: Int? = null,
+    val entryIob: Double? = null,
+    val entryCob: Double? = null,
     val eval: MealEval? = null,
     /** BG every 5 min from [time] (mg/dL, 0 = missing), kept so the graph survives a phone change */
     val curve: List<Int> = emptyList(),

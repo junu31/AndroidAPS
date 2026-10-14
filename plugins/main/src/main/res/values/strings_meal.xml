@@ -20,6 +20,12 @@
     <string name="meal_ex_activity">Activity temp target (exercise), so it was not evaluated</string>
     <string name="meal_ex_profile">The profile changed during the window, so it was not evaluated</string>
     <string name="meal_ex_no_insulin">The needed insulin could not be calculated from the records</string>
+    <string name="meal_ex_not_delivered">No meal bolus was delivered (e.g. loop suspended), so it was not evaluated</string>
+    <string name="meal_entry_title">When entered</string>
+    <string name="meal_entry_bg">BG</string>
+    <string name="meal_entry_delta">Change over 15 min</string>
+    <string name="meal_entry_bolus">Meal bolus</string>
+    <string name="meal_entry_history">From records</string>
     <string name="meal_ex_user">Excluded by you (not used for suggestions)</string>
 
     <string name="meal_type_fast">Fast carbs</string>

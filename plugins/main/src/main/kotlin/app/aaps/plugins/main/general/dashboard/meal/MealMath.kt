@@ -73,6 +73,8 @@ object MealMath {
         val cobAfter: Double = 0.0,
         /** deviations (mg/dL per 5 min) in the 30 min before the meal */
         val startDeviations: List<Double> = emptyList(),
+        /** a meal bolus was planned but none was delivered (e.g. suspended loop, pump error) */
+        val notDelivered: Boolean = false,
         val activityTarget: Boolean = false,
         val profileSwitch: Boolean = false
     )
@@ -98,6 +100,7 @@ object MealMath {
             endBg = end.toInt(),
             risingAtEnd = rising(i.bg)
         )
+        if (i.notDelivered) return stats.copy(exclude = ExcludeReason.NOT_DELIVERED)
         if (i.activityTarget) return stats.copy(exclude = ExcludeReason.ACTIVITY)
         if (i.profileSwitch) return stats.copy(exclude = ExcludeReason.PROFILE_SWITCH)
         val (hypo, other) = i.otherCarbs.partition { it.grams <= HYPO_CARBS && it.bgNear != null && it.bgNear < HYPO_BG }

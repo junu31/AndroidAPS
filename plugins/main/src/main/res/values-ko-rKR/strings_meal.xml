@@ -20,6 +20,12 @@
     <string name="meal_ex_activity">활동 임시 목표(운동)가 있어서 평가에서 뺐어요</string>
     <string name="meal_ex_profile">평가 시간 중 프로필이 바뀌어서 평가에서 뺐어요</string>
     <string name="meal_ex_no_insulin">인슐린·혈당 기록으로 필요량을 계산할 수 없었어요</string>
+    <string name="meal_ex_not_delivered">식사 볼러스가 실제로 주입되지 않아서(LGS·일시정지 등) 평가에서 뺐어요</string>
+    <string name="meal_entry_title">입력 당시 상태</string>
+    <string name="meal_entry_bg">혈당</string>
+    <string name="meal_entry_delta">15분 변화</string>
+    <string name="meal_entry_bolus">식사 볼러스</string>
+    <string name="meal_entry_history">기록 반영</string>
     <string name="meal_ex_user">직접 평가에서 제외했어요 (제안 계산에 쓰지 않아요)</string>
 
     <string name="meal_type_fast">빠른 탄수</string>

@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Base64
 import app.aaps.core.interfaces.logging.AAPSLogger
 import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.meal.AiEstimateLog
 import app.aaps.core.interfaces.meal.MealBackup
 import com.google.gson.Gson
 import com.google.gson.JsonParser
@@ -24,7 +25,7 @@ import javax.inject.Singleton
 class MealStore @Inject constructor(
     private val context: Context,
     private val aapsLogger: AAPSLogger
-) : MealBackup {
+) : MealBackup, AiEstimateLog {
 
     private val gson = Gson()
     private val file get() = File(context.filesDir, FILE_NAME)
@@ -39,7 +40,8 @@ class MealStore @Inject constructor(
             aapsLogger.error(LTag.CORE, "Meal tracking: cannot read $FILE_NAME", e)
             MealData()
         }
-        val data = if (loaded.aiHistoryImported) loaded else importAiHistory(loaded)
+        // the first import kept too little (no image / text, applied carbs): replace it once
+        val data = if (loaded.aiHistoryV2) loaded else importAiHistory(loaded.copy(meals = loaded.meals.filter { !it.legacy }))
         cache = data
         if (data !== loaded) write(data)
         return data
@@ -78,16 +80,18 @@ class MealStore @Inject constructor(
                 val text = o.get("foodDescription")?.takeIf { !it.isJsonNull }?.asString.orEmpty()
                 MealRecord(
                     id = newId(), foodName = text.lineSequence().firstOrNull().orEmpty().take(40),
-                    time = time, deliverTime = time, carbs = d("appliedCarbsG") ?: d("totalCarbsG") ?: 0.0,
+                    time = time, deliverTime = time, carbs = d("totalCarbsG") ?: 0.0, appliedCarbs = d("appliedCarbsG"),
                     fat = d("fatG"), protein = d("proteinG"), confirmed = true, tracked = false, seen = true,
-                    legacy = true, legacyText = listOfNotNull(text.takeIf { it.isNotBlank() }, o.get("inputStrategy")?.takeIf { !it.isJsonNull }?.asString).joinToString("\n")
+                    legacy = true, legacyText = o.get("inputStrategy")?.takeIf { !it.isJsonNull }?.asString.orEmpty(),
+                    aiDescription = text, aiHadImage = o.get("hadImage")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+                    aiConfidence = o.get("confidence")?.takeIf { !it.isJsonNull }?.asString
                 )
             }
         } catch (e: Exception) {
             aapsLogger.error(LTag.CORE, "Meal tracking: cannot import the AI carbs history", e)
             emptyList()
         }
-        return data.copy(meals = data.meals + legacy, aiHistoryImported = true)
+        return data.copy(meals = data.meals + legacy, aiHistoryImported = true, aiHistoryV2 = true)
     }
 
     override fun exportBackup(): String? {
@@ -105,11 +109,31 @@ class MealStore @Inject constructor(
             val bytes = Base64.decode(data.removePrefix(BACKUP_PREFIX), Base64.NO_WRAP)
             val json = GZIPInputStream(ByteArrayInputStream(bytes)).use { it.readBytes().toString(Charsets.UTF_8) }
             val restored = gson.fromJson(json, MealData::class.java) ?: return
-            cache = restored.copy(aiHistoryImported = true)
+            cache = restored.copy(aiHistoryImported = true, aiHistoryV2 = true)
             write(cache!!)
         } catch (e: Exception) {
             aapsLogger.error(LTag.CORE, "Meal tracking: cannot import the backup", e)
         }
+    }
+
+    override fun addAiEstimate(
+        name: String, description: String?, hadImage: Boolean, items: List<Pair<String, Double>>,
+        totalCarbs: Double, fat: Double?, protein: Double?, confidence: String?, note: String?
+    ): String {
+        val now = System.currentTimeMillis()
+        val record = MealRecord(
+            id = newId(), foodName = name.ifBlank { description.orEmpty().lineSequence().firstOrNull().orEmpty().take(40) },
+            time = now, deliverTime = now, carbs = totalCarbs, fat = fat, protein = protein, confirmed = true, tracked = false, seen = true,
+            legacy = true, legacyText = note.orEmpty(), aiDescription = description.orEmpty(), aiHadImage = hadImage,
+            aiItems = items.joinToString(" · ") { (n, g) -> "$n ${if (g % 1.0 == 0.0) g.toInt().toString() else "%.1f".format(g)} g" },
+            aiConfidence = confidence
+        )
+        update { it.copy(meals = it.meals + record) }
+        return record.id
+    }
+
+    override fun setApplied(id: String, carbs: Int) {
+        update { d -> d.copy(meals = d.meals.map { if (it.id == id) it.copy(appliedCarbs = carbs.toDouble()) else it }) }
     }
 
     companion object {

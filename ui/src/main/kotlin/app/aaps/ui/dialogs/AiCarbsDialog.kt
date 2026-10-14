@@ -98,6 +98,10 @@ class AiCarbsDialog : DaggerDialogFragment() {
     @Inject lateinit var preferences: Preferences
     @Inject lateinit var geminiCarbService: GeminiCarbService
     @Inject lateinit var uiInteraction: UiInteraction
+    @Inject lateinit var aiEstimateLog: app.aaps.core.interfaces.meal.AiEstimateLog
+
+    // Personal-fork: id of the shown estimate in the meal records (「AI 추정 기록」)
+    private var lastEstimateId: String? = null
 
     private var _binding: DialogAiCarbsBinding? = null
     private val binding get() = _binding!!
@@ -241,6 +245,12 @@ class AiCarbsDialog : DaggerDialogFragment() {
                 { payload ->
                     showLoading(false)
                     bindResult(payload)
+                    lastEstimateId = aiEstimateLog.addAiEstimate(
+                        name = payload.items.map { it.name.trim() }.filter { it.isNotEmpty() }.joinToString(" + "),
+                        description = food.ifEmpty { null }, hadImage = imageUri != null,
+                        items = payload.items.map { it.name to it.carbsG }, totalCarbs = payload.totalCarbsG,
+                        fat = payload.fatG, protein = payload.proteinG, confidence = payload.confidence, note = payload.inputStrategy
+                    )
                 },
                 { error ->
                     showLoading(false)
@@ -416,6 +426,7 @@ class AiCarbsDialog : DaggerDialogFragment() {
             return
         }
         appendHistoryFromCurrentEstimate(appliedCarbsG = value)
+        lastEstimateId?.let { aiEstimateLog.setApplied(it, value) }
         val fm = parentFragmentManager
         if (returnResult) {
             val foods = lastEstimate?.items.orEmpty().joinToString(" · ") { "${it.name} ${formatG(it.carbsG)}g" }

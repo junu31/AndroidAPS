@@ -49,5 +49,6 @@ abstract class OverviewModule {
         @Binds fun bindOverviewMenus(overviewMenusImpl: OverviewMenusImpl): OverviewMenus
         @Binds fun bindOverviewData(overviewData: OverviewDataImpl): OverviewData
         @Binds fun bindMealBackup(mealStore: app.aaps.plugins.main.general.dashboard.meal.MealStore): app.aaps.core.interfaces.meal.MealBackup
+        @Binds fun bindAiEstimateLog(mealStore: app.aaps.plugins.main.general.dashboard.meal.MealStore): app.aaps.core.interfaces.meal.AiEstimateLog
     }
 }

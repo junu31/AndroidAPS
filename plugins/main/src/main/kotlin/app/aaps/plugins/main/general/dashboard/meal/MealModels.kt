@@ -102,9 +102,17 @@ data class MealRecord(
     val memo: String = "",
     val excludedByUser: Boolean = false,
     val seen: Boolean = false,
-    /** imported from the old AI carbs history: no evaluation */
+    /** an AI carbs estimate (「AI 추정 기록」), not a tracked meal: no evaluation */
     val legacy: Boolean = false,
-    val legacyText: String = ""
+    /** AI: advice how to enter the carbs */
+    val legacyText: String = "",
+    val aiDescription: String = "",
+    val aiHadImage: Boolean = false,
+    /** AI: the items with their carbs, e.g. "짜장면 60 g · 단무지 2 g" */
+    val aiItems: String = "",
+    val aiConfidence: String? = null,
+    /** AI: carbs handed to the calculator / carbs dialog, null = not used */
+    val appliedCarbs: Double? = null
 ) {
 
     /** evaluated and usable for a suggestion */
@@ -118,5 +126,7 @@ data class MealData(
     val version: Int = 1,
     val foods: List<MealFood> = emptyList(),
     val meals: List<MealRecord> = emptyList(),
-    val aiHistoryImported: Boolean = false
+    val aiHistoryImported: Boolean = false,
+    /** the old AI history was imported again with all fields (image / text, applied carbs) */
+    val aiHistoryV2: Boolean = false
 )

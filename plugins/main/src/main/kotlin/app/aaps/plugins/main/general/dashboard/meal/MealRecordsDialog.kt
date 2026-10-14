@@ -97,6 +97,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
     private var aiText by mutableStateOf<String?>(null)
     private var aiBusy by mutableStateOf(false)
     private var deleteAsk by mutableStateOf(false)
+    private var deleteAiId by mutableStateOf("")
 
     // memo being edited on the meal screen
     private var memoTags by mutableStateOf(listOf<String>())
@@ -342,22 +343,60 @@ class MealRecordsDialog : DaggerDialogFragment() {
         }
     }
 
+    /** every AI carbs estimate, newest first; can be deleted one by one */
     @Composable
     private fun LegacyList() {
-        val legacy = data.meals.filter { it.legacy }.filter { query.isBlank() || it.legacyText.contains(query, true) || it.foodName.contains(query, true) }.sortedByDescending { it.time }
-        if (legacy.isEmpty()) Text(rh.gs(R.string.meal_empty), color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
-        legacy.forEach { m ->
+        val list = data.meals.filter { it.legacy }
+            .filter { query.isBlank() || listOf(it.foodName, it.aiDescription, it.aiItems, it.legacyText).any { s -> s.contains(query, true) } }
+            .sortedByDescending { it.time }
+        if (list.isEmpty()) Text(rh.gs(R.string.meal_ai_empty), color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
+        list.forEach { m ->
             Card {
-                Row {
-                    Text(m.foodName.ifBlank { "—" }, color = DashColors.Text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val source = when {
+                        m.aiHadImage && m.aiDescription.isNotBlank() -> "📷+✍ " + rh.gs(R.string.meal_ai_photo_text)
+                        m.aiHadImage                                 -> "📷 " + rh.gs(R.string.meal_ai_photo)
+                        else                                         -> "✍ " + rh.gs(R.string.meal_ai_text)
+                    }
+                    Text(
+                        source, color = AiLilac, fontSize = 10.5.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(AiPurple.copy(alpha = 0.15f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                    Text(
+                        "  " + m.foodName.ifBlank { "—" }, color = DashColors.Text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
                     Text(dayTime.format(Date(m.time)), color = DashColors.Sub, fontSize = 11.sp)
                 }
                 Text(
                     listOfNotNull(
-                        "${m.carbs.toInt()} g", m.fat?.let { rh.gs(R.string.meal_fat, f1(it)) }, m.protein?.let { rh.gs(R.string.meal_protein, f1(it)) }, rh.gs(R.string.meal_no_eval)
-                    ).joinToString(" · "), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp)
+                        rh.gs(R.string.meal_ai_carbs, m.carbs.toInt()),
+                        m.appliedCarbs?.let { rh.gs(R.string.meal_ai_applied, it.toInt()) } ?: rh.gs(R.string.meal_ai_not_applied),
+                        m.fat?.let { rh.gs(R.string.meal_fat, f1(it)) }, m.protein?.let { rh.gs(R.string.meal_protein, f1(it)) },
+                        m.aiConfidence?.let { rh.gs(R.string.meal_ai_confidence, it) }
+                    ).joinToString(" · "), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp)
                 )
-                if (m.legacyText.isNotBlank()) Text(m.legacyText, color = DashColors.Dim, fontSize = 11.sp, maxLines = 4, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                if (m.aiItems.isNotBlank()) Text(m.aiItems, color = DashColors.Text, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
+                if (m.aiDescription.isNotBlank()) Text("✍ " + m.aiDescription, color = DashColors.Sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                if (m.legacyText.isNotBlank()) Text(m.legacyText, color = DashColors.Dim, fontSize = 11.sp, maxLines = 5, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                Text(
+                    if (deleteAiId == m.id) rh.gs(R.string.meal_delete_confirm) else rh.gs(R.string.meal_ai_delete),
+                    color = if (deleteAiId == m.id) DashColors.Low else DashColors.Dim, fontSize = 11.5.sp,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (deleteAiId != m.id) deleteAiId = m.id
+                            else {
+                                mealTracker.update { d -> d.copy(meals = d.meals.filter { it.id != m.id }) }
+                                deleteAiId = ""
+                            }
+                        }
+                        .padding(top = 6.dp)
+                )
             }
         }
     }

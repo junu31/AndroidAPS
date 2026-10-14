@@ -73,7 +73,16 @@
     <string name="meal_filter_all">전체</string>
     <string name="meal_filter_adjust">조정 필요</string>
     <string name="meal_filter_pending">평가 대기 %1$d</string>
-    <string name="meal_filter_legacy">AI 이전 이력</string>
+    <string name="meal_filter_legacy">AI 추정 기록</string>
+    <string name="meal_ai_empty">아직 AI 추정 기록이 없어요. 📷 AI 탄수 추정을 할 때마다 여기에 남아요.</string>
+    <string name="meal_ai_photo">사진</string>
+    <string name="meal_ai_text">텍스트</string>
+    <string name="meal_ai_photo_text">사진 + 텍스트</string>
+    <string name="meal_ai_carbs">추정 %1$d g</string>
+    <string name="meal_ai_applied">적용 %1$d g</string>
+    <string name="meal_ai_not_applied">미적용</string>
+    <string name="meal_ai_confidence">신뢰도 %1$s</string>
+    <string name="meal_ai_delete">삭제</string>
     <string name="meal_empty">아직 기록이 없어요. 계산기에서 음식을 고르고 「평가 추적」을 켜고 주입하면 여기에 쌓여요.</string>
     <string name="meal_counts">평가 %1$d / %2$d</string>
     <string name="meal_untracked">추적 꺼짐</string>

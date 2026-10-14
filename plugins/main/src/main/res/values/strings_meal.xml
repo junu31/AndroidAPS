@@ -73,7 +73,16 @@
     <string name="meal_filter_all">All</string>
     <string name="meal_filter_adjust">Needs change</string>
     <string name="meal_filter_pending">Waiting %1$d</string>
-    <string name="meal_filter_legacy">AI history (before)</string>
+    <string name="meal_filter_legacy">AI estimates</string>
+    <string name="meal_ai_empty">No AI estimates yet. Every 📷 AI carbs estimate is kept here.</string>
+    <string name="meal_ai_photo">photo</string>
+    <string name="meal_ai_text">text</string>
+    <string name="meal_ai_photo_text">photo + text</string>
+    <string name="meal_ai_carbs">estimated %1$d g</string>
+    <string name="meal_ai_applied">used %1$d g</string>
+    <string name="meal_ai_not_applied">not used</string>
+    <string name="meal_ai_confidence">confidence %1$s</string>
+    <string name="meal_ai_delete">Delete</string>
     <string name="meal_empty">No records yet. Choose a food in the calculator, switch on tracking and deliver.</string>
     <string name="meal_counts">evaluated %1$d / %2$d</string>
     <string name="meal_untracked">not tracked</string>

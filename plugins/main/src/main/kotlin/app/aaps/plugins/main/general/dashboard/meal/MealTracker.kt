@@ -140,7 +140,8 @@ class MealTracker @Inject constructor(
         pending.forEach { meal ->
             val window = meal.deliverTime - T.mins(1).msecs()..meal.deliverTime + T.mins(20).msecs()
             val calc = results.any { it.isValid && it.timestamp in window && abs(it.carbs - meal.carbs) < 0.5 }
-            val delivered = persistenceLayer.getBolusesFromTimeToTime(window.first, window.last, true)
+            // the meal bolus itself: given within 15 min (later boluses are asked about separately)
+            val delivered = persistenceLayer.getBolusesFromTimeToTime(window.first, meal.deliverTime + T.mins(15).msecs(), true)
                 .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }.sumOf { it.amount }
             val found = calc && delivered > 0
             when {

@@ -500,7 +500,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 extra = if (bgEdited) ({ SmallAction("↺", DashColors.Accent) { bgText = sensorBgText!!; calculate() } }) else null,
                 modifier = Modifier.weight(1f), compact = true
             )
-            // carbs (+ AI photo)
+            // carbs (the AI photo button sits on the food field below)
             Stepper(
                 label = rh.gs(app.aaps.core.ui.R.string.carbs) + if (isAi) " · ✦ " + rh.gs(R.string.dashboard_wizard_ai_estimate) else "",
                 labelColor = if (isAi) AiLilac else DashColors.Sub, value = carbsText, unit = "g",
@@ -508,21 +508,10 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 onValue = { carbsText = it; calculate() },
                 onMinus = { carbsText = step(carbsText, -1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
                 onPlus = { carbsText = step(carbsText, 1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
-                extra = { SmallAction("📷", AiLilac) { uiInteraction.runAiCarbsDialog(childFragmentManager, returnResult = true) } },
                 modifier = Modifier.weight(1f), compact = true
             )
             }
-            if (isAi && aiFoods.isNotEmpty())
-                Text(
-                    aiFoods, color = DashColors.Sub, fontSize = 11.5.sp,
-                    modifier = Modifier
-                        .padding(top = 6.dp)
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(AiPurple.copy(alpha = 0.07f))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
-            MealSection()
+            MealSection(isAi)
             // correction (U or %) and carb time + alarm
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Stepper(
@@ -671,7 +660,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     }
 
     @Composable
-    private fun MealSection() {
+    private fun MealSection(isAi: Boolean) {
         val f = food
         FieldBox(
             Modifier.padding(top = 8.dp), border = if (f != null) DashColors.Accent.copy(alpha = 0.45f) else DashColors.Line,
@@ -697,8 +686,23 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     if (f != null) Text("  " + MealUi.typeLabel(rh, f.type), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1)
                 }
             }
-            if (f != null) SmallAction("✕", DashColors.Sub) { selectFood(null) }
+            // AI photo: fills the carbs and names the food
+            SmallAction("📷", AiLilac) { uiInteraction.runAiCarbsDialog(childFragmentManager, returnResult = true) }
+            if (f != null) {
+                Spacer(Modifier.width(6.dp))
+                SmallAction("✕", DashColors.Sub) { selectFood(null) }
+            }
         }
+        if (isAi && aiFoods.isNotEmpty())
+            Text(
+                aiFoods, color = DashColors.Sub, fontSize = 11.5.sp,
+                modifier = Modifier
+                    .padding(top = 6.dp)
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(AiPurple.copy(alpha = 0.07f))
+                    .padding(horizontal = 10.dp, vertical = 6.dp)
+            )
         if (f == null && !foodSheet)
             Row(
                 Modifier

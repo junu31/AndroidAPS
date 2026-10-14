@@ -141,7 +141,7 @@ class MealTracker @Inject constructor(
             val calc = results.any { it.isValid && it.timestamp in window && abs(it.carbs - meal.carbs) < 0.5 }
             val delivered = persistenceLayer.getBolusesFromTimeToTime(window.first, window.last, true)
                 .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }.sumOf { it.amount }
-            val found = calc && (meal.bolus <= 0.0 || delivered > 0)
+            val found = calc && delivered > 0
             when {
                 // a new food is stored only once its first meal is confirmed (a cancelled confirmation leaves nothing)
                 found                                                -> update { d ->
@@ -205,7 +205,7 @@ class MealTracker @Inject constructor(
                 carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
                 manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
-                notDelivered = meal.bolus > 0 && mealBoluses.isEmpty(), activityTarget = activityTarget, profileSwitch = profileSwitch
+                notDelivered = mealBoluses.isEmpty(), activityTarget = activityTarget, profileSwitch = profileSwitch
             )
         )
         val events = mealBoluses.map { MealEvent(minOf(it.timestamp), MealEvent.MEAL_BOLUS, it.amount) } +

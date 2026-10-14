@@ -967,7 +967,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                         // as wide as the number, so the unit right after it is never pushed out
                         modifier = Modifier
                             .width(IntrinsicSize.Min)
-                            .widthIn(min = if (value.isEmpty()) 40.dp else 14.dp, max = if (compact) 64.dp else 96.dp)
+                            .widthIn(min = 32.dp, max = if (compact) 64.dp else 96.dp)
                     )
                     Text(" $unit", color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }

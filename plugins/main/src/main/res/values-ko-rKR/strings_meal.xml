@@ -50,7 +50,8 @@
     <string name="meal_suggest_need">평가된 기록이 %1$d건 이상이면 제안해요 (지금 %2$d건)</string>
     <string name="meal_suggest_gpu">기록상 이 음식은 인슐린 1 U에 탄수 %1$s g (현재 IC %2$s)</string>
     <string name="meal_suggest_calc">기록 기준 %1$d ÷ %2$s = %3$s U − 현재 %1$d ÷ %4$s = %5$s U → %6$s</string>
-    <string name="meal_suggest_capped">상한 ±%1$d%% 적용</string>
+    <string name="meal_suggest_capped">상한 ±%1$d%% 적용 → %2$s</string>
+    <string name="meal_suggest_carbs">탄수화물을 입력하면 제안해요</string>
     <string name="meal_suggest_hypo">최근 기록에 저혈당이 있어서 증량은 제안하지 않아요</string>
     <string name="meal_suggest_none">기록과 현재 프로필이 거의 같아요 — 조정 없음</string>
     <string name="meal_apply">기록 반영 → 교정 %1$s</string>

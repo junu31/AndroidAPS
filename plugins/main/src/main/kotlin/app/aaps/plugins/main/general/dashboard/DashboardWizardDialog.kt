@@ -862,17 +862,22 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                     .background(DashColors.Line)
             )
             val s = suggestion
-            if (s == null) Text(rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.usable }), color = DashColors.Sub, fontSize = 11.5.sp)
+            if (s == null)
+                Text(
+                    if (meals.count { it.usable } >= MealMath.MIN_RECORDS) rh.gs(R.string.meal_suggest_carbs)
+                    else rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.usable }),
+                    color = DashColors.Sub, fontSize = 11.5.sp
+                )
             else {
                 Text(rh.gs(R.string.meal_suggest_gpu, f1(s.gramsPerUnit), f1(currentIc)), color = DashColors.Text, fontSize = 12.sp)
                 Text(
                     rh.gs(
                         R.string.meal_suggest_calc, lastCarbs, f1(s.gramsPerUnit), String.format(Locale.getDefault(), "%.2f", s.historyInsulin), f1(currentIc),
-                        String.format(Locale.getDefault(), "%.2f", s.currentInsulin), signedU(s.units)
+                        String.format(Locale.getDefault(), "%.2f", s.currentInsulin), signedU(if (s.capped) s.historyInsulin - s.currentInsulin else s.units)
                     ),
                     color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
                 )
-                if (s.capped) Text(rh.gs(R.string.meal_suggest_capped, (MealMath.CAP * 100).toInt()), color = DashColors.Sub, fontSize = 11.sp)
+                if (s.capped) Text(rh.gs(R.string.meal_suggest_capped, (MealMath.CAP * 100).toInt(), signedU(s.units)), color = DashColors.Sub, fontSize = 11.sp)
                 if (s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_hypo), color = DashColors.Low, fontSize = 11.sp)
                 if (abs(s.units) >= 0.001) {
                     val applied = historyApplied?.let { !usePercentage && abs(SafeParse.stringToDouble(correctionText) - it) < 0.001 } == true

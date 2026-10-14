@@ -266,10 +266,11 @@ class MealRecordsDialog : DaggerDialogFragment() {
             }
         if (foods.isEmpty()) Text(rh.gs(R.string.meal_empty), color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
         foods.forEach { f -> FoodCard(f) }
-        Text(
-            "● " + rh.gs(R.string.meal_grade_ok) + "  ● " + rh.gs(R.string.meal_grade_under) + "  ● " + rh.gs(R.string.meal_grade_over) + "  ● " + rh.gs(R.string.meal_grade_timing) + "  ● " + rh.gs(R.string.meal_grade_excluded),
-            color = DashColors.Dim, fontSize = 10.5.sp, modifier = Modifier.padding(top = 4.dp)
-        )
+        Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            listOf(MealGrade.OK, MealGrade.UNDER, MealGrade.OVER, MealGrade.TIMING, MealGrade.EXCLUDED).forEach {
+                Legend(MealUi.gradeColor(it), MealTracker.gradeText(rh, it))
+            }
+        }
     }
 
     @Composable

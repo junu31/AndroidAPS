@@ -50,7 +50,8 @@
     <string name="meal_suggest_need">Suggestions start with %1$d evaluated meals (now %2$d)</string>
     <string name="meal_suggest_gpu">From the records 1 U covered %1$s g of this food (current IC %2$s)</string>
     <string name="meal_suggest_calc">records %1$d ÷ %2$s = %3$s U − now %1$d ÷ %4$s = %5$s U → %6$s</string>
-    <string name="meal_suggest_capped">limited to ±%1$d%%</string>
+    <string name="meal_suggest_capped">limited to ±%1$d%% → %2$s</string>
+    <string name="meal_suggest_carbs">Enter the carbs to get a suggestion</string>
     <string name="meal_suggest_hypo">A recent meal went low, so no increase is suggested</string>
     <string name="meal_suggest_none">Records and current profile agree — no change</string>
     <string name="meal_apply">Use records → correction %1$s</string>

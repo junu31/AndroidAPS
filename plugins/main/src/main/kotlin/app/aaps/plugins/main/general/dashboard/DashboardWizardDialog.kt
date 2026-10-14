@@ -670,7 +670,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
                 FieldLabel(rh.gs(R.string.meal_food))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                     Text(
-                        if (f == null) rh.gs(R.string.meal_food_none) else "🍽 " + f.name, color = if (f == null) DashColors.Dim else DashColors.Text,
+                        if (f == null) rh.gs(R.string.meal_food_none) else f.name, color = if (f == null) DashColors.Dim else DashColors.Text,
                         fontSize = 14.sp, fontWeight = if (f != null) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )

@@ -83,6 +83,10 @@
     <string name="meal_ai_not_applied">미적용</string>
     <string name="meal_ai_confidence">신뢰도 %1$s</string>
     <string name="meal_ai_delete">삭제</string>
+    <string name="meal_conf_high">높음</string>
+    <string name="meal_conf_medium">보통</string>
+    <string name="meal_conf_low">낮음</string>
+    <string name="meal_rename_action">✎ 이름 수정</string>
     <string name="meal_empty">아직 기록이 없어요. 계산기에서 음식을 고르고 「평가 추적」을 켜고 주입하면 여기에 쌓여요.</string>
     <string name="meal_counts">평가 %1$d / %2$d</string>
     <string name="meal_untracked">추적 꺼짐</string>

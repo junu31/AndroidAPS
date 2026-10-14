@@ -98,6 +98,8 @@ class MealRecordsDialog : DaggerDialogFragment() {
     private var aiBusy by mutableStateOf(false)
     private var deleteAsk by mutableStateOf(false)
     private var deleteAiId by mutableStateOf("")
+    private var renaming by mutableStateOf(false)
+    private var renameText by mutableStateOf("")
 
     // memo being edited on the meal screen
     private var memoTags by mutableStateOf(listOf<String>())
@@ -138,7 +140,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
         }
 
         Screen.FOOD -> {
-            screen = Screen.LIST; foodId = ""; aiText = null; deleteAsk = false; true
+            screen = Screen.LIST; foodId = ""; aiText = null; deleteAsk = false; renaming = false; true
         }
 
         Screen.LIST -> false
@@ -190,7 +192,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
     }
 
     @Composable
-    private fun Header(title: String, right: String = "", onBack: (() -> Unit)?) {
+    private fun Header(title: String, right: String = "", onBack: (() -> Unit)?, onRight: (() -> Unit)? = null) {
         Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (onBack != null) "‹" else "✕", color = DashColors.Text, fontSize = 22.sp,
@@ -200,7 +202,13 @@ class MealRecordsDialog : DaggerDialogFragment() {
                     .padding(horizontal = 8.dp)
             )
             Text(title, color = DashColors.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (right.isNotEmpty()) Text(right, color = DashColors.Sub, fontSize = 11.5.sp)
+            if (right.isNotEmpty())
+                Text(
+                    right, color = if (onRight != null) DashColors.Accent else DashColors.Sub, fontSize = if (onRight != null) 13.sp else 11.5.sp,
+                    modifier = if (onRight != null) Modifier
+                        .clickable(onClick = onRight)
+                        .padding(8.dp) else Modifier
+                )
         }
     }
 
@@ -284,7 +292,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("🍽 " + f.name, color = DashColors.Text, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Text(f.name, color = DashColors.Text, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                         if (unseen > 0) Text(
                             " $unseen ", color = DashColors.Bg, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                             modifier = Modifier
@@ -376,7 +384,16 @@ class MealRecordsDialog : DaggerDialogFragment() {
                         rh.gs(R.string.meal_ai_carbs, m.carbs.toInt()),
                         m.appliedCarbs?.let { rh.gs(R.string.meal_ai_applied, it.toInt()) } ?: rh.gs(R.string.meal_ai_not_applied),
                         m.fat?.let { rh.gs(R.string.meal_fat, f1(it)) }, m.protein?.let { rh.gs(R.string.meal_protein, f1(it)) },
-                        m.aiConfidence?.let { rh.gs(R.string.meal_ai_confidence, it) }
+                        m.aiConfidence?.let {
+                            rh.gs(
+                                R.string.meal_ai_confidence, when (it.trim().lowercase()) {
+                                    "high"   -> rh.gs(R.string.meal_conf_high)
+                                    "medium" -> rh.gs(R.string.meal_conf_medium)
+                                    "low"    -> rh.gs(R.string.meal_conf_low)
+                                    else     -> it
+                                }
+                            )
+                        }
                     ).joinToString(" · "), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp)
                 )
                 if (m.aiItems.isNotBlank()) Text(m.aiItems, color = DashColors.Text, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
@@ -404,7 +421,40 @@ class MealRecordsDialog : DaggerDialogFragment() {
     @Composable
     private fun FoodScreen(f: MealFood) {
         val m = meals(f.id)
-        Header("🍽 " + f.name, onBack = { back() })
+        Header(f.name, rh.gs(R.string.meal_rename_action), onBack = { back() }, onRight = { renameText = f.name; renaming = true })
+        if (renaming)
+            Card(border = DashColors.Accent.copy(alpha = 0.5f)) {
+                Text(rh.gs(R.string.meal_name), color = DashColors.Sub, fontSize = 11.sp)
+                BasicTextField(
+                    renameText, { renameText = it }, singleLine = true,
+                    textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(DashColors.Card2)
+                        .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                )
+                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                    Spacer(Modifier.weight(1f))
+                    Text(rh.gs(app.aaps.core.ui.R.string.cancel), color = DashColors.Sub, fontSize = 13.sp, modifier = Modifier.clickable { renaming = false })
+                    Text(
+                        rh.gs(R.string.meal_memo_save), color = DashColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        modifier = Modifier.clickable {
+                            val name = renameText.trim()
+                            if (name.isNotEmpty())
+                                mealTracker.update { d ->
+                                    d.copy(
+                                        foods = d.foods.map { if (it.id == f.id) it.copy(name = name) else it },
+                                        meals = d.meals.map { if (it.foodId == f.id && !it.legacy) it.copy(foodName = name) else it }
+                                    )
+                                }
+                            renaming = false
+                        }
+                    )
+                }
+            }
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(

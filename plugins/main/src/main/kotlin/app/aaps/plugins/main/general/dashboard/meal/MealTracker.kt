@@ -165,7 +165,7 @@ class MealTracker @Inject constructor(
     private fun askManualBoluses() {
         val now = dateUtil.now()
         data().meals.filter { it.confirmed && it.tracked && !it.legacy && it.eval == null }.forEach { meal ->
-            val end = meal.time + T.hours(meal.type.hours.toLong()).msecs()
+            val end = meal.evalAt
             val new = manualBolusesOf(meal, minOf(end, now)).filter { b -> meal.manualBoluses.none { it.time == b.time } }
             if (new.isEmpty()) return@forEach
             update { d -> d.copy(meals = d.meals.map { if (it.id == meal.id) it.copy(manualBoluses = it.manualBoluses + new) else it }) }
@@ -178,6 +178,13 @@ class MealTracker @Inject constructor(
         persistenceLayer.getBolusesFromTimeToTime(meal.deliverTime + T.mins(15).msecs() + 1, until, true)
             .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }
             .map { ManualBolus(it.timestamp, it.amount) }
+
+    /** The user ends the evaluation early (from [EARLY_MIN_HOURS] after the meal): the window ends now. */
+    fun finishEarly(mealId: String) {
+        val now = dateUtil.now()
+        update { d -> d.copy(meals = d.meals.map { if (it.id == mealId && it.eval == null && now < it.evalAt) it.copy(evalAt = now) else it }) }
+        checkDue()
+    }
 
     /** The user's answer (notification button or the meal screen); re-evaluates when the evaluation is done already. */
     fun answer(mealId: String, time: Long, answer: String) {
@@ -223,7 +230,7 @@ class MealTracker @Inject constructor(
     /** Re-run the evaluation (e.g. after the user changed the exclusion). Returns the new record. */
     fun evaluate(meal: MealRecord): MealRecord? {
         val start = meal.time
-        val end = meal.time + T.hours(meal.type.hours.toLong()).msecs()
+        val end = meal.evalAt
         val step = T.mins(MealMath.STEP_MIN.toLong()).msecs()
         val atMeal = profileFunction.getProfile(start) ?: return null
         val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(start - T.mins(10).msecs(), end + T.mins(5).msecs(), true)
@@ -318,6 +325,8 @@ class MealTracker @Inject constructor(
     fun currentIc(time: Long = dateUtil.now()): Double? = profileFunction.getProfile()?.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(time))
 
     companion object {
+
+        const val EARLY_MIN_HOURS = 2
 
         private const val CHANNEL_ID = "AAPS-MealTracking"
         private const val NOTIFICATION_BASE = 0x4D000

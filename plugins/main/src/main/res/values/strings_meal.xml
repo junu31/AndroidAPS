@@ -166,4 +166,7 @@
     <string name="meal_tag_exercise">Exercise</string>
     <string name="meal_tag_sick">Sick or stressed</string>
     <string name="meal_tag_sensor">Sensor issue</string>
+    <string name="meal_finish_now">Finish evaluation now (%1$d h %2$d min after the meal)</string>
+    <string name="meal_finish_from">Finish evaluation now — possible from %1$s</string>
+    <string name="meal_finish_confirm">Tap again to evaluate with the readings so far. Carbs not absorbed yet count through COB.</string>
 </resources>

@@ -587,6 +587,40 @@ class MealRecordsDialog : DaggerDialogFragment() {
             .subscribe({ aiBusy = false; aiText = it.text.trim() }, { aiBusy = false; aiText = rh.gs(R.string.meal_ai_error, it.message ?: "") })
     }
 
+    /** "지금 평가 완료": from 2 h after the meal, second tap confirms */
+    @Composable
+    private fun FinishEarly(m: MealRecord) {
+        val from = m.time + MealTracker.EARLY_MIN_HOURS * 3_600_000L
+        val now = System.currentTimeMillis()
+        var armed by remember(m.id) { mutableStateOf(false) }
+        var busy by remember(m.id) { mutableStateOf(false) }
+        val on = now >= from && !busy
+        val c = if (on) DashColors.Accent else DashColors.Line
+        val label = when {
+            now < from -> rh.gs(R.string.meal_finish_from, time.format(Date(from)))
+            else       -> rh.gs(R.string.meal_finish_now, (now - m.time) / 3_600_000L, (now - m.time) / 60_000L % 60)
+        }
+        Text(
+            "⏹ $label", color = if (on) DashColors.Accent else DashColors.Sub, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier
+                .padding(top = 10.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(999.dp))
+                .border(1.dp, c.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+                .clickable(enabled = on) {
+                    if (!armed) armed = true
+                    else {
+                        busy = true
+                        disposable += io.reactivex.rxjava3.core.Completable.fromAction { mealTracker.finishEarly(m.id) }
+                            .subscribeOn(aapsSchedulers.io).observeOn(aapsSchedulers.main).subscribe({ busy = false; data = mealTracker.data() }, { busy = false })
+                    }
+                }
+                .padding(horizontal = 12.dp, vertical = 7.dp)
+        )
+        if (armed && on) Text(rh.gs(R.string.meal_finish_confirm), color = DashColors.High, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+    }
+
     @Composable
     private fun MealScreen(m: MealRecord) {
         val e = m.eval
@@ -601,6 +635,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
             }
             if (e == null) {
                 Text(rh.gs(R.string.meal_wait_text, time.format(Date(m.evalAt))), color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                if (m.tracked) FinishEarly(m)
             } else {
                 if (m.curve.any { it > 0 }) MealChart(m)
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {

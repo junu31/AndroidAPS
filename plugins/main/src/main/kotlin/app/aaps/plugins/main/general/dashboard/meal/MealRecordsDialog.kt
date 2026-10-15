@@ -325,7 +325,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
                     when {
                         pending != null && evaluated.isEmpty() -> {
                             Text(rh.gs(R.string.meal_pending), color = DashColors.Sub, fontSize = 11.sp)
-                            Text("⏳ " + time.format(Date(pending.evalAt)), color = DashColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text("⏳ " + time.format(Date(pending.evalAt)) + left(pending.evalAt), color = DashColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
                         lastTiming                             -> {
@@ -527,7 +527,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
                     GradeChip(rh, if (r.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
                     Text("  " + dayTime.format(Date(r.time)), color = DashColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
                     Text(
-                        if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(r.evalAt)))
+                        if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(r.evalAt))) + left(r.evalAt)
                         else "${r.carbs.toInt()} g" + (if (e.neededInsulin > 0) " · " + MealTracker.signed(e.ratioPct) + "%" else "") + if (e.maxBg > 0) " · " + rh.gs(R.string.meal_max, e.maxBg) else "",
                         color = DashColors.Sub, fontSize = 11.5.sp
                     )
@@ -552,6 +552,12 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 }
                 .padding(8.dp)
         )
+    }
+
+    /** " · 1시간 20분 남음" until the evaluation */
+    private fun left(at: Long): String {
+        val min = (at - System.currentTimeMillis()) / 60_000L
+        return if (min <= 0) "" else " · " + rh.gs(R.string.meal_left, min / 60, min % 60)
     }
 
     private fun setType(f: MealFood, t: FoodType) {
@@ -627,7 +633,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
     @Composable
     private fun MealScreen(m: MealRecord) {
         val e = m.eval
-        Header(m.foodName + " · " + dayTime.format(Date(m.time)), if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(m.evalAt))) else rh.gs(R.string.meal_evaluated_at, time.format(Date(m.evalAt))), onBack = { back() })
+        Header(m.foodName + " · " + dayTime.format(Date(m.time)), if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(m.evalAt))) + left(m.evalAt) else rh.gs(R.string.meal_evaluated_at, time.format(Date(m.evalAt))), onBack = { back() })
         Card {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)

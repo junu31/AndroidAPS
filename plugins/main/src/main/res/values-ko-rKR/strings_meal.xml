@@ -169,4 +169,5 @@
     <string name="meal_finish_now">지금 평가 완료 (%1$d시간 %2$d분 경과)</string>
     <string name="meal_finish_from">지금 평가 완료 — %1$s부터 가능</string>
     <string name="meal_finish_confirm">한 번 더 누르면 지금까지의 혈당으로 평가해요. 아직 흡수 안 된 탄수화물은 COB로 반영돼요.</string>
+    <string name="meal_left">%1$d시간 %2$d분 남음</string>
 </resources>

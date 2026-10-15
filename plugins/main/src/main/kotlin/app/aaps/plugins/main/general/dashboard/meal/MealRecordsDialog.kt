@@ -562,6 +562,9 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 meals = d.meals.map { if (it.foodId == f.id && it.eval == null && !it.legacy) it.copy(type = t, evalAt = it.time + t.hours * 3_600_000L) else it }
             )
         }
+        // a shorter time may already be over: evaluate now instead of waiting for the next BG
+        disposable += io.reactivex.rxjava3.core.Completable.fromAction { mealTracker.checkDue() }
+            .subscribeOn(aapsSchedulers.io).observeOn(aapsSchedulers.main).subscribe({ data = mealTracker.data() }, {})
     }
 
     private fun runAi(f: MealFood, meals: List<MealRecord>) {

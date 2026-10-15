@@ -1060,9 +1060,6 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         private val AiLilac = Color(0xFFC4B5FD)
 
         private const val KEY_EASY = "wizard_easy"
-    }
-
-    companion object {
 
         /** meal records → calculator: the food to select (carbs in [UiInteraction.AI_CARBS_RESULT_CARBS]) */
         const val ARG_FOOD_ID = "meal_food_id"

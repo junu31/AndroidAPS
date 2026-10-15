@@ -1058,7 +1058,12 @@ class DashboardFragment : DaggerFragment(), DashboardActions {
 
     override fun onWeeklyReview() = withBolusProtection { uiInteraction.runWeeklyReviewDialog(childFragmentManager) }
     override fun onMealRecords() {
-        app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog().show(childFragmentManager, "MealRecords")
+        childFragmentManager.setFragmentResultListener(app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog.CALC_KEY, viewLifecycleOwner) { _, b ->
+            withBolusProtection { DashboardWizardDialog().apply { arguments = b }.show(childFragmentManager, "DashboardWizardDialog") }
+        }
+        app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog().apply {
+            arguments = android.os.Bundle().apply { putBoolean(app.aaps.plugins.main.general.dashboard.meal.MealRecordsDialog.ARG_CALC, true) }
+        }.show(childFragmentManager, "MealRecords")
     }
 
     override fun showInfo(title: String, text: String) {

@@ -57,10 +57,12 @@ import app.aaps.core.interfaces.ai.AiTextEngine
 import app.aaps.core.interfaces.profile.ProfileFunction
 import app.aaps.core.interfaces.resources.ResourceHelper
 import app.aaps.core.interfaces.rx.AapsSchedulers
+import app.aaps.core.interfaces.ui.UiInteraction
 import app.aaps.core.interfaces.utils.DateUtil
 import app.aaps.core.utils.MidnightUtils
 import app.aaps.plugins.main.R
 import app.aaps.plugins.main.general.dashboard.DashColors
+import app.aaps.plugins.main.general.dashboard.DashboardWizardDialog
 import dagger.android.support.DaggerDialogFragment
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.kotlin.plusAssign
@@ -348,7 +350,36 @@ class MealRecordsDialog : DaggerDialogFragment() {
                     }
                 }
             }
+            meals(f.id).firstOrNull()?.let { last ->
+                CalcButton(rh.gs(R.string.meal_to_calc_food, f.name, last.carbs.toInt())) {
+                    toCalc(Bundle().apply { putString(DashboardWizardDialog.ARG_FOOD_ID, f.id); putInt(UiInteraction.AI_CARBS_RESULT_CARBS, last.carbs.toInt()) })
+                }
+            }
         }
+    }
+
+    private val canCalc get() = arguments?.getBoolean(ARG_CALC) == true
+
+    /** hand the values to the Dashboard, which opens its calculator (bolus protection there) */
+    private fun toCalc(b: Bundle) {
+        parentFragmentManager.setFragmentResult(CALC_KEY, b)
+        dismiss()
+    }
+
+    @Composable
+    private fun CalcButton(text: String, onClick: () -> Unit) {
+        if (!canCalc) return
+        Text(
+            "🧮 $text", color = DashColors.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(999.dp))
+                .border(1.dp, DashColors.Accent.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+                .clickable(onClick = onClick)
+                .padding(vertical = 6.dp)
+        )
     }
 
     /** every AI carbs estimate, newest first; can be deleted one by one */
@@ -399,6 +430,16 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 if (m.aiItems.isNotBlank()) Text(m.aiItems, color = DashColors.Text, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
                 if (m.aiDescription.isNotBlank()) Text("✍ " + m.aiDescription, color = DashColors.Sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
                 if (m.legacyText.isNotBlank()) Text(m.legacyText, color = DashColors.Dim, fontSize = 11.sp, maxLines = 5, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                // the estimate itself (not what was applied), like the camera result
+                CalcButton(rh.gs(R.string.meal_to_calc_ai, m.carbs.toInt())) {
+                    toCalc(Bundle().apply {
+                        putInt(UiInteraction.AI_CARBS_RESULT_CARBS, m.carbs.toInt())
+                        putString(UiInteraction.AI_CARBS_RESULT_NAME, m.foodName)
+                        putString(UiInteraction.AI_CARBS_RESULT_FOODS, m.aiItems)
+                        m.fat?.let { putDouble(UiInteraction.AI_CARBS_RESULT_FAT, it) }
+                        m.protein?.let { putDouble(UiInteraction.AI_CARBS_RESULT_PROTEIN, it) }
+                    })
+                }
                 Text(
                     if (deleteAiId == m.id) rh.gs(R.string.meal_delete_confirm) else rh.gs(R.string.meal_ai_delete),
                     color = if (deleteAiId == m.id) DashColors.Low else DashColors.Dim, fontSize = 11.5.sp,
@@ -923,6 +964,10 @@ class MealRecordsDialog : DaggerDialogFragment() {
     }
 
     companion object {
+
+        /** set by the Dashboard: show the 🧮 buttons; the values come back under [CALC_KEY] */
+        const val ARG_CALC = "meal_calc"
+        const val CALC_KEY = "meal_records_to_calc"
 
         private val AiPurple = Color(0xFFA78BFA)
         private val AiLilac = Color(0xFFC4B5FD)

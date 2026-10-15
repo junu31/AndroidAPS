@@ -170,4 +170,6 @@
     <string name="meal_finish_from">Finish evaluation now — possible from %1$s</string>
     <string name="meal_finish_confirm">Tap again to evaluate with the readings so far. Carbs not absorbed yet count through COB.</string>
     <string name="meal_left">%1$d h %2$d min left</string>
+    <string name="meal_to_calc_food">%1$s %2$d g to the calculator</string>
+    <string name="meal_to_calc_ai">%1$d g to the calculator</string>
 </resources>

@@ -26,6 +26,7 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -982,7 +983,8 @@ private fun BottomActions(state: DashboardState, actions: DashboardActions, modi
             if (buttons.carbs)
                 // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
                 ActionButton(stringResource(app.aaps.core.ui.R.string.carbs), app.aaps.core.objects.R.drawable.ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
-            // the AI photo carbs are inside the Dashboard calculator now
+            // the AI photo carbs are inside the Dashboard calculator now; meal records next to it (dot = unseen evaluation)
+            ActionButton(stringResource(R.string.meal_records), 0, DashColors.Text, DashColors.Card, emoji = "🍽", badge = state.meal.unseen > 0) { actions.onMealRecords() }
             if (buttons.wizard)
                 ActionButton(stringResource(R.string.calculator_label), app.aaps.core.objects.R.drawable.ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
         }
@@ -990,7 +992,7 @@ private fun BottomActions(state: DashboardState, actions: DashboardActions, modi
 }
 
 @Composable
-private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, iconScale: Float = 1f, onClick: () -> Unit) {
+private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, iconScale: Float = 1f, emoji: String? = null, badge: Boolean = false, onClick: () -> Unit) {
     // icon on top, label below (option A)
     Column(
         Modifier
@@ -1003,12 +1005,22 @@ private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Colo
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Icon(
-            painterResource(icon), contentDescription = null, tint = fg,
-            modifier = Modifier
-                .size(28.dp)
-                .scale(iconScale)
-        )
+        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+            if (emoji != null) Text(emoji, fontSize = 20.sp)
+            else Icon(
+                painterResource(icon), contentDescription = null, tint = fg,
+                modifier = Modifier
+                    .size(28.dp)
+                    .scale(iconScale)
+            )
+            if (badge) Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(DashColors.Accent)
+            )
+        }
         Spacer(Modifier.height(5.dp))
         Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }

@@ -175,6 +175,7 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     private var okClicked = false
     private var bolusStep = 0.1
     private var maxCarbs = 0
+    private var argsApplied = false
     private var maxCorrection = 0.0
     private var units = GlucoseUnit.MGDL
 
@@ -185,7 +186,11 @@ class DashboardWizardDialog : DaggerDialogFragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // the AI photo dialog hands its carbs back here instead of opening the classic wizard
-        childFragmentManager.setFragmentResultListener(UiInteraction.AI_CARBS_RESULT_KEY, this) { _, bundle ->
+        childFragmentManager.setFragmentResultListener(UiInteraction.AI_CARBS_RESULT_KEY, this) { _, bundle -> applyAi(bundle) }
+    }
+
+    private fun applyAi(bundle: Bundle) {
+        run {
             val carbs = bundle.getInt(UiInteraction.AI_CARBS_RESULT_CARBS)
             carbsText = carbs.toString()
             aiCarbs = carbs
@@ -259,6 +264,18 @@ class DashboardWizardDialog : DaggerDialogFragment() {
             .observeOn(aapsSchedulers.main)
             .subscribe({ calculate() }, fabricPrivacy::logException)
         calculate()
+        // opened from the meal records: a food with its last carbs, or an AI estimate as if it came from the camera
+        if (!argsApplied) {
+            argsApplied = true
+            arguments?.let { args ->
+                val foodId = args.getString(ARG_FOOD_ID)
+                if (foodId != null) {
+                    mealTracker.data().foods.firstOrNull { it.id == foodId }?.let { selectFood(it) }
+                    carbsText = args.getInt(UiInteraction.AI_CARBS_RESULT_CARBS).toString()
+                    calculate()
+                } else if (args.containsKey(UiInteraction.AI_CARBS_RESULT_CARBS)) applyAi(args)
+            }
+        }
     }
 
     private fun uiPrefs() = requireContext().getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE)
@@ -1043,5 +1060,11 @@ class DashboardWizardDialog : DaggerDialogFragment() {
         private val AiLilac = Color(0xFFC4B5FD)
 
         private const val KEY_EASY = "wizard_easy"
+    }
+
+    companion object {
+
+        /** meal records → calculator: the food to select (carbs in [UiInteraction.AI_CARBS_RESULT_CARBS]) */
+        const val ARG_FOOD_ID = "meal_food_id"
     }
 }

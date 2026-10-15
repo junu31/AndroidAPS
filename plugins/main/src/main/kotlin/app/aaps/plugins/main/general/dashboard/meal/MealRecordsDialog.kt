@@ -351,7 +351,7 @@ class MealRecordsDialog : DaggerDialogFragment() {
                 }
             }
             meals(f.id).firstOrNull()?.let { last ->
-                CalcButton(rh.gs(R.string.meal_to_calc_food, f.name, last.carbs.toInt())) {
+                CalcButton(rh.gs(R.string.meal_to_calc_ai, last.carbs.toInt())) {
                     toCalc(Bundle().apply { putString(DashboardWizardDialog.ARG_FOOD_ID, f.id); putInt(UiInteraction.AI_CARBS_RESULT_CARBS, last.carbs.toInt()) })
                 }
             }

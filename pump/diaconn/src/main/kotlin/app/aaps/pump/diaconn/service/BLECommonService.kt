@@ -427,11 +427,13 @@ class BLECommonService internal constructor(
         if (!preferences.get(DiaconnBooleanKey.BatteryWarningSleepMute)) return false
         val start = preferences.get(DiaconnIntKey.BatteryWarningSleepMuteStartHour)
         val end = preferences.get(DiaconnIntKey.BatteryWarningSleepMuteEndHour)
-        val nowHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
-        return when {
-            start == end -> true
-            start < end  -> nowHour in start until end
-            else         -> nowHour >= start || nowHour < end
-        }
+        return isInSleepWindow(start, end, java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY))
     }
+}
+
+/** Personal fork: 23 -> 7 wraps past midnight; start == end is all day. */
+internal fun isInSleepWindow(start: Int, end: Int, hour: Int): Boolean = when {
+    start == end -> true
+    start < end  -> hour in start until end
+    else         -> hour >= start || hour < end
 }

@@ -1,0 +1,401 @@
+package app.aaps.plugins.main.general.dashboard.meal
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import androidx.core.app.NotificationCompat
+import app.aaps.core.data.model.BS
+import app.aaps.core.data.model.GV
+import app.aaps.core.data.model.TT
+import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.di.ApplicationScope
+import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.logging.LTag
+import app.aaps.core.interfaces.profile.EffectiveProfile
+import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.utils.MidnightUtils
+import app.aaps.plugins.main.R
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlin.math.abs
+import kotlin.math.round
+import kotlin.math.roundToInt
+
+/**
+ * Personal-fork: registers meals from the Dashboard calculator, evaluates them N hours later
+ * (on every new BG, so no extra scheduler) and posts a notification with the result.
+ */
+@SingleIn(AppScope::class)
+@Inject
+class MealTracker(
+    private val context: Context,
+    private val store: MealStore,
+    private val persistenceLayer: PersistenceLayer,
+    private val profileFunction: ProfileFunction,
+    private val iobCobCalculator: IobCobCalculator,
+    private val dateUtil: DateUtil,
+    private val rh: ResourceHelper,
+    private val uiInteraction: UiInteraction,
+    private val aapsLogger: AAPSLogger,
+    @ApplicationScope private val appScope: CoroutineScope
+) {
+
+    private var job: Job? = null
+    private val mutex = Mutex()
+    private val _changes = MutableStateFlow<MealData?>(null)
+
+    /** the latest stored data after a change (dashboard badge, open screens) */
+    val changes: StateFlow<MealData?> = _changes
+
+    fun start() {
+        job?.cancel()
+        job = appScope.launch(Dispatchers.IO) {
+            merge(persistenceLayer.observeChanges(GV::class).map { }, flow { delay(CHECK_INTERVAL_MS); emit(Unit) })
+                .conflate()
+                .collect {
+                    try {
+                        checkDue()
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        aapsLogger.error(LTag.CORE, "Meal tracking", e)
+                    }
+                    delay(CHECK_INTERVAL_MS)
+                }
+        }
+    }
+
+    fun stop() {
+        job?.cancel()
+        job = null
+    }
+
+    fun data(): MealData = store.data()
+
+    fun update(change: (MealData) -> MealData) {
+        _changes.value = store.update(change)
+    }
+
+    /** foods by last meal, newest first */
+    fun recentFoods(): List<MealFood> {
+        val data = data()
+        val last = data.meals.filter { !it.legacy }.groupBy { it.foodId }.mapValues { e -> e.value.maxOf { it.time } }
+        return data.foods.sortedByDescending { last[it.id] ?: it.created }
+    }
+
+    fun mealsOf(foodId: String): List<MealRecord> = data().meals.filter { it.foodId == foodId && !it.legacy }.sortedByDescending { it.time }
+
+    /** Called right before the wizard confirmation; kept only if the bolus is really given (see [confirmPending]). */
+    suspend fun register(
+        food: MealFood, tracked: Boolean, carbs: Double, fat: Double?, protein: Double?,
+        carbTimeMin: Int, bolus: Double, historyAdjust: Double
+    ) {
+        val now = dateUtil.now()
+        val time = now + T.mins(carbTimeMin.toLong()).msecs()
+        val profile = profileFunction.getProfile(time) ?: profileFunction.getProfile()
+        val sec = MidnightUtils.secondsFromMidnight(time)
+        // state at entry: last BG and its change over 15 min, IOB (bolus + basal), COB
+        val last = persistenceLayer.getLastGlucoseValue()?.takeIf { now - it.timestamp < T.mins(15).msecs() }
+        val before = last?.let { l ->
+            persistenceLayer.getBgReadingsDataFromTimeToTime(l.timestamp - T.mins(20).msecs(), l.timestamp - T.mins(10).msecs(), true)
+                .minByOrNull { abs(it.timestamp - (l.timestamp - T.mins(15).msecs())) }
+        }
+        val iob = iobCobCalculator.calculateIobFromBolus().iob + iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().basaliob
+        val record = MealRecord(
+            id = MealStore.newId(), foodId = food.id, foodName = food.name, time = time, deliverTime = now, carbs = carbs, fat = fat, protein = protein,
+            type = food.type, tracked = tracked, bolus = bolus, historyAdjust = historyAdjust,
+            profileName = profileFunction.getProfileName(), ic = profile?.getIcTimeFromMidnight(sec) ?: 0.0,
+            isfMgdl = profile?.getIsfMgdlTimeFromMidnight(sec) ?: 0.0, percentage = profile?.percentage ?: 100,
+            evalAt = time + T.hours(food.type.hours.toLong()).msecs(),
+            entryBg = last?.value?.roundToInt(), entryDelta15 = if (last != null && before != null) (last.value - before.value).roundToInt() else null,
+            entryIob = (round(iob * 100) / 100), entryCob = iobCobCalculator.getCobInfo("Meal tracking").displayCob
+        )
+        update { it.copy(meals = it.meals + record) }
+    }
+
+    suspend fun checkDue() = mutex.withLock {
+        confirmPending()
+        askManualBoluses()
+        val now = dateUtil.now()
+        data().meals.filter { it.confirmed && it.tracked && !it.legacy && it.eval == null && it.evalAt <= now }.forEach { meal ->
+            val evaluated = try {
+                evaluate(meal)
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Meal tracking: evaluation failed", e)
+                null
+            } ?: return@forEach
+            update { d -> d.copy(meals = d.meals.map { if (it.id == meal.id) evaluated else it }) }
+            notify(evaluated)
+        }
+    }
+
+    /**
+     * The wizard stores a bolus calculator result when the user confirms; when insulin was planned the meal bolus
+     * must also be delivered (a suspended loop / LGS or a pump error stores no bolus). Nothing within 20 min = cancelled.
+     */
+    private suspend fun confirmPending() {
+        val now = dateUtil.now()
+        val pending = data().meals.filter { !it.confirmed && !it.legacy }
+        if (pending.isEmpty()) return
+        val results = persistenceLayer.getBolusCalculatorResultsFromTime(pending.minOf { it.deliverTime } - T.mins(1).msecs(), true)
+        pending.forEach { meal ->
+            val window = meal.deliverTime - T.mins(1).msecs()..meal.deliverTime + T.mins(20).msecs()
+            val calc = results.any { it.isValid && it.timestamp in window && abs(it.carbs - meal.carbs) < 0.5 }
+            // the meal bolus itself: given within 15 min (later boluses are asked about separately)
+            val delivered = persistenceLayer.getBolusesFromTimeToTime(window.first, meal.deliverTime + T.mins(15).msecs(), true)
+                .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }.sumOf { it.amount }
+            val found = calc && delivered > 0
+            when {
+                // a new food is stored only once its first meal is confirmed (a cancelled confirmation leaves nothing)
+                found                                                -> update { d ->
+                    val foods = if (d.foods.any { it.id == meal.foodId })
+                        d.foods.map { if (it.id == meal.foodId) it.copy(name = meal.foodName, tracked = meal.tracked, type = meal.type) else it }
+                    else d.foods + MealFood(meal.foodId, meal.foodName, meal.type, meal.tracked, meal.deliverTime)
+                    // an untracked meal only keeps the food in the recent list
+                    val meals = if (meal.tracked) d.meals.map { if (it.id == meal.id) it.copy(confirmed = true, bolus = if (delivered > 0) delivered else it.bolus) else it }
+                    else d.meals.filter { it.id != meal.id }
+                    d.copy(foods = foods, meals = meals)
+                }
+
+                now - meal.deliverTime > T.mins(20).msecs()           -> update { d -> d.copy(meals = d.meals.filter { it.id != meal.id }) }
+            }
+        }
+    }
+
+    /** Boluses by hand while a tracked meal is still in its window: ask right away what they were for. */
+    private suspend fun askManualBoluses() {
+        val now = dateUtil.now()
+        data().meals.filter { it.confirmed && it.tracked && !it.legacy && it.eval == null }.forEach { meal ->
+            val end = meal.evalAt
+            val new = manualBolusesOf(meal, minOf(end, now)).filter { b -> meal.manualBoluses.none { it.time == b.time } }
+            if (new.isEmpty()) return@forEach
+            update { d -> d.copy(meals = d.meals.map { if (it.id == meal.id) it.copy(manualBoluses = it.manualBoluses + new) else it }) }
+            new.forEach { askNotification(meal, it) }
+        }
+    }
+
+    /** NORMAL boluses after the meal bolus (by hand, any dialog); the loop's SMBs are not asked */
+    private suspend fun manualBolusesOf(meal: MealRecord, until: Long): List<ManualBolus> =
+        persistenceLayer.getBolusesFromTimeToTime(meal.deliverTime + T.mins(15).msecs() + 1, until, true)
+            .filter { it.isValid && it.type == BS.Type.NORMAL && it.amount > 0 }
+            .map { ManualBolus(it.timestamp, it.amount) }
+
+    /** The user ends the evaluation early (from [EARLY_MIN_HOURS] after the meal): the window ends now. */
+    suspend fun finishEarly(mealId: String) {
+        val now = dateUtil.now()
+        update { d -> d.copy(meals = d.meals.map { if (it.id == mealId && it.eval == null && now < it.evalAt) it.copy(evalAt = now) else it }) }
+        checkDue()
+    }
+
+    /** The user's answer (notification button or the meal screen); re-evaluates when the evaluation is done already. */
+    suspend fun answer(mealId: String, time: Long, answer: String) {
+        update { d -> d.copy(meals = d.meals.map { m -> if (m.id == mealId) m.copy(manualBoluses = m.manualBoluses.map { if (it.time == time) it.copy(answer = answer) else it }) else m }) }
+        (context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager).cancel(askId(mealId, time))
+        val meal = data().meals.firstOrNull { it.id == mealId } ?: return
+        if (meal.eval != null)
+            try {
+                evaluate(meal)?.let { e -> update { d -> d.copy(meals = d.meals.map { if (it.id == mealId) e.copy(seen = true) else it }) } }
+            } catch (e: Exception) {
+                aapsLogger.error(LTag.CORE, "Meal tracking: re-evaluation failed", e)
+            }
+    }
+
+    private fun askId(mealId: String, time: Long) = NOTIFICATION_BASE + 0x10000 + ((mealId.hashCode() xor time.hashCode()) and 0xFFFF)
+
+    private fun askNotification(meal: MealRecord, b: ManualBolus) {
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, rh.gs(R.string.meal_channel), NotificationManager.IMPORTANCE_DEFAULT))
+        fun action(answer: String, code: Int, label: String): NotificationCompat.Action {
+            val intent = Intent(context, MealAnswerReceiver::class.java)
+                .putExtra(MealAnswerReceiver.EXTRA_MEAL, meal.id).putExtra(MealAnswerReceiver.EXTRA_TIME, b.time).putExtra(MealAnswerReceiver.EXTRA_ANSWER, answer)
+            val pi = PendingIntent.getBroadcast(context, askId(meal.id, b.time) * 2 + code, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
+            return NotificationCompat.Action(app.aaps.core.ui.R.drawable.notif_icon, label, pi)
+        }
+        val text = rh.gs(R.string.meal_ask_text, dateUtil.timeString(b.time), String.format(java.util.Locale.getDefault(), "%.2f", b.amount))
+        val n = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(app.aaps.core.ui.R.drawable.notif_icon)
+            .setContentTitle(rh.gs(R.string.meal_ask_title, meal.foodName))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .addAction(action(ManualBolus.MEAL, 0, rh.gs(R.string.meal_ask_meal, meal.foodName)))
+            .addAction(action(ManualBolus.OTHER, 1, rh.gs(R.string.meal_ask_other)))
+            .setAutoCancel(true)
+            .build()
+        try {
+            nm.notify(askId(meal.id, b.time), n)
+        } catch (e: SecurityException) {
+            aapsLogger.error(LTag.CORE, "Meal tracking: notification not allowed", e)
+        }
+    }
+
+    /** Re-run the evaluation (e.g. after the user changed the exclusion). Returns the new record. */
+    suspend fun evaluate(meal: MealRecord): MealRecord? {
+        val start = meal.time
+        val end = meal.evalAt
+        val step = T.mins(MealMath.STEP_MIN.toLong()).msecs()
+        val atMeal = profileFunction.getProfile(start) ?: return null
+        val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(start - T.mins(10).msecs(), end + T.mins(5).msecs(), true)
+        val times = (0..((end - start) / step).toInt()).map { start + it * step }
+        val bg = times.map { t ->
+            readings.filter { abs(it.timestamp - t) <= T.mins(3).msecs() }.minByOrNull { abs(it.timestamp - t) }?.value?.roundToInt()
+        }
+        var basalExtra = 0.0
+        val activity = times.map { t ->
+            val profile: EffectiveProfile = profileFunction.getProfile(t) ?: atMeal
+            iobCobCalculator.getBasalData(profile, t).let { if (it.isTempBasalRunning) basalExtra += (it.tempBasalAbsolute - it.basal) * MealMath.STEP_MIN / 60.0 }
+            iobCobCalculator.calculateFromTreatmentsAndTemps(t, profile).activity
+        }
+        val boluses = persistenceLayer.getBolusesFromTimeToTime(meal.deliverTime - T.mins(1).msecs(), end, true)
+            .filter { it.isValid && it.type != BS.Type.PRIMING }
+        val mealWindow = meal.deliverTime - T.mins(1).msecs()..meal.deliverTime + T.mins(15).msecs()
+        val mealBoluses = boluses.filter { it.type == BS.Type.NORMAL && it.timestamp in mealWindow }
+        val smbs = boluses.filter { it.type == BS.Type.SMB }
+        val manual = boluses.filter { it.type == BS.Type.NORMAL && it.timestamp !in mealWindow }
+        fun minOf(ts: Long) = ((ts - start) / 60000L).toInt()
+        // the meal's own carbs entry is the first one with the same amount close to the carbs time
+        val carbs = persistenceLayer.getCarbsFromTimeToTimeExpanded(start - T.mins(15).msecs(), end, true).filter { it.isValid && it.amount > 0 }
+        val own = carbs.filter { abs(it.timestamp - start) <= T.mins(15).msecs() && abs(it.amount - meal.carbs) < 0.5 }.minByOrNull { abs(it.timestamp - start) }
+        val other = carbs.filter { it !== own && it.timestamp >= start }.map { c ->
+            val near = readings.filter { abs(it.timestamp - c.timestamp) <= T.mins(15).msecs() }.minOfOrNull { it.value }
+            MealMath.OtherCarbs(minOf(c.timestamp), c.amount, near?.roundToInt())
+        }
+        val activityTarget = persistenceLayer.getTemporaryTargetDataFromTime(start - T.hours(2).msecs(), true)
+            .any { it.isValid && it.reason == TT.Reason.ACTIVITY && it.timestamp < end && it.timestamp + it.duration > start }
+        val profileSwitch = persistenceLayer.getEffectiveProfileSwitchesFromTimeToTime(start + 1, end, true).isNotEmpty()
+        // COB from the autosens data: before the meal (earlier food) and at the end (not absorbed yet)
+        // (a re-evaluation days later may find no autosens data any more: keep the earlier values then)
+        val cobBefore = iobCobCalculator.ads.getAutosensDataAtTime(start - T.mins(5).msecs())?.cob ?: meal.eval?.cobBefore ?: 0.0
+        val cobAfter = iobCobCalculator.ads.getAutosensDataAtTime(end)?.cob ?: meal.eval?.cobAfter ?: 0.0
+        // deviations in the 30 min before the meal: how calm the start was
+        val startDeviations = (1..6).mapNotNull { k ->
+            iobCobCalculator.ads.getAutosensDataAtTime(start - k * step)?.takeIf { it.validDeviation }?.deviation
+        }
+        // boluses by hand: answers given so far are kept, new ones are added unanswered
+        val asked = manualBolusesOf(meal, end).map { b -> meal.manualBoluses.firstOrNull { it.time == b.time } ?: b }
+        val evaluated = MealMath.evaluate(
+            MealMath.EvalInput(
+                carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
+                bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
+                manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
+                notDelivered = mealBoluses.isEmpty(), manualOther = asked.any { it.answer == ManualBolus.OTHER },
+                manualPending = asked.any { it.answer.isEmpty() }, activityTarget = activityTarget, profileSwitch = profileSwitch
+            )
+        )
+        val eval = if (startDeviations.isEmpty() && meal.eval != null) evaluated.copy(reliability = meal.eval.reliability, startDeviation = meal.eval.startDeviation) else evaluated
+        val events = mealBoluses.map { MealEvent(minOf(it.timestamp), MealEvent.MEAL_BOLUS, it.amount) } +
+            smbs.map { MealEvent(minOf(it.timestamp), MealEvent.SMB, it.amount) } +
+            manual.map { MealEvent(minOf(it.timestamp), MealEvent.BOLUS, it.amount) } +
+            other.map { MealEvent(it.min, MealEvent.CARBS, it.grams) }
+        return meal.copy(eval = eval, curve = bg.map { it ?: 0 }, events = events, seen = false, manualBoluses = asked)
+    }
+
+    private fun notify(meal: MealRecord) {
+        val e = meal.eval ?: return
+        val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, rh.gs(R.string.meal_channel), NotificationManager.IMPORTANCE_DEFAULT))
+        val title = when {
+            e.grade == MealGrade.EXCLUDED -> rh.gs(R.string.meal_notif_excluded, meal.foodName)
+            e.needsAnswer                 -> rh.gs(R.string.meal_notif_needs_answer, meal.foodName)
+            else                          -> rh.gs(R.string.meal_notif_done, meal.foodName, gradeText(rh, e.grade))
+        }
+        val text = when {
+            e.grade == MealGrade.EXCLUDED -> excludeText(rh, e.exclude)
+            e.needsAnswer                 -> rh.gs(R.string.meal_notif_needs_answer_text)
+            else                          -> rh.gs(R.string.meal_notif_text, e.tirPct, e.maxBg, e.smb + e.basalExtra + e.manualExtra, e.neededInsulin, signed(e.ratioPct))
+        }
+        val open = PendingIntent.getActivity(
+            context, 0, Intent(context, uiInteraction.mainActivity.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val n = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(app.aaps.core.ui.R.drawable.notif_icon)
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .build()
+        try {
+            nm.notify(NOTIFICATION_BASE + (meal.id.hashCode() and 0xFFFF), n)
+        } catch (e: SecurityException) {
+            aapsLogger.error(LTag.CORE, "Meal tracking: notification not allowed", e)
+        }
+    }
+
+    /** current profile IC at the given time */
+    suspend fun currentIc(time: Long = dateUtil.now()): Double? = profileFunction.getProfile()?.getIcTimeFromMidnight(MidnightUtils.secondsFromMidnight(time))
+
+    companion object {
+
+        const val EARLY_MIN_HOURS = 2
+        private const val CHECK_INTERVAL_MS = 60_000L
+
+        private const val CHANNEL_ID = "AAPS-MealTracking"
+        private const val NOTIFICATION_BASE = 0x4D000
+
+        fun signed(v: Int) = if (v > 0) "+$v" else "$v"
+
+        fun gradeText(rh: ResourceHelper, g: MealGrade): String = rh.gs(
+            when (g) {
+                MealGrade.OK       -> R.string.meal_grade_ok
+                MealGrade.UNDER    -> R.string.meal_grade_under
+                MealGrade.OVER     -> R.string.meal_grade_over
+                MealGrade.TIMING   -> R.string.meal_grade_timing
+                MealGrade.EXCLUDED -> R.string.meal_grade_excluded
+            }
+        )
+
+        fun excludeText(rh: ResourceHelper, r: ExcludeReason): String = rh.gs(
+            when (r) {
+                ExcludeReason.OTHER_MEAL     -> R.string.meal_ex_other_meal
+                ExcludeReason.SENSOR_GAP     -> R.string.meal_ex_sensor
+                ExcludeReason.ACTIVITY       -> R.string.meal_ex_activity
+                ExcludeReason.PROFILE_SWITCH -> R.string.meal_ex_profile
+                ExcludeReason.NO_INSULIN     -> R.string.meal_ex_no_insulin
+                ExcludeReason.NOT_DELIVERED  -> R.string.meal_ex_not_delivered
+                ExcludeReason.MANUAL_OTHER   -> R.string.meal_ex_manual_other
+                ExcludeReason.USER, ExcludeReason.NONE -> R.string.meal_ex_user
+            }
+        )
+
+        fun reliabilityText(rh: ResourceHelper, r: Reliability): String = rh.gs(
+            when (r) {
+                Reliability.HIGH    -> R.string.meal_rel_high
+                Reliability.MEDIUM  -> R.string.meal_rel_medium
+                Reliability.LOW     -> R.string.meal_rel_low
+                Reliability.UNKNOWN -> R.string.meal_rel_unknown
+            }
+        )
+
+        fun typeText(rh: ResourceHelper, t: FoodType): String = rh.gs(
+            when (t) {
+                FoodType.FAST        -> R.string.meal_type_fast
+                FoodType.MIXED       -> R.string.meal_type_mixed
+                FoodType.FAT         -> R.string.meal_type_fat
+                FoodType.FAT_PROTEIN -> R.string.meal_type_fat_protein
+            }
+        )
+    }
+}

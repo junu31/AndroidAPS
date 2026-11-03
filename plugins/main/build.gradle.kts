@@ -33,6 +33,14 @@ kotlin {
             }
         }
 
+        // Personal-fork: meal tracking
+        androidMain {
+            dependencies {
+                implementation(libs.androidx.core)
+                implementation(libs.com.google.code.gson)
+            }
+        }
+
         // Hand written rather than taken from test-module-dependencies, which applies
         // com.android.library and so cannot be used here. Same approach as :plugins:sensitivity.
         getByName("androidHostTest") {

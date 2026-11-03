@@ -114,7 +114,8 @@ class ImportExportPrefsImpl(
     private val userEntryPresentationHelper: UserEntryPresentationHelper,
     private val storage: Storage,
     private val cryptoUtil: CryptoUtil,
-    private val applier: PreferenceImportApplier
+    private val applier: PreferenceImportApplier,
+    private val mealBackup: app.aaps.core.interfaces.meal.MealBackup
 ) : ImportExportPrefs {
 
     private var pendingExportFile: DocumentFile? = null
@@ -394,6 +395,8 @@ class ImportExportPrefsImpl(
                 else
                     aapsLogger.warn(LTag.CORE, "Not exportable key: $key $value")
             }
+            // Personal-fork: meal tracking records ride along as one extra entry
+            mealBackup.exportBackup()?.let { entries[app.aaps.core.interfaces.meal.MealBackup.PREF_KEY] = it }
             val prefs = Prefs(entries, prepareMetadata(context))
             encryptedPrefsFormat.savePreferences(newFile, prefs, password)
             resultOk = true // Assuming export was executed successfully (or it would have thrown an exception)
@@ -622,6 +625,8 @@ class ImportExportPrefsImpl(
 
     override suspend fun executeImport(prefs: Prefs, keepPumpSettings: Boolean): ImportExportPrefs.ImportOutcome {
         activePlugin.beforeImport()
+        // Personal-fork: meal tracking records go back to their own file; the applier leaves the unknown name alone
+        prefs.values[app.aaps.core.interfaces.meal.MealBackup.PREF_KEY]?.let { mealBackup.importBackup(it) }
         val outcome = applier.apply(prefs, keepPumpSettings)
         activePlugin.afterImport()
         aapsLogger.info(

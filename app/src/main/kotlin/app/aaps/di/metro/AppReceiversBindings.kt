@@ -9,6 +9,7 @@ import app.aaps.implementation.receivers.NetworkChangeReceiver
 import app.aaps.implementation.receivers.TimeDateOrTZChangeReceiver
 import app.aaps.persistentNotification.DummyService
 import app.aaps.receivers.AutoStartReceiver
+import app.aaps.plugins.main.general.dashboard.meal.MealAnswerReceiver
 import app.aaps.receivers.CarbSuggestionReceiver
 import app.aaps.receivers.DataReceiver
 import app.aaps.receivers.SmsReceiver
@@ -68,6 +69,12 @@ object AppReceiversBindings {
     @IntoMap
     @ClassKey(BTReceiver::class)
     fun bindBTReceiver(injector: MembersInjector<BTReceiver>): MembersInjector<*> = injector
+
+    @Provides
+    @FeatureMemberInjectors
+    @IntoMap
+    @ClassKey(MealAnswerReceiver::class)
+    fun bindMealAnswerReceiver(injector: MembersInjector<MealAnswerReceiver>): MembersInjector<*> = injector
 
     @Provides
     @FeatureMemberInjectors

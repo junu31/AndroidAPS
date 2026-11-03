@@ -28,6 +28,12 @@ class SourceSensorExtensionsTest {
     }
 
     @Test
+    fun `personal fork NSEmulator is trusted for SMB and keeps the flat check`() {
+        assertTrue(SourceSensor.NSEMULATOR_FOLLOW.advancedFilteringSupported())
+        assertTrue(SourceSensor.NSEMULATOR_FOLLOW.needsFlatBgCheck())
+    }
+
+    @Test
     fun `syai and random support advanced filtering`() {
         assertTrue(SourceSensor.SYAI_TAG.advancedFilteringSupported())
         assertTrue(SourceSensor.RANDOM.advancedFilteringSupported())

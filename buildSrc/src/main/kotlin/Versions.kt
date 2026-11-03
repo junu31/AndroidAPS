@@ -6,7 +6,7 @@ object Versions {
 
     // On change edit aaps-ci.yml
     const val appVersion = "4.0.0"
-    const val versionCode = 1500
+    const val versionCode = 1511
 
     const val compileSdk = 37
     const val minSdk = 31

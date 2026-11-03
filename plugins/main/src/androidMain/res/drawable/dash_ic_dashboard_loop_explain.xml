@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Personal-fork: speech bubble with "?" for the loop-decision floating button -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineJoin="round"
+        android:pathData="M5,4h14a2,2 0,0 1,2 2v9a2,2 0,0 1,-2 2h-8l-5,4v-4h-1a2,2 0,0 1,-2 -2v-9a2,2 0,0 1,2 -2z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:pathData="M10,8.5a2,2 0,1 1,2.8 1.8c-0.5,0.3 -0.8,0.7 -0.8,1.3v0.4" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,14.2m-1.1,0a1.1,1.1 0,1 1,2.2 0a1.1,1.1 0,1 1,-2.2 0" />
+</vector>

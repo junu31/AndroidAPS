@@ -38,6 +38,9 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(libs.androidx.core)
+                implementation(libs.jetbrains.compose.foundation)
+                implementation(libs.jetbrains.compose.material3)
+                implementation(libs.androidx.lifecycle.runtime.compose)
                 implementation(libs.com.google.code.gson)
             }
         }

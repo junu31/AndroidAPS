@@ -104,6 +104,8 @@ fun OverviewScreen(
     queueStatusText: AnnotatedString? = null,
     isPumpCommunicating: Boolean = false,
     onStopBolus: () -> Unit = {},
+    /** Personal-fork: replaces the columns below; everything around them stays. */
+    homeContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var showNotificationSheet by remember { mutableStateOf(false) }
@@ -146,7 +148,21 @@ fun OverviewScreen(
     val isTablet = smallestScreenWidthDp() >= TABLET_MIN_SW_DP
 
     Box(modifier = modifier.fillMaxSize()) {
-        BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        if (homeContent != null) {
+            androidx.compose.foundation.layout.Column(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+                app.aaps.ui.compose.scenes.ActiveSceneBanner(
+                    activeState = activeSceneState,
+                    expired = sceneExpired,
+                    chainTargetName = activeSceneChainTargetName,
+                    onEndClick = onEndScene,
+                    onDismiss = onDismissScene,
+                    endEnabled = endSceneEnabled,
+                    formatDuration = formatDuration
+                )
+                eatReminderBanner()
+                homeContent()
+            }
+        } else BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             // Two columns only where each one gets the width of a phone column. The text scale keeps that
             // true for the larger tablet text (see `typographyScaleFor`). Without the width check a nearly
             // square tablet window got two columns narrower than any phone has.

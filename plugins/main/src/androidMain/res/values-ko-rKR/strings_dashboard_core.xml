@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dash_basal">Basal</string>
+    <string name="dash_bolus">Bolus</string>
+    <string name="dash_calculator_label">계산기</string>
+    <string name="dash_calibration">보정</string>
+    <string name="dash_carbs">탄수화물</string>
+    <string name="dash_extended_bolus">확장 Bolus</string>
+    <string name="dash_overview_cgm">CGM</string>
+    <string name="dash_overview_insulin_label">인슐린</string>
+    <string name="dash_overview_treatment_label">관리</string>
+    <string name="dash_required">필요량</string>
+</resources>

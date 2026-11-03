@@ -232,6 +232,7 @@ interface AppRootGraph : MetroViewModelMultibindings {
      */
     val runningModeGuard: RunningModeGuard
     val quickWizard: QuickWizard
+    val mealTracker: app.aaps.plugins.main.general.dashboard.meal.MealTracker // Personal-fork
     val bolusWizard: BolusWizard
 
     /**

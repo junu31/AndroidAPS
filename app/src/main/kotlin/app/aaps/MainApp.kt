@@ -482,6 +482,7 @@ class MainApp : Application(), MetroMemberInjector, MetroViewModelFactoryOwner, 
         aapsLogger.debug("Phone: " + Build.MANUFACTURER + " " + Build.MODEL)
         registerLocalBroadcastReceiver()
         setupRemoteConfig()
+        metroGraphs.rootGraph.mealTracker.start() // Personal-fork: evaluations run whichever home screen is used
 
         // trigger here to see the new version on app start after an update
         handler.postDelayed({ versionCheckersUtils.triggerCheckVersion() }, 30000)

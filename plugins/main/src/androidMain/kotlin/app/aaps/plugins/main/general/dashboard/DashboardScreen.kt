@@ -1,0 +1,1092 @@
+package app.aaps.plugins.main.general.dashboard
+
+import androidx.annotation.DrawableRes
+import android.content.Context
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalView
+import androidx.core.content.edit
+import kotlinx.coroutines.flow.first
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import app.aaps.plugins.main.R
+import kotlinx.coroutines.launch
+
+object DashColors {
+
+    val Bg = Color(0xFF0E1116)
+    val Card = Color(0xFF171B22)
+    val Card2 = Color(0xFF1E232C)
+    val Line = Color(0xFF2A303B)
+    val Grid = Color(0xFF3A4250)
+    val Warn = Color(0xFFFDE047)
+    val Text = Color(0xFFE8ECF2)
+    val Sub = Color(0xFF8A93A3)
+    val Dim = Color(0xFF5C6575)
+    val InRange = Color(0xFF34D399)
+    val Low = Color(0xFFF87171)
+    val High = Color(0xFFFBBF24)
+    val Iob = Color(0xFF60A5FA)
+    val Cob = Color(0xFFF59E0B)
+    val Basal = Color(0xFFA78BFA)
+    val Uam = Color(0xFFF472B6)
+    val Zt = Color(0xFF22D3EE)
+    val Target = Color(0xFF2DD4BF)
+    val Activity = Color(0xFFFDE68A)
+    val Accent = Color(0xFF2DD4BF)
+}
+
+internal val ScreenPadding = 14.dp
+
+interface DashboardActions {
+
+    fun onProfileClick()
+    fun onProfileLongClick()
+    fun onTempTargetClick()
+    fun onLoopClick()
+    fun onLoopLongClick()
+    fun onBgQualityClick()
+    fun onPumpStatusClick()
+    fun onInsulin()
+    fun onCarbs()
+    fun onWizard()
+    fun onAiCarbs()
+    fun onTreatment()
+    fun onQuickWizard()
+    fun onQuickWizardLong()
+    fun onCalibration()
+    fun onCgm()
+    fun onAcceptTemp()
+    fun onScale(hours: Int)
+    fun showInfo(title: String, text: String)
+    fun onWeeklyReview()
+    fun onMealRecords()
+    fun onRecentBoluses()
+    fun onExplainDecision()
+}
+
+@Composable
+fun DashboardScreen(
+    state: DashboardState,
+    graph: GraphModel,
+    actions: DashboardActions,
+    barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>
+) {
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(DashColors.Bg)
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = if (state.pumpStatus.isNotEmpty()) 156.dp else 116.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // notifications (often empty) and the compact profile/target line sit tight above the BG card,
+            // so an empty notification slot does not add a full section gap under the tabs
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Ribbons(state, actions)
+                HeroPager(state, actions)
+            }
+            GraphCard(graph, actions)
+            if (state.statusLights.isNotEmpty()) {
+                SectionTitle(stringResource(R.string.dashboard_supplies))
+                StatusLights(state.statusLights)
+                if (state.stats != null) SectionDivider()
+            }
+            state.stats?.let {
+                SectionTitle(stringResource(R.string.dashboard_glucose_stats))
+                StatsCard(it)
+            }
+            ReviewTiles(state.weeklyReviewLast, state.meal, actions)
+            state.buttons.acceptTemp?.let { AcceptTempButton(it, actions) }
+            if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
+                SecondaryActions(state.buttons, actions)
+        }
+        BottomActions(state, actions, barItems, Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun SectionTitle(text: String) {
+    // same style and left edge as the graph's "BG" title
+    Text(text, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+}
+
+@Composable
+private fun CardBox(modifier: Modifier = Modifier, plain: Boolean = false, content: @Composable BoxScope.() -> Unit) {
+    Box(
+        if (plain) modifier.fillMaxWidth()
+        else modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(22.dp))
+            .background(DashColors.Card)
+            .border(1.dp, DashColors.Line, RoundedCornerShape(22.dp))
+    ) { content() }
+}
+
+private fun Severity.color(): Color = when (this) {
+    Severity.OK       -> DashColors.InRange
+    Severity.WARNING  -> DashColors.High
+    Severity.CRITICAL -> DashColors.Low
+    Severity.NEUTRAL  -> DashColors.Text
+}
+
+internal fun BgRange.color(): Color = when (this) {
+    BgRange.LOW      -> DashColors.Low
+    BgRange.IN_RANGE -> DashColors.InRange
+    BgRange.HIGH     -> DashColors.High
+    BgRange.UNKNOWN  -> DashColors.Sub
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+internal fun Modifier.clicks(onClick: () -> Unit, onLongClick: (() -> Unit)? = null) =
+    combinedClickable(onClick = onClick, onLongClick = onLongClick)
+
+@Composable
+private fun PumpStatusBanner(text: String, actions: DashboardActions) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFF14243A))
+            .border(1.dp, Color(0xFF1F3B5E), RoundedCornerShape(8.dp))
+            .clicks({ actions.onPumpStatusClick() })
+            .padding(horizontal = 12.dp, vertical = 7.dp),
+        horizontalArrangement = Arrangement.Center
+    ) {
+        Text(text, color = DashColors.Iob, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Profile (left) and target (right) as one compact text line above the BG card (option A-1). Same click actions as before. */
+@Composable
+private fun Ribbons(state: DashboardState, actions: DashboardActions) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        CompactRibbon(
+            icon = R.drawable.dash_ic_ribbon_profile,
+            description = stringResource(R.string.dashboard_profile),
+            info = state.profile,
+            modifier = Modifier.weight(1f),
+            onClick = { actions.onProfileClick() },
+            onLongClick = { actions.onProfileLongClick() }
+        )
+        CompactRibbon(
+            icon = R.drawable.dash_ic_crosstarget,
+            description = stringResource(R.string.dashboard_target),
+            info = state.target,
+            modifier = Modifier,
+            onClick = { actions.onTempTargetClick() },
+            onLongClick = { actions.onTempTargetClick() }
+        )
+    }
+}
+
+@Composable
+private fun CompactRibbon(@DrawableRes icon: Int, description: String, info: RibbonInfo, modifier: Modifier, onClick: () -> Unit, onLongClick: () -> Unit) {
+    val color = if (info.severity == Severity.NEUTRAL) DashColors.Text else info.severity.color()
+    Row(
+        modifier
+            .height(32.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .clicks(onClick, onLongClick)
+            .padding(horizontal = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(icon), contentDescription = description, tint = DashColors.Sub, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            info.text, color = color, fontSize = 13.sp,
+            fontWeight = if (info.severity == Severity.NEUTRAL) FontWeight.SemiBold else FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+@Composable
+private fun HeroCard(state: DashboardState, actions: DashboardActions) {
+    val bg = state.bg
+    val color = bg.range.color()
+    CardBox(plain = !state.bgCardBackground) {
+        if (state.bgCardBackground) Box(
+            Modifier
+                .matchParentSize()
+                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(900f, 0f)))
+        )
+        // compact layout (option A): smaller BG / arrow, tighter paddings
+        Column(Modifier.padding(start = 18.dp, end = 18.dp, top = 12.dp, bottom = 8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(bg.timeAgo, color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                state.loop?.let { LoopPill(it, actions) }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
+                // left: BG value + trend arrow
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    // tapping the BG value opens the last loop decision; the small bubble marks it as tappable
+                    var showDecision by remember { mutableStateOf(false) }
+                    Row(
+                        Modifier
+                            .clip(RoundedCornerShape(12.dp))
+                            .clickable { showDecision = true }
+                            .padding(end = 2.dp)
+                    ) {
+                        Text(
+                            bg.value,
+                            color = color,
+                            fontSize = 58.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-2).sp,
+                            maxLines = 1,
+                            textDecoration = if (bg.isActual) null else TextDecoration.LineThrough
+                        )
+                        LoopDecisionBadge(state.loopDecision, Modifier.padding(start = 2.dp, top = 6.dp))
+                    }
+                    if (showDecision) LoopDecisionDialog(state.loopDecision, state.decisionExplain, actions::onExplainDecision) { showDecision = false }
+                    Spacer(Modifier.width(10.dp))
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        bg.arrowRes?.let {
+                            // rounded-square tile like the buttons; the faster the change, the stronger the tint
+                            val tint = listOf(0.12f, 0.18f, 0.28f, 0.45f)[bg.trendLevel.coerceIn(0, 3)]
+                            Box(
+                                Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(color.copy(alpha = tint))
+                                    .border(1.dp, color.copy(alpha = 0.5f), RoundedCornerShape(8.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(painterResource(it), contentDescription = bg.arrowDescription, tint = color, modifier = Modifier.size(24.dp))
+                            }
+                        }
+                        if (bg.qualityIcon != 0)
+                            Icon(
+                                painterResource(bg.qualityIcon), contentDescription = bg.qualityMessage, tint = Color.Unspecified,
+                                modifier = Modifier
+                                    .padding(top = 6.dp)
+                                    .size(20.dp)
+                                    .clicks({ actions.onBgQualityClick() })
+                            )
+                    }
+                }
+                // right: Δ 5 / 15 / 40 min stacked
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.width(132.dp)) {
+                    DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
+                    DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
+                    DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
+                }
+            }
+            HeroStats(state, actions)
+        }
+    }
+}
+
+private const val PREFS_UI = "dashboard_ui"
+private const val KEY_HERO_PAGE = "hero_page"
+private const val HERO_PAGES = 3
+
+/** BG card and the ring card side by side; swipe to switch, the last shown card is kept across restarts. */
+@Composable
+private fun HeroPager(state: DashboardState, actions: DashboardActions) {
+    val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences(PREFS_UI, Context.MODE_PRIVATE) }
+    val savedPage = remember { prefs.getInt(KEY_HERO_PAGE, 0).coerceIn(0, HERO_PAGES - 1) }
+    val pagerState = rememberPagerState(initialPage = savedPage) { HERO_PAGES }
+    LaunchedEffect(pagerState) {
+        // the tab is composed off screen without a width first, which drops the pager back to page 0:
+        // restore the saved page once it has a size and only then start remembering the user's choice
+        snapshotFlow { pagerState.layoutInfo.viewportSize.width }.first { it > 0 }
+        if (pagerState.currentPage != savedPage) pagerState.scrollToPage(savedPage)
+        snapshotFlow { pagerState.settledPage }.collect { prefs.edit { putInt(KEY_HERO_PAGE, it) } }
+    }
+    // the main tabs are a ViewPager2: keep it from taking the swipe while the finger is on the card
+    val view = LocalView.current
+    // the cards differ in height: the pager follows the visible card, blending while swiping
+    val heights = remember { mutableStateMapOf<Int, Int>() }
+    val position = (pagerState.currentPage + pagerState.currentPageOffsetFraction).coerceIn(0f, (HERO_PAGES - 1).toFloat())
+    val from = position.toInt().coerceAtMost(HERO_PAGES - 2)
+    val hFrom = heights[from]
+    val hTo = heights[from + 1]
+    val heightModifier = if (hFrom != null && hTo != null) {
+        val f = position - from
+        Modifier.height(with(LocalDensity.current) { (hFrom + (hTo - hFrom) * f).toDp() })
+    } else Modifier
+    // without the card background the cards spread to the screen edges like the graph below
+    Column(
+        if (state.bgCardBackground) Modifier
+        else Modifier.layout { measurable, constraints ->
+            val extra = (ScreenPadding * 2).roundToPx()
+            val width = constraints.maxWidth + extra
+            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+        }
+    ) {
+        HorizontalPager(
+            state = pagerState,
+            pageSpacing = 12.dp,
+            beyondViewportPageCount = 1,
+            verticalAlignment = Alignment.Top,
+            modifier = heightModifier.pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    view.parent?.requestDisallowInterceptTouchEvent(true)
+                }
+            }
+        ) { page ->
+            Box(
+                Modifier
+                    .wrapContentHeight(Alignment.Top, unbounded = true)
+                    .onSizeChanged { heights[page] = it.height }
+            ) {
+                when (page) {
+                    0    -> HeroCard(state, actions)
+                    1    -> RingCard(state, actions)
+                    else -> CardBox(plain = !state.bgCardBackground) {
+                        val color = state.bg.range.color()
+                        // glow in the BG range color like the other cards, centred on the ring
+                        if (state.bgCardBackground) Box(
+                            Modifier
+                                .matchParentSize()
+                                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 500f))
+                        )
+                        Card3(state, actions, color)
+                    }
+                }
+            }
+        }
+        PageDots(pagerState.currentPage, HERO_PAGES)
+    }
+}
+
+@Composable
+private fun PageDots(current: Int, count: Int) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = 6.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally)
+    ) {
+        repeat(count) { i ->
+            Box(
+                Modifier
+                    .height(6.dp)
+                    .width(if (i == current) 16.dp else 6.dp)
+                    .clip(RoundedCornerShape(3.dp))
+                    .background(if (i == current) DashColors.Accent else DashColors.Dim)
+            )
+        }
+    }
+}
+
+/**
+ * Second card: BG inside the loop icon with the trend circle (option B, colors follow the BG range).
+ * Split by grid lines: ring | right side, right side = delta bars / 2x2 IOB, COB, Basal, Sens.
+ */
+@Composable
+private fun RingCard(state: DashboardState, actions: DashboardActions) {
+    val bg = state.bg
+    val color = bg.range.color()
+    CardBox(plain = !state.bgCardBackground) {
+        if (state.bgCardBackground) Box(
+            Modifier
+                .matchParentSize()
+                .background(Brush.radialGradient(listOf(color.copy(alpha = 0.18f), Color.Transparent), radius = 600f, center = Offset(0f, 0f)))
+        )
+        // symmetric grid: left half = ring, right half = delta bars (top 60 %) / 2x2 values (bottom 40 %)
+        Row(Modifier.height(IntrinsicSize.Min)) {
+            // tapping the BG opens the last loop decision, like on the first card
+            var showDecision by remember { mutableStateOf(false) }
+            Box(
+                Modifier
+                    .weight(1f)
+                    .padding(vertical = 6.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // the ring carries the loop icon and status: tapping it opens the loop menu like the loop icon on the classic home
+                BgRing(
+                    bg, color, state.loop, 156.dp,
+                    Modifier
+                        .clip(RoundedCornerShape(78.dp))
+                        .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
+                )
+                // corners outside the ring: BG source top left, its age top right, loop decision bottom right
+                Text(
+                    bg.source, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .align(Alignment.TopStart)
+                        .padding(start = 12.dp, top = 2.dp)
+                        .width(70.dp)
+                )
+                Text(
+                    bg.age, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 10.dp, top = 2.dp)
+                )
+                // pump battery bottom left (same value and warning color as in the supplies)
+                state.statusLights.firstOrNull { it.iconRes == R.drawable.dash_ic_cp_age_battery }?.let { battery ->
+                    val tint = if (battery.severity == Severity.WARNING || battery.severity == Severity.CRITICAL) battery.severity.color() else DashColors.Sub
+                    Row(
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .padding(start = 12.dp, bottom = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(painterResource(battery.iconRes), contentDescription = battery.label, tint = tint, modifier = Modifier.size(14.dp))
+                        Spacer(Modifier.width(3.dp))
+                        Text(battery.value, color = tint, fontSize = 11.sp, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                    }
+                }
+                LoopDecisionBadge(
+                    state.loopDecision,
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(end = 4.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable { showDecision = true }
+                        .padding(4.dp)
+                )
+            }
+            if (showDecision) LoopDecisionDialog(state.loopDecision, state.decisionExplain, actions::onExplainDecision) { showDecision = false }
+            // the centre line stops short of the card edges
+            GridLineV(Modifier.padding(vertical = 14.dp))
+            Column(Modifier.weight(1f)) {
+                Column(
+                    Modifier
+                        .weight(0.6f)
+                        .padding(start = 10.dp, end = 12.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)
+                ) {
+                    DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
+                    DeltaBar(stringResource(R.string.dashboard_delta_15), bg.shortAvgDelta, bg.deltasMgdl[1])
+                    DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
+                }
+                GridLineH(Modifier.padding(horizontal = 10.dp))
+                Column(Modifier.weight(0.4f)) {
+                    Row(Modifier.weight(1f)) {
+                        GridStat("IOB", DashColors.Iob, state.iob, actions)
+                        GridLineV(Modifier.padding(vertical = 6.dp))
+                        GridStat("COB", DashColors.Cob, state.cob, actions)
+                    }
+                    GridLineH(Modifier.padding(horizontal = 10.dp))
+                    Row(Modifier.weight(1f)) {
+                        GridStat("Basal", DashColors.Basal, state.basal, actions)
+                        GridLineV(Modifier.padding(vertical = 6.dp))
+                        GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun GridLineV(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun GridLineH(modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun RowScope.GridStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions) {
+    Column(
+        Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
+            .padding(horizontal = 2.dp, vertical = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(label, color = DashColors.Sub, fontSize = 9.5.sp, maxLines = 1)
+        }
+        Text(
+            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Full bar = this change in mg/dL per 5 minutes. */
+private const val DELTA_FULL_SCALE_MGDL = 10.0
+
+/** Delta as a bar from a centre zero line (option A): rising goes right in yellow, falling goes left in blue. */
+@Composable
+internal fun DeltaBar(label: String, value: String, mgdl: Double?, compact: Boolean = false) {
+    val color = when {
+        mgdl == null || mgdl == 0.0 -> DashColors.Sub
+        mgdl > 0                    -> DashColors.High
+        else                        -> DashColors.Iob
+    }
+    val fraction = ((mgdl ?: 0.0) / DELTA_FULL_SCALE_MGDL).coerceIn(-1.0, 1.0).toFloat()
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(label, color = DashColors.Dim, fontSize = if (compact) 9.sp else 10.5.sp, maxLines = 1, modifier = Modifier.width(if (compact) 28.dp else 40.dp))
+        Canvas(
+            Modifier
+                .weight(1f)
+                .height(if (compact) 7.dp else 10.dp)
+        ) {
+            val r = CornerRadius(size.height / 2)
+            // on the card 3 panels Card2 would be invisible
+            drawRoundRect(if (compact) DashColors.Line else DashColors.Card2, cornerRadius = r)
+            val mid = size.width / 2
+            val w = mid * kotlin.math.abs(fraction)
+            if (w > 0f)
+                drawRoundRect(color, topLeft = Offset(if (fraction > 0) mid else mid - w, 0f), size = Size(w, size.height), cornerRadius = r)
+            drawLine(DashColors.Sub.copy(alpha = 0.6f), Offset(mid, -3.dp.toPx()), Offset(mid, size.height + 3.dp.toPx()), 1.dp.toPx())
+        }
+        Text(
+            value.ifEmpty { "–" }, color = color, fontSize = if (compact) 10.5.sp else 12.5.sp, fontWeight = FontWeight.Bold, maxLines = 1,
+            textAlign = TextAlign.End, modifier = Modifier.width(if (compact) 26.dp else 34.dp)
+        )
+    }
+}
+
+@Composable
+private fun LoopPill(loop: LoopInfo, actions: DashboardActions) {
+    val c = loop.severity.color()
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(999.dp))
+            .background(c.copy(alpha = 0.12f))
+            .clicks({ actions.onLoopClick() }, { actions.onLoopLongClick() })
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(loop.iconRes), contentDescription = loop.label, tint = Color.Unspecified, modifier = Modifier.size(16.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(
+            if (loop.extra.isNotEmpty()) "${loop.label} · ${loop.extra}" else loop.label,
+            color = c, fontSize = 12.sp, fontWeight = FontWeight.SemiBold,
+            maxLines = 1, overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** IOB / COB / Basal / Sens in one row under a thin divider inside the BG card (option A). */
+@Composable
+private fun HeroStats(state: DashboardState, actions: DashboardActions) {
+    Box(
+        Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .height(IntrinsicSize.Min)
+    ) {
+        HeroStat("IOB", DashColors.Iob, state.iob, actions)
+        StatDivider()
+        HeroStat("COB", DashColors.Cob, state.cob, actions)
+        StatDivider()
+        HeroStat("Basal", DashColors.Basal, state.basal, actions)
+        StatDivider()
+        HeroStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)
+    }
+    state.extended?.let { ext ->
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clicks({ if (ext.dialogText.isNotEmpty()) actions.showInfo(ext.dialogTitle, ext.dialogText) })
+                .padding(top = 6.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(stringResource(R.string.dash_extended_bolus), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
+            Text(ext.value, color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun StatDivider() {
+    Box(
+        Modifier
+            .padding(top = 10.dp)
+            .width(1.dp)
+            .fillMaxHeight()
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun RowScope.HeroStat(label: String, accent: Color, tile: InfoTile, actions: DashboardActions) {
+    Column(
+        Modifier
+            .weight(1f)
+            .clicks({ if (tile.dialogText.isNotEmpty()) actions.showInfo(tile.dialogTitle, tile.dialogText) })
+            .padding(start = 10.dp, end = 4.dp, top = 8.dp, bottom = 2.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(7.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(accent)
+            )
+            Spacer(Modifier.width(5.dp))
+            Text(label, color = DashColors.Sub, fontSize = 11.sp, maxLines = 1)
+        }
+        Text(
+            tile.value.ifEmpty { "–" }, color = DashColors.Text, fontSize = if (tile.value.length > 8) 13.sp else 15.sp, lineHeight = 17.sp,
+            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 3.dp)
+        )
+        if (tile.sub.isNotEmpty())
+            Text(
+                tile.sub, color = if (tile.highlight) accent else DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth()
+            )
+    }
+}
+
+/** Edge-to-edge graph (no card): breaks out of the screen's 14dp side padding so the plot uses the full width. */
+@Composable
+private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
+    Column(
+        Modifier.layout { measurable, constraints ->
+            val extra = (ScreenPadding * 2).roundToPx()
+            val width = constraints.maxWidth + extra
+            val placeable = measurable.measure(constraints.copy(minWidth = width, maxWidth = width))
+            layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
+        }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 14.dp)) {
+            Text(stringResource(R.string.dashboard_bg), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+            ScaleSelector(graph.rangeHours, actions)
+        }
+        BgChart(graph, Modifier.padding(top = 6.dp))
+        // only the prediction lines need a legend (BG and basal are self-explanatory)
+        if (graph.predictions.isNotEmpty())
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                modifier = Modifier
+                    .padding(start = 18.dp, top = 4.dp)
+                    .horizontalScroll(rememberScrollState())
+            ) {
+                if (graph.predictions.containsKey(PredictionKind.IOB)) Legend("IOB", DashColors.Iob)
+                if (graph.predictions.containsKey(PredictionKind.COB)) Legend("COB", DashColors.Cob)
+                if (graph.predictions.containsKey(PredictionKind.UAM)) Legend("UAM", DashColors.Uam)
+                if (graph.predictions.containsKey(PredictionKind.ZT)) Legend("ZT", DashColors.Zt)
+            }
+    }
+    SectionDivider()
+}
+
+/** Thin line between card-less sections (option B: only the BG card keeps a card). */
+@Composable
+private fun SectionDivider() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(DashColors.Line)
+    )
+}
+
+@Composable
+private fun ScaleSelector(current: Int, actions: DashboardActions) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(10.dp))
+            .background(DashColors.Card2)
+            .padding(3.dp)
+    ) {
+        listOf(3, 6, 12, 18, 24).forEach { h ->
+            val on = h == current
+            Text(
+                "${h}h",
+                color = if (on) DashColors.Text else DashColors.Sub,
+                fontSize = 12.sp,
+                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(if (on) Color(0xFF2B3340) else Color.Transparent)
+                    .clicks({ actions.onScale(h) })
+                    .padding(horizontal = 9.dp, vertical = 4.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun Legend(text: String, color: Color) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            Modifier
+                .width(12.dp)
+                .height(3.dp)
+                .clip(RoundedCornerShape(2.dp))
+                .background(color)
+        )
+        Spacer(Modifier.width(4.dp))
+        Text(text, color = DashColors.Sub, fontSize = 11.sp)
+    }
+}
+
+@Composable
+private fun StatusLights(items: List<StatusLight>) {
+    // no surrounding card; the tiles keep their own background
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        items.forEach { item ->
+            // neutral tiles: subtle outline; items that need attention get a tinted background and border
+            val (tileBg, tileBorder) = when (item.severity) {
+                Severity.CRITICAL -> DashColors.Low.copy(alpha = 0.10f) to DashColors.Low.copy(alpha = 0.45f)
+                Severity.WARNING  -> DashColors.Warn.copy(alpha = 0.08f) to DashColors.Warn.copy(alpha = 0.35f)
+                else              -> DashColors.Card to DashColors.Line
+            }
+            Column(
+                Modifier
+                    .weight(1f)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(tileBg)
+                    .border(1.dp, tileBorder, RoundedCornerShape(14.dp))
+                    .padding(vertical = 8.dp, horizontal = 2.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(painterResource(item.iconRes), contentDescription = item.label, tint = DashColors.Text.copy(alpha = 0.85f), modifier = Modifier.size(20.dp))
+                Text(item.label, color = DashColors.Dim, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                Text(
+                    item.value.trim().ifEmpty { "–" },
+                    color = item.color?.let { Color(it) } ?: DashColors.Text,
+                    fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+                // always reserve the sub line so every supply tile has the same height
+                Text(item.sub.trim(), color = item.subColor?.let { Color(it) } ?: DashColors.Sub, fontSize = 10.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+        }
+    }
+}
+
+/**
+ * Entries to the weekly AI review (Autotune of the last 7 days, only when Autotune is enabled; null = hidden)
+ * and to the meal records, side by side.
+ */
+@Composable
+private fun ReviewTiles(weeklyLast: String?, meal: MealTile, actions: DashboardActions) {
+    val purple = Color(0xFFA78BFA)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.height(IntrinsicSize.Min)) {
+        if (weeklyLast != null)
+            ReviewTile(
+                stringResource(R.string.dashboard_weekly_review),
+                if (weeklyLast.isEmpty()) stringResource(R.string.dashboard_weekly_review_never) else stringResource(R.string.dashboard_weekly_review_last, weeklyLast),
+                purple, 0, Modifier.weight(1f), { Icon(painterResource(R.drawable.dash_ic_dashboard_ai), contentDescription = null, tint = purple, modifier = Modifier.size(16.dp)) }
+            ) { actions.onWeeklyReview() }
+        ReviewTile(
+            stringResource(R.string.meal_records),
+            stringResource(R.string.meal_tile_sub, meal.tracked, meal.pending),
+            DashColors.Accent, meal.unseen, Modifier.weight(1f), { Text("🍽", fontSize = 14.sp) }
+        ) { actions.onMealRecords() }
+    }
+}
+
+@Composable
+private fun ReviewTile(title: String, sub: String, color: Color, badge: Int, modifier: Modifier, icon: @Composable () -> Unit, onClick: () -> Unit) {
+    Column(
+        modifier
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(14.dp))
+            .background(Brush.linearGradient(listOf(color.copy(alpha = 0.12f), DashColors.Card)))
+            .border(1.dp, color.copy(alpha = 0.45f), RoundedCornerShape(14.dp))
+            .clicks({ onClick() })
+            .padding(horizontal = 12.dp, vertical = 10.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            icon()
+            Text(
+                title, color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                modifier = Modifier
+                    .padding(start = 6.dp)
+                    .weight(1f, fill = false)
+            )
+            if (badge > 0)
+                Text(
+                    "$badge", color = Color(0xFF1A1300), fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(start = 5.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(DashColors.High)
+                        .padding(horizontal = 5.dp)
+                )
+        }
+        Text(sub, color = DashColors.Sub, fontSize = 11.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+    }
+}
+
+@Composable
+private fun AcceptTempButton(text: String, actions: DashboardActions) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .background(Color(0xFF2A2114))
+            .border(1.dp, Color(0xFF4A3A1C), RoundedCornerShape(18.dp))
+            .clicks({ actions.onAcceptTemp() })
+            .padding(14.dp)
+    ) {
+        Text(text, color = DashColors.High, fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+@Composable
+private fun SecondaryActions(buttons: Buttons, actions: DashboardActions) {
+    Row(
+        Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        buttons.quickWizard?.let { ChipButton(it, R.drawable.dash_ic_quick_wizard, DashColors.Accent, { actions.onQuickWizard() }, { actions.onQuickWizardLong() }) }
+        if (buttons.treatment) ChipButton(stringResource(R.string.dash_overview_treatment_label), R.drawable.dash_icon_insulin_carbs, DashColors.Text, { actions.onTreatment() })
+        if (buttons.cgm) ChipButton(stringResource(R.string.dash_overview_cgm), buttons.cgmIcon, DashColors.Text, { actions.onCgm() })
+        if (buttons.calibration) ChipButton(stringResource(R.string.dash_calibration), R.drawable.dash_ic_calibration, DashColors.Text, { actions.onCalibration() })
+        buttons.userActions.forEach { ua -> ChipButton(ua.title, ua.iconRes, DashColors.Basal, { ua.run() }) }
+    }
+}
+
+@Composable
+private fun ChipButton(text: String, @DrawableRes icon: Int, color: Color, onClick: () -> Unit, onLongClick: (() -> Unit)? = null) {
+    Row(
+        Modifier
+            .clip(RoundedCornerShape(14.dp))
+            .background(DashColors.Card)
+            .border(1.dp, DashColors.Line, RoundedCornerShape(14.dp))
+            .clicks(onClick, onLongClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != 0) {
+            Icon(painterResource(icon), contentDescription = null, tint = color, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+        }
+        Text(text, color = color, fontSize = 12.sp, fontWeight = FontWeight.SemiBold, maxLines = 2)
+    }
+}
+
+@Composable
+private fun BottomActions(state: DashboardState, actions: DashboardActions, barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>, modifier: Modifier) {
+    val buttons = state.buttons
+    Column(
+        modifier
+            .fillMaxWidth()
+            .background(Brush.verticalGradient(listOf(Color.Transparent, DashColors.Bg, DashColors.Bg)))
+            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 12.dp)
+    ) {
+        // pump communication status and calculation progress right above the buttons, like the classic Overview
+        if (state.pumpStatus.isNotEmpty()) {
+            PumpStatusBanner(state.pumpStatus, actions)
+            Spacer(Modifier.height(8.dp))
+        }
+        if (state.calcProgressPct != 100) {
+            LinearProgressIndicator(
+                progress = { state.calcProgressPct / 100f },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp),
+                color = DashColors.Accent,
+                trackColor = DashColors.Card2
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        // first page fixed (treatment buttons never move); the 4.0 menu and the quick launch items on the next pages
+        val extraPages = barItems.chunked(BAR_ITEMS_PER_PAGE)
+        val pager = androidx.compose.foundation.pager.rememberPagerState { 1 + extraPages.size }
+        val scope = androidx.compose.runtime.rememberCoroutineScope()
+        // back to the first page: after 30 s without use, and whenever the screen is left
+        androidx.compose.runtime.LaunchedEffect(pager.currentPage, pager.isScrollInProgress) {
+            if (pager.currentPage != 0 && !pager.isScrollInProgress) {
+                kotlinx.coroutines.delay(BAR_IDLE_MS)
+                scope.launch { pager.animateScrollToPage(0) } // not here: the scroll restarts this effect
+            }
+        }
+        androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_STOP) { scope.launch { pager.scrollToPage(0) } }
+        androidx.compose.foundation.pager.HorizontalPager(pager, verticalAlignment = Alignment.Top) { page ->
+            if (page == 0) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (buttons.insulin)
+                    ActionButton(
+                        stringResource(R.string.dash_overview_insulin_label), R.drawable.dash_ic_bolus,
+                        if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
+                    ) { actions.onInsulin() }
+                if (buttons.carbs)
+                    // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
+                    ActionButton(stringResource(R.string.dash_carbs), R.drawable.dash_ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
+                // the AI photo carbs are inside the Dashboard calculator now; meal records next to it (dot = unseen evaluation)
+                ActionButton(stringResource(R.string.meal_records), 0, DashColors.Text, DashColors.Card, emoji = "🍽", badge = state.meal.unseen > 0) { actions.onMealRecords() }
+                if (buttons.wizard)
+                    ActionButton(stringResource(R.string.dash_calculator_label), R.drawable.dash_ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
+            }
+            } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                extraPages[page - 1].forEach { item ->
+                    ExtraButton(item) {
+                        scope.launch { pager.scrollToPage(0) }
+                        item.onClick()
+                    }
+                }
+            }
+        }
+        if (extraPages.isNotEmpty()) Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            repeat(1 + extraPages.size) { i ->
+                Box(
+                    Modifier
+                        .padding(horizontal = 3.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(if (i == pager.currentPage) DashColors.Accent else DashColors.Line)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ExtraButton(item: app.aaps.core.ui.compose.navigation.HomeBarItem, onClick: () -> Unit) {
+    val fg = if (item.enabled) DashColors.Text else DashColors.Dim
+    Column(
+        Modifier
+            .weight(1f)
+            .height(72.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(DashColors.Card)
+            .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+            .then(if (item.enabled) Modifier.clicks(onClick) else Modifier),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+            Icon(item.icon, contentDescription = null, tint = fg, modifier = Modifier.size(26.dp))
+            item.badge?.let { Text(it, color = DashColors.Accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd)) }
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(item.label, color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+    }
+}
+
+private const val BAR_ITEMS_PER_PAGE = 5
+private const val BAR_IDLE_MS = 30_000L
+
+@Composable
+private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, iconScale: Float = 1f, emoji: String? = null, badge: Boolean = false, onClick: () -> Unit) {
+    // icon on top, label below (option A)
+    Column(
+        Modifier
+            .weight(1f)
+            .height(72.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(bg)
+            .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(8.dp))
+            .clicks(onClick),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
+            if (emoji != null) Text(emoji, fontSize = 20.sp)
+            else Icon(
+                painterResource(icon), contentDescription = null, tint = fg,
+                modifier = Modifier
+                    .size(28.dp)
+                    .scale(iconScale)
+            )
+            if (badge) Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(DashColors.Accent)
+            )
+        }
+        Spacer(Modifier.height(5.dp))
+        Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}

@@ -1,0 +1,144 @@
+package app.aaps.plugins.main.general.dashboard
+
+import androidx.annotation.DrawableRes
+import androidx.compose.runtime.Immutable
+
+/**
+ * Snapshot of everything the Dashboard tab renders.
+ * Built by [DashboardFragment] from the same sources OverviewFragment uses.
+ */
+@Immutable
+data class DashboardState(
+    val bg: BgInfo = BgInfo(),
+    val loop: LoopInfo? = null,
+    val profile: RibbonInfo = RibbonInfo(),
+    val target: RibbonInfo = RibbonInfo(),
+    val iob: InfoTile = InfoTile(),
+    val cob: InfoTile = InfoTile(),
+    val basal: InfoTile = InfoTile(),
+    val extended: InfoTile? = null,
+    val sensitivity: InfoTile = InfoTile(),
+    val statusLights: List<StatusLight> = emptyList(),
+    val stats: GlucoseStats? = null,
+    val loopDecision: LoopDecision? = null,
+    /** null = Autotune not enabled (card hidden); "" = never reviewed; otherwise e.g. "6 days ago" */
+    val weeklyReviewLast: String? = null,
+    /** meal tracking tile: tracked foods, meals waiting for the evaluation, evaluations not opened yet */
+    val meal: MealTile = MealTile(),
+    val buttons: Buttons = Buttons(),
+    val pumpStatus: String = "",
+    val calcProgressPct: Int = 100,
+    val simpleMode: Boolean = false,
+    /** false = the BG cards are drawn without card background / border (setting) */
+    val bgCardBackground: Boolean = true,
+    /** last boluses for card 3 (newest first) */
+    val recentBoluses: List<RecentBolus> = emptyList(),
+    /** AI explanation of the loop decision with [DecisionExplain.runTime] */
+    val decisionExplain: DecisionExplain? = null
+)
+
+@Immutable
+data class DecisionExplain(val runTime: Long, val loading: Boolean, val text: String = "", val label: String = "", val error: Boolean = false)
+
+@Immutable
+data class RecentBolus(val time: String, val amount: String, val smb: Boolean)
+
+enum class BgRange { LOW, IN_RANGE, HIGH, UNKNOWN }
+
+@Immutable
+data class BgInfo(
+    val value: String = "--",
+    val range: BgRange = BgRange.UNKNOWN,
+    val isActual: Boolean = true,
+    @DrawableRes val arrowRes: Int? = null,
+    val arrowDescription: String = "",
+    /** 0 = flat/none, 1 = 45 degrees, 2 = single, 3 = double / triple (drives the arrow tile intensity) */
+    val trendLevel: Int = 0,
+    /** trend direction for the ring card: 0 = flat (right), 90 = up, -90 = down; null = unknown */
+    val trendAngle: Float? = null,
+    /** double / triple arrows: the ring card shows two triangles */
+    val trendFast: Boolean = false,
+    val delta: String = "",
+    val shortAvgDelta: String = "",
+    val longAvgDelta: String = "",
+    /** delta, short avg and long avg delta in mg/dL per 5 min (for the bar chart), null when unknown */
+    val deltasMgdl: List<Double?> = listOf(null, null, null),
+    val timeAgo: String = "",
+    /** only the age of the last BG, e.g. "2m ago" (ring card) */
+    val age: String = "",
+    /** name of the BG source, e.g. "xDrip+ BG" (ring card) */
+    val source: String = "",
+    @DrawableRes val qualityIcon: Int = 0,
+    val qualityMessage: String = ""
+)
+
+enum class Severity { OK, WARNING, CRITICAL, NEUTRAL }
+
+@Immutable
+data class LoopInfo(
+    @DrawableRes val iconRes: Int,
+    val label: String,
+    val extra: String,
+    val severity: Severity,
+    /** ring card: icon drawn around the BG value; icons with a symbol in the middle use the plain loop ring + [ringTint] */
+    @DrawableRes val ringIconRes: Int = iconRes,
+    /** ARGB tint for [ringIconRes], null = the icon's own colors */
+    val ringTint: Int? = null,
+    /** symbol shown small under the BG value (the middle of the original icon) */
+    val ringGlyph: LoopGlyph = LoopGlyph.NONE,
+    /** ARGB color of the loop ring (its status text is written on the ring) */
+    val ringColor: Int = 0
+)
+
+enum class LoopGlyph { NONE, PAUSE, CROSS }
+
+@Immutable
+data class RibbonInfo(
+    val text: String = "",
+    val severity: Severity = Severity.NEUTRAL
+)
+
+@Immutable
+data class InfoTile(
+    val value: String = "",
+    val sub: String = "",
+    val dialogTitle: String = "",
+    val dialogText: String = "",
+    val highlight: Boolean = false
+)
+
+@Immutable
+data class StatusLight(
+    @DrawableRes val iconRes: Int,
+    val label: String,
+    val value: String,
+    val color: Int?,
+    val sub: String = "",
+    val subColor: Int? = null,
+    val severity: Severity = Severity.NEUTRAL
+)
+
+@Immutable
+data class UserAction(
+    val title: String,
+    @DrawableRes val iconRes: Int,
+    val run: () -> Unit
+)
+
+@Immutable
+data class Buttons(
+    val insulin: Boolean = false,
+    val insulinWarning: Boolean = false,
+    val carbs: Boolean = false,
+    val aiCarbs: Boolean = false,
+    val wizard: Boolean = false,
+    val treatment: Boolean = false,
+    val calibration: Boolean = false,
+    val cgm: Boolean = false,
+    @DrawableRes val cgmIcon: Int = 0,
+    val quickWizard: String? = null,
+    val acceptTemp: String? = null,
+    val userActions: List<UserAction> = emptyList()
+)
+
+data class MealTile(val tracked: Int = 0, val pending: Int = 0, val unseen: Int = 0)

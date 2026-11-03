@@ -202,6 +202,7 @@ class ComposeMainActivity : MetroAppCompatActivity() {
     private val manageViewModel: ManageViewModel by viewModels()
     private val maintenanceViewModel: MaintenanceViewModel by viewModels()
     private val statusViewModel: StatusViewModel by viewModels()
+    @Inject lateinit var dashboardController: app.aaps.plugins.main.general.dashboard.DashboardController
     private val treatmentViewModel: TreatmentViewModel by viewModels()
     private val scenesViewModel: ScenesViewModel by viewModels()
     private val loopActionViewModel: LoopActionViewModel by viewModels()
@@ -519,7 +520,23 @@ class ComposeMainActivity : MetroAppCompatActivity() {
                 },
                 onRequestPermission = { group -> permissionsViewModel.requestPermission(group) },
                 overview = {
+                    // Personal-fork: the home screen setting
+                    val useDashboard by preferences.observe(app.aaps.core.keys.BooleanKey.HomeUseDashboard).collectAsStateWithLifecycle()
                     OverviewScreen(
+                        dashboardHome = if (useDashboard) { items ->
+                            val status by statusViewModel.uiState.collectAsStateWithLifecycle()
+                            fun input(i: app.aaps.ui.compose.overview.statusLights.StatusItem?) = i?.let { app.aaps.plugins.main.general.dashboard.StatusInput(it.age, it.ageStatus, it.level, it.levelStatus) }
+                            app.aaps.plugins.main.general.dashboard.DashboardHome(
+                                controller = dashboardController,
+                                items = items,
+                                cannula = input(status.cannulaStatus),
+                                insulin = input(status.insulinStatus),
+                                sensor = input(status.sensorStatus),
+                                battery = input(status.batteryStatus),
+                                isPatchPump = status.isPatchPump,
+                                onNavigate = { request -> handleNavigationRequest(request, navController) }
+                            )
+                        } else null,
                         mainViewModel = mainViewModel,
                         manageViewModel = manageViewModel,
                         maintenanceViewModel = maintenanceViewModel,

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="dash_basal">Basal</string>
+    <string name="dash_bolus">Bolus</string>
+    <string name="dash_calculator_label">Calculator</string>
+    <string name="dash_calibration">Calibration</string>
+    <string name="dash_carbs">Carbs</string>
+    <string name="dash_extended_bolus">Extended bolus</string>
+    <string name="dash_overview_cgm">CGM</string>
+    <string name="dash_overview_insulin_label">Insulin</string>
+    <string name="dash_overview_treatment_label">Treatment</string>
+    <string name="dash_required">req</string>
+</resources>

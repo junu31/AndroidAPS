@@ -46,6 +46,8 @@ enum class BooleanKey(
         key = "keep_screen_on", defaultValue = false, title = KeysStrings.pref_title_keep_screen_on, summary = KeysStrings.pref_summary_keep_screen_on,
         calculatedDefaultValue = true, platforms = setOf(AppPlatform.Android, AppPlatform.Ios)
     ),
+    DashboardBgCardBackground(key = "dashboard_bg_card_background", defaultValue = true, title = KeysStrings.pref_title_dashboard_bg_card), // Personal-fork
+    HomeUseDashboard(key = "home_use_dashboard", defaultValue = true, title = KeysStrings.pref_title_home_use_dashboard, summary = KeysStrings.pref_summary_home_use_dashboard), // Personal-fork
     OverviewShowTreatmentButton(key = "show_treatment_button", defaultValue = false, title = KeysStrings.pref_title_show_treatment_button, defaultedBySM = true),
     OverviewShowWizardButton(key = "show_wizard_button", defaultValue = true, title = KeysStrings.pref_title_show_wizard_button, defaultedBySM = true),
     OverviewShowInsulinButton(key = "show_insulin_button", defaultValue = true, title = KeysStrings.pref_title_show_insulin_button, defaultedBySM = true),

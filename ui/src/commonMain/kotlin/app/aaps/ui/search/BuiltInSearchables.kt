@@ -82,6 +82,8 @@ class BuiltInSearchables(
                         rh.gs(CoreUiStrings.concentration_disable_blocked)
                     else null
                 },
+                BooleanKey.HomeUseDashboard, // Personal-fork
+                BooleanKey.DashboardBgCardBackground, // Personal-fork
                 BooleanKey.OverviewKeepScreenOn,
                 StringKey.GeneralInstanceName,
             ),

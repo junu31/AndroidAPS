@@ -110,7 +110,9 @@ fun OverviewScreen(
     onAuthorizationFailed: () -> Unit,
     // Notification sheet, opened from outside when something important arrives
     autoShowNotificationSheet: Boolean,
-    onAutoShowConsumed: () -> Unit
+    onAutoShowConsumed: () -> Unit,
+    /** Personal-fork: see MainScreen */
+    dashboardHome: (@Composable (List<app.aaps.core.ui.compose.navigation.HomeBarItem>) -> Unit)? = null
 ) {
     val state by mainViewModel.uiState.collectAsStateWithLifecycle()
     val searchState by searchViewModel.uiState.collectAsStateWithLifecycle()
@@ -185,6 +187,7 @@ fun OverviewScreen(
     }
 
     MainScreen(
+        dashboardHome = dashboardHome,
         mainViewModel = mainViewModel,
         uiState = state,
         aboutDialogData = if (state.showAboutDialog) mainViewModel.buildAboutDialogData(appName) else null,

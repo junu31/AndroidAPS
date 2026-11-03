@@ -1,0 +1,688 @@
+package app.aaps.plugins.main.general.dashboard
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import app.aaps.core.data.configuration.Constants
+import app.aaps.core.data.model.BS
+import app.aaps.core.data.model.GlucoseUnit
+import app.aaps.core.data.model.RM
+import app.aaps.core.data.model.TrendArrow
+import app.aaps.core.data.time.T
+import app.aaps.core.interfaces.aps.APSResult
+import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.interfaces.bgQualityCheck.BgQualityCheck
+import app.aaps.core.interfaces.configuration.Config
+import app.aaps.core.interfaces.constraints.ConstraintsChecker
+import app.aaps.core.interfaces.db.PersistenceLayer
+import app.aaps.core.interfaces.db.ProcessedTbrEbData
+import app.aaps.core.interfaces.iob.GlucoseStatusProvider
+import app.aaps.core.interfaces.iob.IobCobCalculator
+import app.aaps.core.interfaces.logging.AAPSLogger
+import app.aaps.core.interfaces.navigation.ElementType
+import app.aaps.core.interfaces.nsclient.ProcessedDeviceStatusData
+import app.aaps.core.interfaces.overview.LastBgData
+import app.aaps.core.interfaces.overview.graph.BgType
+import app.aaps.core.interfaces.overview.graph.OverviewDataCache
+import app.aaps.core.interfaces.plugin.ActivePlugin
+import app.aaps.core.interfaces.plugin.PluginBase
+import app.aaps.core.interfaces.profile.ProfileFunction
+import app.aaps.core.interfaces.profile.ProfileUtil
+import app.aaps.core.interfaces.resources.ResourceHelper
+import app.aaps.core.interfaces.source.DexcomBoyda
+import app.aaps.core.interfaces.source.XDripSource
+import app.aaps.core.interfaces.stats.TddCalculator
+import app.aaps.core.interfaces.utils.DateUtil
+import app.aaps.core.interfaces.utils.DecimalFormatter
+import app.aaps.core.interfaces.utils.MidnightTime
+import app.aaps.core.interfaces.utils.TrendCalculator
+import app.aaps.core.keys.BooleanKey
+import app.aaps.core.keys.BooleanNonKey
+import app.aaps.core.keys.UnitDoubleKey
+import app.aaps.core.keys.interfaces.Preferences
+import app.aaps.core.ui.extensions.displayText
+import app.aaps.core.objects.extensions.round
+import app.aaps.core.ui.compose.StatusLevel
+import app.aaps.core.ui.compose.navigation.HomeBarItem
+import app.aaps.core.ui.compose.navigation.NavigationRequest
+import app.aaps.plugins.main.R
+import app.aaps.plugins.main.general.dashboard.meal.MealTracker
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.withContext
+import java.util.Locale
+import kotlin.math.abs
+
+/** Personal-fork: what one status light item shows, handed in from the 4.0 StatusViewModel. */
+data class StatusInput(val age: String, val ageStatus: StatusLevel, val level: String?, val levelStatus: StatusLevel)
+
+/**
+ * Personal-fork: the data of the Dashboard home screen (DashboardFragment on 3.4), from the same sources.
+ * It only reads; every treatment goes through the 4.0 navigation and its dialogs.
+ */
+@SingleIn(AppScope::class)
+@Inject
+class DashboardController(
+    private val preferences: Preferences,
+    private val rh: ResourceHelper,
+    private val profileFunction: ProfileFunction,
+    private val profileUtil: ProfileUtil,
+    private val constraintChecker: ConstraintsChecker,
+    private val processedDeviceStatusData: ProcessedDeviceStatusData,
+    private val processedTbrEbData: ProcessedTbrEbData,
+    private val loop: Loop,
+    private val activePlugin: ActivePlugin,
+    private val iobCobCalculator: IobCobCalculator,
+    private val dexcomBoyda: DexcomBoyda,
+    private val xDripSource: XDripSource,
+    private val config: Config,
+    private val trendCalculator: TrendCalculator,
+    private val dateUtil: DateUtil,
+    private val persistenceLayer: PersistenceLayer,
+    private val glucoseStatusProvider: GlucoseStatusProvider,
+    private val lastBgData: LastBgData,
+    private val bgQualityCheck: BgQualityCheck,
+    private val decimalFormatter: DecimalFormatter,
+    private val tddCalculator: TddCalculator,
+    private val mealTracker: MealTracker,
+    private val cache: OverviewDataCache,
+    private val aapsLogger: AAPSLogger
+) {
+
+    private val _state = MutableStateFlow(DashboardState())
+    val state: StateFlow<DashboardState> = _state
+    private var rangeHours = 6
+    private val _graph = MutableStateFlow(GraphModel())
+    val graph: StateFlow<GraphModel> = _graph
+
+    val qualityMessage: String get() = bgQualityCheck.message
+
+    private fun post(block: (DashboardState) -> DashboardState) = _state.update(block)
+
+    /** Runs while the Dashboard is on screen. */
+    suspend fun run() = withContext(Dispatchers.Default) {
+        merge(
+            persistenceLayer.observeAnyChange().map { },
+            cache.bgInfoFlow.map { },
+            cache.predictionsFlow.map { },
+            cache.calcProgressFlow.map { },
+            mealTracker.changes.map { },
+            flow { while (true) { emit(Unit); delay(REFRESH_MS) } }
+        ).conflate().collect {
+            refreshAll()
+            delay(MIN_REFRESH_GAP_MS)
+        }
+    }
+
+    fun setRange(hours: Int) {
+        rangeHours = hours
+        preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
+        _graph.update { it.copy(rangeHours = hours) }
+    }
+
+    private suspend fun refreshAll() {
+        if (!config.appInitialized) return
+        updateBg()
+        updateIobCob()
+        updateBasal()
+        updateSensitivity()
+        processAps()
+        updateProfile()
+        updateTemporaryTarget()
+        updateStats()
+        processButtons()
+        updateGraph()
+    }
+
+    // ---------- BG ----------
+
+    private suspend fun updateBg() {
+        val lastBg = lastBgData.lastBg()
+        val glucoseStatus = glucoseStatusProvider.getGlucoseStatusData()
+        val trendArrow = trendCalculator.getTrendArrow(iobCobCalculator.ads)
+        val range = when {
+            lastBg == null      -> BgRange.UNKNOWN
+            lastBgData.isLow()  -> BgRange.LOW
+            lastBgData.isHigh() -> BgRange.HIGH
+            else                -> BgRange.IN_RANGE
+        }
+        val age = lastBg?.let { dateUtil.minOrSecAgo(rh, it.timestamp) }
+        val source = (activePlugin.activeBgSource as? PluginBase)?.name
+        val info = BgInfo(
+            value = lastBg?.let { profileUtil.fromMgdlToStringInUnits(it.recalculated) } ?: "--",
+            range = range,
+            isActual = lastBgData.isActualBg(),
+            arrowDescription = lastBgData.lastBgDescription() + " " + trendCalculator.getTrendDescription(iobCobCalculator.ads),
+            trendLevel = when (trendArrow) {
+                TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN -> 3
+                TrendArrow.SINGLE_UP, TrendArrow.SINGLE_DOWN                                               -> 2
+                TrendArrow.FORTY_FIVE_UP, TrendArrow.FORTY_FIVE_DOWN                                       -> 1
+                else                                                                                       -> 0
+            },
+            trendAngle = when (trendArrow) {
+                TrendArrow.TRIPLE_UP, TrendArrow.DOUBLE_UP, TrendArrow.SINGLE_UP       -> 90f
+                TrendArrow.FORTY_FIVE_UP                                               -> 45f
+                TrendArrow.FLAT                                                        -> 0f
+                TrendArrow.FORTY_FIVE_DOWN                                             -> -45f
+                TrendArrow.SINGLE_DOWN, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_DOWN -> -90f
+                else                                                                   -> null
+            },
+            trendFast = trendArrow in listOf(TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN),
+            delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: "",
+            shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",
+            longAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.longAvgDelta) } ?: "",
+            deltasMgdl = listOf(glucoseStatus?.delta, glucoseStatus?.shortAvgDelta, glucoseStatus?.longAvgDelta),
+            age = age ?: "",
+            source = source ?: "",
+            timeAgo = listOfNotNull(age, source).joinToString(" · "),
+            qualityMessage = if (bgQualityCheck.stateFlow.value == BgQualityCheck.State.FLAT || bgQualityCheck.stateFlow.value == BgQualityCheck.State.DOUBLED) bgQualityCheck.stateDescription() else ""
+        )
+        post { it.copy(bg = info, simpleMode = preferences.simpleMode, bgCardBackground = preferences.get(BooleanKey.DashboardBgCardBackground)) }
+    }
+
+    // ---------- Profile / target ----------
+
+    private suspend fun updateProfile() {
+        val display = cache.profileFlow.value
+        val severity = when {
+            profileFunction.getProfile() == null -> Severity.CRITICAL
+            display?.isModified == true          -> Severity.WARNING
+            else                                 -> Severity.NEUTRAL
+        }
+        val text = profileFunction.getProfileNameWithRemainingTime()
+        post { it.copy(profile = RibbonInfo(text, severity)) }
+    }
+
+    private suspend fun updateTemporaryTarget() {
+        val units = profileFunction.getUnits()
+        val tempTarget = persistenceLayer.getTemporaryTargetActiveAt(dateUtil.now())
+        val info = if (tempTarget != null) {
+            RibbonInfo(
+                profileUtil.toTargetRangeString(tempTarget.lowTarget, tempTarget.highTarget, GlucoseUnit.MGDL, units) + " " + dateUtil.untilString(tempTarget.timestamp + tempTarget.duration, rh),
+                Severity.WARNING
+            )
+        } else {
+            profileFunction.getProfile()?.let { profile ->
+                val targetUsed =
+                    if (config.APS) loop.lastRun?.constraintsProcessed?.targetBG ?: 0.0
+                    else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.targetBG ?: 0.0
+                    else 0.0
+                if (targetUsed != 0.0 && abs(profile.getTargetMgdl() - targetUsed) > 0.01)
+                    RibbonInfo(profileUtil.toTargetRangeString(targetUsed, targetUsed, GlucoseUnit.MGDL, units), Severity.OK)
+                else
+                    RibbonInfo(profileUtil.toTargetRangeString(profile.getTargetLowMgdl(), profile.getTargetHighMgdl(), GlucoseUnit.MGDL, units))
+            } ?: RibbonInfo()
+        }
+        post { it.copy(target = info) }
+    }
+
+    // ---------- IOB / COB / basal / sensitivity ----------
+
+    private fun units(v: Double) = String.format(Locale.getDefault(), "%.2f U", v)
+
+    private suspend fun updateIobCob() {
+        val bolusIob = iobCobCalculator.calculateIobFromBolus().round()
+        val basalIob = iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().round()
+        val total = units(bolusIob.iob + basalIob.basaliob)
+        val iob = InfoTile(
+            value = total,
+            dialogTitle = "IOB",
+            dialogText = total + "\n" + rh.gs(R.string.dash_bolus) + ": " + units(bolusIob.iob) + "\n" + rh.gs(R.string.dash_basal) + ": " + units(basalIob.basaliob)
+        )
+        val cobText = iobCobCalculator.getCobInfo("Dashboard COB").displayText(rh, decimalFormatter) ?: "-"
+        val lastCarbsTime = persistenceLayer.getNewestCarbs()?.timestamp ?: 0L
+        val lastRun = loop.lastRun
+        val processed = lastRun?.constraintsProcessed
+        var carbsReq = ""
+        var carbsReqActive = false
+        if (config.APS && processed != null && lastRun != null && processed.carbsReq > 0) {
+            carbsReqActive = true
+            if (lastCarbsTime < lastRun.lastAPSRun) carbsReq = processed.carbsReq.toString() + " " + rh.gs(R.string.dash_required)
+        }
+        val cob = InfoTile(value = cobText, sub = carbsReq, highlight = carbsReqActive)
+        post { it.copy(iob = iob, cob = cob) }
+    }
+
+    private suspend fun updateBasal() {
+        val now = dateUtil.now()
+        val profile = profileFunction.getProfile()
+        val temp = processedTbrEbData.getTempBasalIncludingConvertedExtended(now)
+        val rate = when {
+            profile == null -> null
+            temp == null    -> profile.getBasal()
+            temp.isAbsolute -> temp.rate
+            else            -> profile.getBasal() * temp.rate / 100.0
+        }
+        val text = rate?.let { String.format(Locale.getDefault(), "%.2f U/h", it) } ?: "-"
+        val basal = InfoTile(value = if (temp != null) "T: $text" else text, dialogTitle = rh.gs(R.string.dash_basal), dialogText = text)
+        val extended = persistenceLayer.getExtendedBolusActiveAt(now)?.takeIf { !activePlugin.activePump.isFakingTempsByExtendedBoluses }?.let { eb ->
+            val v = String.format(Locale.getDefault(), "%.2f U/h", eb.rate)
+            InfoTile(value = v, dialogTitle = "Extended bolus", dialogText = v)
+        }
+        post { it.copy(basal = basal, extended = extended) }
+    }
+
+    private suspend fun updateSensitivity() {
+        val lastAutosensData = iobCobCalculator.ads.getLastAutosensData("Dashboard", aapsLogger, dateUtil)
+        val lastAutosensRatio = lastAutosensData?.let { it.autosensResult.ratio * 100 }
+        val autosensEnabled = config.AAPSCLIENT && preferences.get(BooleanNonKey.AutosensUsedOnMainPhone) ||
+            !config.AAPSCLIENT && constraintChecker.isAutosensModeEnabled().value()
+        val profile = profileFunction.getProfile()
+        val isfMgdl = profile?.getProfileIsfMgdl()
+        val variableSens =
+            if (config.APS) loop.lastRun?.request?.variableSens ?: 0.0
+            else if (config.AAPSCLIENT) processedDeviceStatusData.getAPSResult()?.variableSens ?: 0.0
+            else 0.0
+        val units = profileFunction.getUnits()
+        val value = lastAutosensRatio?.let { String.format(Locale.getDefault(), "%.0f%%", it) } ?: ""
+        val tile = if (variableSens != isfMgdl && variableSens != 0.0 && isfMgdl != null)
+            InfoTile(
+                value = value,
+                sub = "ISF " + String.format(Locale.getDefault(), "%1$.1f→%2$.1f", profileUtil.fromMgdlToUnits(isfMgdl, units), profileUtil.fromMgdlToUnits(variableSens, units))
+            )
+        else InfoTile(value = value, sub = if (autosensEnabled) "Autosens" else "")
+        post { it.copy(sensitivity = tile) }
+    }
+
+    // ---------- Loop ----------
+
+    private suspend fun processAps() {
+        val pump = activePlugin.activePump
+        val mode = loop.runningMode()
+        val suspendEnd = "${loop.minutesToEndOfSuspend()} min"
+        val lastRunAgo = loop.lastRun?.lastAPSRun?.let { dateUtil.minAgo(rh, it) } ?: ""
+        val closed = R.drawable.dash_ic_loop_closed
+        val loopInfo = if (pump.pumpDescription.isTempBasalCapable) when (mode) {
+            RM.Mode.SUPER_BOLUS       -> LoopInfo(closed, "Superbolus", suspendEnd, Severity.WARNING, ringColor = COLOR_WARN)
+            RM.Mode.DISCONNECTED_PUMP -> LoopInfo(closed, rh.gs(R.string.dashboard_home_disconnected), suspendEnd, Severity.CRITICAL, ringGlyph = LoopGlyph.CROSS, ringColor = COLOR_CRITICAL)
+            RM.Mode.SUSPENDED_BY_PUMP,
+            RM.Mode.SUSPENDED_BY_USER,
+            RM.Mode.SUSPENDED_BY_DST  -> LoopInfo(closed, rh.gs(R.string.dashboard_home_suspended), suspendEnd, Severity.CRITICAL, ringGlyph = LoopGlyph.PAUSE, ringColor = COLOR_CRITICAL)
+            RM.Mode.CLOSED_LOOP_LGS   -> LoopInfo(closed, "LGS", lastRunAgo, Severity.WARNING, ringColor = COLOR_WARN)
+            RM.Mode.CLOSED_LOOP       -> LoopInfo(closed, rh.gs(R.string.dashboard_home_closed), lastRunAgo, Severity.OK, ringColor = COLOR_OK)
+            RM.Mode.OPEN_LOOP         -> LoopInfo(closed, rh.gs(R.string.dashboard_home_open), lastRunAgo, Severity.WARNING, ringColor = COLOR_WARN)
+            RM.Mode.DISABLED_LOOP     -> LoopInfo(closed, rh.gs(R.string.dashboard_home_disabled), "", Severity.CRITICAL, ringGlyph = LoopGlyph.CROSS, ringColor = COLOR_CRITICAL)
+            RM.Mode.RESUME            -> error("Invalid mode")
+        }.let { it.copy(ringTint = it.ringColor) } else null
+        val decision = loop.lastRun?.let { buildLoopDecision(it) }
+        post { it.copy(loop = loopInfo, loopDecision = decision) }
+    }
+
+    /** Local, API-free summary of the last loop run for the floating button. */
+    private suspend fun buildLoopDecision(lastRun: Loop.LastRun): LoopDecision? {
+        val result = lastRun.constraintsProcessed ?: lastRun.request ?: return null
+        val reason = (lastRun.request ?: result).reason
+        val profile = profileFunction.getProfile()
+        val units = profileFunction.getUnits()
+        val basal = profile?.getBasal()
+        val tbrPart = when {
+            !result.isTempBasalRequested -> rh.gs(R.string.dashboard_loop_tbr_none)
+            result.duration == 0         -> rh.gs(R.string.dashboard_loop_tbr_cancel)
+            else                         -> rh.gs(R.string.dashboard_loop_tbr, decimalFormatter.to2Decimal(result.rate), result.duration)
+        }
+        val smbPart = if (result.smb > 0) rh.gs(R.string.dashboard_loop_smb, decimalFormatter.to2Decimal(result.smb)) else rh.gs(R.string.dashboard_loop_smb_none)
+        val kind = when {
+            result.smb > 0                                                                  -> DecisionKind.UP
+            result.isTempBasalRequested && basal != null && result.rate > basal + 0.001 -> DecisionKind.UP
+            result.isTempBasalRequested && basal != null && result.rate < basal - 0.001 -> DecisionKind.DOWN
+            result.isTempBasalRequested && result.duration > 0 && result.rate == 0.0      -> DecisionKind.DOWN
+            else                                                                            -> DecisionKind.NONE
+        }
+        val target = result.targetBG.takeIf { it > 0 }?.let { profileUtil.fromMgdlToStringInUnits(it, units) }
+        val minPred = LoopReasonParser.minPredBg(reason)
+        val eventual = LoopReasonParser.eventualBg(reason)
+        val summary = when {
+            result.smb > 0 && eventual != null && target != null      -> rh.gs(R.string.dashboard_loop_why_smb, eventual, target)
+            kind == DecisionKind.DOWN && minPred != null && target != null -> rh.gs(R.string.dashboard_loop_why_low, minPred, target)
+            kind == DecisionKind.UP && eventual != null && target != null  -> rh.gs(R.string.dashboard_loop_why_high, eventual, target)
+            kind == DecisionKind.NONE                                      -> rh.gs(R.string.dashboard_loop_why_none)
+            else                                                           -> ""
+        }
+        val facts = buildList {
+            result.iob?.let { add("IOB" to units(it.iob)) }
+            result.mealData?.let { add("COB" to "${it.mealCOB.toInt()} g") }
+            minPred?.let { add(rh.gs(R.string.dashboard_loop_min_pred) to it) }
+            eventual?.let { add(rh.gs(R.string.dashboard_loop_eventual) to it) }
+            target?.let { add(rh.gs(R.string.dashboard_target) to it) }
+        }
+        return LoopDecision(
+            runTime = lastRun.lastAPSRun,
+            runTimeText = dateUtil.timeString(lastRun.lastAPSRun) + " · " + dateUtil.minAgo(rh, lastRun.lastAPSRun),
+            decision = "$tbrPart · $smbPart",
+            kind = kind,
+            summary = summary,
+            facts = facts,
+            reason = reason,
+            math = buildLoopMath(lastRun.request ?: result, result, reason)
+        )
+    }
+
+    /**
+     * Works out how OpenAPS SMB reached "eventual BG" and "minPredBG" (DetermineBasalSMB):
+     * eventual = BG − IOB × ISF + deviation (or the end of the COB / UAM curve when higher),
+     * minPredBG = lowest point of the IOB / COB / UAM curves, chosen by whether carbs were entered.
+     * Values come from the loop result; the loop's own numbers are always the ones shown as the answer.
+     */
+    private suspend fun buildLoopMath(request: APSResult, result: APSResult, reason: String): LoopMath? {
+        val units = profileFunction.getUnits()
+        val mmol = units == GlucoseUnit.MMOL
+        val toMgdl = { v: Double -> if (mmol) v * Constants.MMOLL_TO_MGDL else v }
+        val fmt = { mgdl: Double -> profileUtil.fromMgdlToStringInUnits(mgdl, units) }
+        val signed = { mgdl: Double -> if (abs(mgdl) < 0.5) fmt(0.0) else (if (mgdl < 0) "− " else "+ ") + fmt(abs(mgdl)) }
+        val bg = request.glucoseStatus?.glucose ?: return null
+        val iob = request.iob?.iob ?: return null
+        val isf = LoopReasonParser.number(reason, "ISF")?.let(toMgdl) ?: return null
+        val dev = LoopReasonParser.number(reason, "Dev")?.let(toMgdl) ?: return null
+        val bgi = LoopReasonParser.number(reason, "BGI")?.let(toMgdl) ?: 0.0
+        val eventual = LoopReasonParser.eventualBg(reason)?.replace(',', '.')?.toDoubleOrNull()?.let(toMgdl) ?: return null
+        val minPred = LoopReasonParser.minPredBg(reason)?.replace(',', '.')?.toDoubleOrNull()?.let(toMgdl) ?: return null
+        val minGuard = LoopReasonParser.number(reason, "minGuardBG")?.let(toMgdl)
+        val target = request.targetBG.takeIf { it > 0 } ?: result.targetBG
+        val minBg = request.oapsProfile?.min_bg ?: target
+        val threshold = minBg - 0.5 * (minBg - 40)
+
+        // eventual BG
+        val drop = iob * isf
+        val naive = Math.round(bg - drop).toDouble()
+        val sum = naive + dev
+        val steps = mutableListOf(
+            MathStep(rh.gs(R.string.dashboard_loop_math_bg), fmt(bg)),
+            MathStep(rh.gs(R.string.dashboard_loop_math_iob, decimalFormatter.to2Decimal(iob), fmt(isf)), signed(-drop), if (abs(drop) < 0.5) StepKind.PLAIN else if (drop > 0) StepKind.DOWN else StepKind.UP),
+            MathStep(rh.gs(R.string.dashboard_loop_math_dev), signed(dev), if (dev >= 0) StepKind.UP else StepKind.DOWN)
+        )
+        if (abs(eventual - sum) >= 1.5) {
+            val cobEnd = LoopReasonParser.number(reason, "COBpredBG")?.let(toMgdl)
+            val uamEnd = LoopReasonParser.number(reason, "UAMpredBG")?.let(toMgdl)
+            val label = when {
+                cobEnd != null && abs(cobEnd - eventual) < 1.5 -> rh.gs(R.string.dashboard_loop_math_use_cob, fmt(sum))
+                uamEnd != null && abs(uamEnd - eventual) < 1.5 -> rh.gs(R.string.dashboard_loop_math_use_uam, fmt(sum))
+                else                                           -> rh.gs(R.string.dashboard_loop_math_other)
+            }
+            steps += MathStep(label, signed(eventual - sum), if (eventual >= sum) StepKind.UP else StepKind.DOWN)
+        }
+        val per5 = dev / 6.0
+        val deviationNote = rh.gs(R.string.dashboard_loop_math_dev_note, signedPlain(fmt, per5 + bgi), signedPlain(fmt, bgi), signedPlain(fmt, per5), signedPlain(fmt, dev))
+
+        // lowest predicted BG
+        val p = request.predictions()
+        val curves = listOfNotNull(
+            p?.ZT?.let { PredCurve(PredKind.ZT, it) },
+            p?.IOB?.let { PredCurve(PredKind.IOB, it) },
+            p?.COB?.let { PredCurve(PredKind.COB, it) },
+            p?.UAM?.let { PredCurve(PredKind.UAM, it) }
+        )
+        // same windows as the algorithm: IOB / COB after the 90 min insulin peak, UAM after 1 h
+        // (stored curves are cut once they go flat, so a short curve ends on its plateau)
+        val tailMin = { c: List<Int>?, from: Int -> c?.let { if (it.size > from) it.drop(from).minOrNull() else it.lastOrNull() }?.toDouble() }
+        val minIob = tailMin(p?.IOB, 18)
+        val minCob = tailMin(p?.COB, 18)
+        val minUam = tailMin(p?.UAM, 12)
+        val carbsEntered = (request.mealData?.carbs ?: 0.0) > 0.0
+        val minPredNote = when {
+            carbsEntered && minCob != null                  -> rh.gs(R.string.dashboard_loop_math_min_cob, fmt(minCob), fmt(minPred))
+            !carbsEntered && minIob != null && minUam != null && abs(maxOf(minIob, minUam) - minPred) < 1.5 ->
+                rh.gs(R.string.dashboard_loop_math_min_uam, fmt(minIob), fmt(minUam), fmt(minPred))
+            !carbsEntered && minUam != null                 -> rh.gs(R.string.dashboard_loop_math_min_uam_plain, fmt(minPred))
+            minIob != null                                  -> rh.gs(R.string.dashboard_loop_math_min_iob, fmt(minIob), fmt(minPred))
+            else                                            -> rh.gs(R.string.dashboard_loop_math_min_plain, fmt(minPred))
+        }
+
+        // what the two numbers decided
+        val verdicts = buildList {
+            add(
+                when {
+                    eventual > target + 1.5 -> rh.gs(R.string.dashboard_loop_math_verdict_high, fmt(eventual), fmt(target))
+                    eventual < target - 1.5 -> rh.gs(R.string.dashboard_loop_math_verdict_low, fmt(eventual), fmt(target))
+                    else                    -> rh.gs(R.string.dashboard_loop_math_verdict_near, fmt(eventual), fmt(target))
+                } to false
+            )
+            minGuard?.let {
+                if (it >= threshold) add(rh.gs(R.string.dashboard_loop_math_verdict_safe, fmt(it), fmt(threshold)) to false)
+                else add(rh.gs(R.string.dashboard_loop_math_verdict_unsafe, fmt(it), fmt(threshold)) to true)
+            }
+        }
+        return LoopMath(
+            eventual = fmt(eventual), eventualSteps = steps, deviationNote = deviationNote,
+            minPred = fmt(minPred), minPredNote = minPredNote, minPredWarn = minPred < threshold,
+            curves = curves, minPredMgdl = minPred, targetMgdl = target, thresholdMgdl = threshold,
+            targetText = fmt(target), thresholdText = fmt(threshold), verdicts = verdicts
+        )
+    }
+
+    private fun signedPlain(fmt: (Double) -> String, mgdl: Double): String =
+        (if (mgdl < 0) "−" else "+") + fmt(abs(mgdl))
+
+
+
+    // ---------- Statistics ----------
+
+    private suspend fun updateStats() {
+        val now = dateUtil.now()
+        val midnight = MidnightTime.calc(now)
+        val units = profileFunction.getUnits()
+        val lowMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewLowMark))
+        val highMgdl = profileUtil.convertToMgdlDetect(preferences.get(UnitDoubleKey.OverviewHighMark))
+        val readings = persistenceLayer.getBgReadingsDataFromTimeToTime(midnight, now, true).map { it.value }
+        val summary = GlucoseStatsCalculator.summarize(readings, lowMgdl, highMgdl, now - midnight)
+        val tdd = tddCalculator.calculateToday()
+        val dash = "–"
+        fun fmt(v: Double, pattern: String) = String.format(Locale.getDefault(), pattern, v)
+        val stats = GlucoseStats(
+            rangePct = summary?.rangePct ?: emptyList(),
+            thresholds = listOf(GlucoseStatsCalculator.VERY_LOW_MGDL, lowMgdl, highMgdl, GlucoseStatsCalculator.VERY_HIGH_MGDL).map { profileUtil.fromMgdlToStringInUnits(it, units) },
+            unitLabel = units.asText,
+            mean = summary?.let { profileUtil.fromMgdlToStringInUnits(it.meanMgdl, units) } ?: dash,
+            eA1c = summary?.let { fmt(it.eA1cPct, "%.1f") } ?: dash,
+            cv = summary?.let { fmt(it.cvPct, "%.1f") } ?: dash,
+            totalInsulin = tdd?.let { fmt(if (it.totalAmount > 0) it.totalAmount else it.bolusAmount + it.basalAmount, "%.2f") } ?: dash,
+            bolus = tdd?.let { fmt(it.bolusAmount, "%.2f") } ?: dash,
+            basal = tdd?.let { fmt(it.basalAmount, "%.2f") } ?: dash,
+            carbs = tdd?.carbs?.takeIf { it > 0 }?.let { fmt(it, "%.0f") } ?: dash,
+            cgmActive = summary?.let { fmt(it.cgmActivePct, "%.0f") } ?: dash
+        )
+        val recent = persistenceLayer.getBolusesFromTime(now - T.hours(24).msecs(), false)
+            .filter { it.type != BS.Type.PRIMING }
+            .sortedByDescending { it.timestamp }
+            .take(5)
+            .map { RecentBolus(dateUtil.timeString(it.timestamp), fmt(it.amount, "%.2f"), it.type == BS.Type.SMB) }
+        val data = mealTracker.data()
+        val meals = data.meals.filter { !it.legacy }
+        val meal = MealTile(tracked = data.foods.count { it.tracked }, pending = meals.count { it.confirmed && it.eval == null }, unseen = meals.count { it.eval != null && !it.seen })
+        post { it.copy(stats = stats, recentBoluses = recent, meal = meal) }
+    }
+
+    // ---------- Buttons ----------
+
+    private suspend fun processButtons() {
+        val pump = activePlugin.activePump
+        val profile = profileFunction.getProfile()
+        val pumpUsable = loop.runningMode() != RM.Mode.DISCONNECTED_PUMP && !pump.isSuspended() && pump.isInitialized()
+        val xDrip = xDripSource.isEnabled()
+        val dexcom = dexcomBoyda.isEnabled()
+        val buttons = Buttons(
+            insulin = profile != null && preferences.get(BooleanKey.OverviewShowInsulinButton),
+            insulinWarning = !pumpUsable,
+            carbs = profile != null && preferences.get(BooleanKey.OverviewShowCarbsButton),
+            wizard = pumpUsable && profile != null && preferences.get(BooleanKey.OverviewShowWizardButton),
+            calibration = false,
+            cgm = preferences.get(BooleanKey.OverviewShowCgmButton) && xDrip && !dexcom,
+            cgmIcon = R.drawable.dash_ic_xdrip
+        )
+        post { it.copy(buttons = buttons) }
+    }
+
+    // ---------- Graph ----------
+
+    private suspend fun updateGraph() {
+        val range = cache.timeRangeFlow.value ?: return
+        val now = dateUtil.now()
+        val hours = rangeHours
+        val from = maxOf(range.fromTime, range.toTime - T.hours(hours.toLong()).msecs())
+        val low = preferences.get(UnitDoubleKey.OverviewLowMark)
+        val high = preferences.get(UnitDoubleKey.OverviewHighMark)
+        val isMgdl = profileFunction.getUnits() == GlucoseUnit.MGDL
+        val bg = cache.bgReadingsFlow.value.filter { it.timestamp in from..range.endTime }.map { GraphPoint(it.timestamp, it.value) }
+        val predictions = cache.predictionsFlow.value.mapNotNull { p ->
+            when (p.type) {
+                BgType.IOB_PREDICTION   -> PredictionKind.IOB to GraphPoint(p.timestamp, p.value)
+                BgType.COB_PREDICTION   -> PredictionKind.COB to GraphPoint(p.timestamp, p.value)
+                BgType.A_COB_PREDICTION -> PredictionKind.A_COB to GraphPoint(p.timestamp, p.value)
+                BgType.UAM_PREDICTION   -> PredictionKind.UAM to GraphPoint(p.timestamp, p.value)
+                BgType.ZT_PREDICTION    -> PredictionKind.ZT to GraphPoint(p.timestamp, p.value)
+                else                    -> null
+            }
+        }.groupBy({ it.first }, { it.second }).mapValues { e -> e.value.sortedBy { it.x } }
+        val treatments = cache.treatmentGraphFlow.value
+        fun nearestBg(t: Long) = bg.minByOrNull { abs(it.x - t) }?.y ?: low
+        val markers = buildList {
+            treatments.boluses.filter { it.timestamp >= from }.forEach {
+                val smb = it.bolusType == app.aaps.core.interfaces.overview.graph.BolusType.SMB
+                add(GraphMarker(it.timestamp, if (smb) low else nearestBg(it.timestamp), if (smb) MarkerKind.SMB else MarkerKind.BOLUS, it.label, !it.isValid))
+            }
+            treatments.carbs.filter { it.timestamp >= from }.forEach { add(GraphMarker(it.timestamp, nearestBg(it.timestamp), MarkerKind.CARBS, it.label, !it.isValid)) }
+            cache.epsGraphFlow.value.filter { it.timestamp >= from }.forEach { add(GraphMarker(it.timestamp, 0.0, MarkerKind.PROFILE, it.label)) }
+        }
+        val basalData = cache.basalGraphFlow.value
+        val step = if (isMgdl) 20.0 else 1.0
+        val maxY = kotlin.math.ceil((maxOf(bg.maxOfOrNull { it.y } ?: 0.0, high) + step) / step) * step
+        _graph.value = GraphModel(
+            fromTime = from,
+            now = now,
+            endTime = range.endTime,
+            rangeHours = hours,
+            maxY = maxY,
+            lowMark = low,
+            highMark = high,
+            isMgdl = isMgdl,
+            bg = bg,
+            predictions = predictions,
+            markers = markers,
+            basal = basalData.actualBasal.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
+            basalProfile = basalData.profileBasal.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
+            targetLine = cache.targetLineFlow.value.targets.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
+            activity = cache.activityGraphFlow.value.activity.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) }
+        )
+    }
+
+    private companion object {
+
+        const val REFRESH_MS = 60_000L
+        const val MIN_REFRESH_GAP_MS = 500L
+        const val COLOR_OK = 0xFF4ADE80.toInt()
+        const val COLOR_WARN = 0xFFFBBF24.toInt()
+        const val COLOR_CRITICAL = 0xFFF87171.toInt()
+    }
+}
+
+/** Personal-fork: the Dashboard with its bottom bar, in the place of the 4.0 home content. */
+@Composable
+fun DashboardHome(
+    controller: DashboardController,
+    items: List<HomeBarItem>,
+    cannula: StatusInput?,
+    insulin: StatusInput?,
+    sensor: StatusInput?,
+    battery: StatusInput?,
+    isPatchPump: Boolean,
+    onNavigate: (NavigationRequest) -> Unit
+) {
+    val state by controller.state.collectAsStateWithLifecycle()
+    val graph by controller.graph.collectAsStateWithLifecycle()
+    LaunchedEffect(controller) { controller.run() }
+    var info by remember { mutableStateOf<Pair<String, String>?>(null) }
+    val notPorted = stringResource(R.string.dashboard_home_not_ported)
+    fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
+    val actions = remember(controller, notPorted) {
+        object : DashboardActions {
+            override fun onProfileClick() = go(ElementType.PROFILE_MANAGEMENT)
+            override fun onProfileLongClick() = go(ElementType.PROFILE_MANAGEMENT)
+            override fun onTempTargetClick() = go(ElementType.TEMP_TARGET_MANAGEMENT)
+            override fun onLoopClick() = go(ElementType.RUNNING_MODE)
+            override fun onLoopLongClick() = go(ElementType.RUNNING_MODE)
+            override fun onBgQualityClick() { info = "" to controller.qualityMessage }
+            override fun onPumpStatusClick() = Unit // the 4.0 pump activity button shows it
+            override fun onInsulin() = go(ElementType.INSULIN)
+            override fun onCarbs() = go(ElementType.CARBS)
+            override fun onWizard() = go(ElementType.BOLUS_WIZARD) // until the Dashboard calculator is ported
+            override fun onAiCarbs() = Unit
+            override fun onTreatment() = go(ElementType.TREATMENT)
+            override fun onQuickWizard() = Unit
+            override fun onQuickWizardLong() = go(ElementType.QUICK_WIZARD_MANAGEMENT)
+            override fun onCalibration() = go(ElementType.CALIBRATION)
+            override fun onCgm() = go(ElementType.CGM_XDRIP)
+            override fun onAcceptTemp() = Unit // the loop action in the bottom bar
+            override fun onScale(hours: Int) = controller.setRange(hours)
+            override fun showInfo(title: String, text: String) { info = title to text }
+            override fun onWeeklyReview() { info = "" to notPorted }
+            override fun onMealRecords() { info = "" to notPorted }
+            override fun onRecentBoluses() = go(ElementType.TREATMENTS)
+            override fun onExplainDecision() { info = "" to notPorted }
+        }
+    }
+    val lights = buildList {
+        cannula?.let { add(light(if (isPatchPump) R.drawable.dash_ic_patch_pump_outline else R.drawable.dash_ic_cp_age_cannula, stringResource(if (isPatchPump) R.string.dashboard_patch else R.string.dashboard_cannula), it.age, it.ageStatus)) }
+        insulin?.let {
+            if (!isPatchPump) add(light(R.drawable.dash_ic_cp_age_insulin, stringResource(R.string.dashboard_insulin), it.age, it.ageStatus))
+            it.level?.let { level -> add(light(R.drawable.dash_ic_bolus, stringResource(R.string.dashboard_reservoir), level, it.levelStatus)) }
+        }
+        sensor?.let { add(light(R.drawable.dash_ic_cp_age_sensor, stringResource(R.string.dashboard_sensor), it.age, it.ageStatus, it.level.orEmpty(), it.levelStatus)) }
+        battery?.let {
+            val level = it.level
+            add(
+                if (level != null) light(R.drawable.dash_ic_cp_age_battery, stringResource(R.string.dashboard_battery), level, it.levelStatus, it.age, it.ageStatus)
+                else light(R.drawable.dash_ic_cp_age_battery, stringResource(R.string.dashboard_battery), it.age, it.ageStatus)
+            )
+        }
+    }
+    Box(Modifier.fillMaxSize()) {
+        DashboardScreen(state.copy(statusLights = lights), graph, actions, items)
+    }
+    info?.let { (title, text) ->
+        AlertDialog(
+            onDismissRequest = { info = null },
+            title = if (title.isNotEmpty()) ({ Text(title) }) else null,
+            text = { Text(text) },
+            confirmButton = { TextButton(onClick = { info = null }) { Text("OK") } }
+        )
+    }
+}
+
+private fun severityOf(s: StatusLevel): Severity = when (s) {
+    StatusLevel.CRITICAL -> Severity.CRITICAL
+    StatusLevel.WARNING  -> Severity.WARNING
+    else                 -> Severity.NEUTRAL
+}
+
+private fun colorOf(s: StatusLevel): Int? = when (s) {
+    StatusLevel.CRITICAL -> 0xFFF87171.toInt()
+    StatusLevel.WARNING  -> 0xFFFBBF24.toInt()
+    else                 -> null
+}
+
+private fun light(icon: Int, label: String, value: String, status: StatusLevel, sub: String = "", subStatus: StatusLevel = StatusLevel.UNSPECIFIED) = StatusLight(
+    icon, label, value, colorOf(status), sub, colorOf(subStatus),
+    if (severityOf(status) == Severity.CRITICAL || severityOf(subStatus) == Severity.CRITICAL) Severity.CRITICAL
+    else if (severityOf(status) == Severity.WARNING || severityOf(subStatus) == Severity.WARNING) Severity.WARNING
+    else Severity.NEUTRAL
+)

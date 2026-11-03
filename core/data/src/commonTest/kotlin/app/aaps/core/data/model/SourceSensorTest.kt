@@ -96,7 +96,7 @@ class SourceSensorTest {
     fun `followers that do not name their sensor stay unknown`() {
         assertEquals(SourceSensor.UNKNOWN, SourceSensor.fromString("Nightscout Follow"))
         assertEquals(SourceSensor.UNKNOWN, SourceSensor.fromString("NSClient Follow"))
-        assertEquals(SourceSensor.UNKNOWN, SourceSensor.fromString("NSEmulator Follow"))
+        assertEquals(SourceSensor.NSEMULATOR_FOLLOW, SourceSensor.fromString("NSEmulator Follow")) // Personal-fork
         assertEquals(SourceSensor.UNKNOWN, SourceSensor.fromString("G5 Native"))
     }
 

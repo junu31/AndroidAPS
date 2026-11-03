@@ -537,7 +537,10 @@ class DiaconnG8Plugin(
             DiaconnBooleanKey.LogCannulaChange,
             DiaconnBooleanKey.LogTubeChange,
             DiaconnBooleanKey.LogBatteryChange,
-            DiaconnBooleanKey.SendLogsToCloud
+            DiaconnBooleanKey.SendLogsToCloud,
+            DiaconnBooleanKey.BatteryWarningSleepMute,
+            DiaconnIntKey.BatteryWarningSleepMuteStartHour,
+            DiaconnIntKey.BatteryWarningSleepMuteEndHour
         ),
         icon = pluginDescription.icon
     )

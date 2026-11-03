@@ -16,6 +16,7 @@ enum class DiaconnBooleanKey(
     LogTubeChange("diaconn_g8_logtubechange", true, titleResId = R.string.diaconn_g8_logtubechange_title, summaryResId = R.string.diaconn_g8_logtubechange_summary),
     LogBatteryChange("diaconn_g8_logbatterychanges", true, titleResId = R.string.diaconn_g8_logbatterychange_title, summaryResId = R.string.diaconn_g8_logbatterychange_summary),
     SendLogsToCloud("diaconn_g8_cloudsend", true, titleResId = R.string.diaconn_g8_cloudsend_title, summaryResId = R.string.diaconn_g8_cloudsend_summary),
+    BatteryWarningSleepMute("diaconn_g8_batterywarning_sleepmute", false, titleResId = R.string.diaconn_g8_batterywarning_sleepmute_title, summaryResId = R.string.diaconn_g8_batterywarning_sleepmute_summary), // Personal-fork
     ;
 
     override val title: TextRef = TextRef.AndroidRes(titleResId)

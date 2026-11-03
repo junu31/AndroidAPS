@@ -24,11 +24,14 @@ import app.aaps.core.interfaces.rx.bus.RxBus
 import app.aaps.core.interfaces.rx.events.EventPumpStatusChanged
 import app.aaps.core.interfaces.rx.events.EventShowSnackbar
 import app.aaps.core.interfaces.ui.UiInteraction
+import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.utils.extensions.connectGattCompat
 import app.aaps.core.utils.notifyAll
 import app.aaps.core.utils.waitMillis
 import app.aaps.pump.diaconn.DiaconnG8Pump
 import app.aaps.pump.diaconn.R
+import app.aaps.pump.diaconn.keys.DiaconnBooleanKey
+import app.aaps.pump.diaconn.keys.DiaconnIntKey
 import app.aaps.pump.diaconn.packet.BatteryWarningReportPacket
 import app.aaps.pump.diaconn.packet.BigLogInquireResponsePacket
 import app.aaps.pump.diaconn.packet.DiaconnG8Packet
@@ -54,7 +57,8 @@ class BLECommonService internal constructor(
     private val diaconnG8ResponseMessageHashTable: DiaconnG8ResponseMessageHashTable,
     private val diaconnG8SettingResponseMessageHashTable: DiaconnG8SettingResponseMessageHashTable,
     private val diaconnG8Pump: DiaconnG8Pump,
-    private val uiInteraction: UiInteraction
+    private val uiInteraction: UiInteraction,
+    private val preferences: Preferences
 ) {
 
     companion object {
@@ -362,7 +366,14 @@ class BLECommonService internal constructor(
             // battery warning report
             if (message is BatteryWarningReportPacket) {
                 message.handleMessage(data)
-                uiInteraction.runAlarm(rh.gs(R.string.needbatteryreplace), rh.gs(R.string.batterywarning), AlarmSound.BOLUS_ERROR)
+                // Personal fork: suppress non-critical battery warnings during configured sleep hours.
+                // Grade 4 (critical) always alarms so user is not stranded with a dead pump.
+                val critical = diaconnG8Pump.batteryWaningGrade >= 4
+                if (critical || !isBatteryWarningSleepMuted()) {
+                    uiInteraction.runAlarm(rh.gs(R.string.needbatteryreplace), rh.gs(R.string.batterywarning), AlarmSound.BOLUS_ERROR)
+                } else {
+                    aapsLogger.debug(LTag.PUMPCOMM, "Battery warning suppressed (sleep window): grade=${diaconnG8Pump.batteryWaningGrade}, remain=${diaconnG8Pump.batteryWaningRemain}%")
+                }
                 return
             }
 
@@ -409,5 +420,18 @@ class BLECommonService internal constructor(
                 it.notifyAll()
             }
         } ?: aapsLogger.error("Unknown message received " + DiaconnG8Packet.toHex(data))
+    }
+
+    /** Personal fork: the sleep-hours mute is on and the local hour is inside the window (23 -> 7 wraps past midnight; start == end is all day). */
+    private fun isBatteryWarningSleepMuted(): Boolean {
+        if (!preferences.get(DiaconnBooleanKey.BatteryWarningSleepMute)) return false
+        val start = preferences.get(DiaconnIntKey.BatteryWarningSleepMuteStartHour)
+        val end = preferences.get(DiaconnIntKey.BatteryWarningSleepMuteEndHour)
+        val nowHour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY)
+        return when {
+            start == end -> true
+            start < end  -> nowHour in start until end
+            else         -> nowHour >= start || nowHour < end
+        }
     }
 }

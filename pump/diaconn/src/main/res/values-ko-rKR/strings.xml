@@ -135,4 +135,8 @@
     <string name="bolus_speed_8">8 U/min</string>
     <string name="diaconn_pairing_successful">페어링 성공!</string>
     <string name="diaconn_pairing_successful_message">펌프가 연결되었으며 사용할 준비가 되었습니다.</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_title">수면시간 동안 베터리 경고 음소거</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_summary">설정된 수면시간 동안 Diaconn G8 베터리 경고 다이얼로그와 알람음을 차단합니다. 위급(grade 4) 경고는 항상 울려 펌프가 완전히 방전되는 것을 막습니다.</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_start_title">수면 시작 시각 (0–23시)</string>
+    <string name="diaconn_g8_batterywarning_sleepmute_end_title">수면 종료 시각 (0–23시)</string>
 </resources>

@@ -34,6 +34,7 @@ fun GlucoseValue.SourceSensor.fromDb(): SourceSensor =
         GlucoseValue.SourceSensor.SYAI_TAG          -> SourceSensor.SYAI_TAG
         GlucoseValue.SourceSensor.INSTARA           -> SourceSensor.INSTARA
         GlucoseValue.SourceSensor.RANDOM            -> SourceSensor.RANDOM
+        GlucoseValue.SourceSensor.NSEMULATOR_FOLLOW -> SourceSensor.NSEMULATOR_FOLLOW
         GlucoseValue.SourceSensor.UNKNOWN           -> SourceSensor.UNKNOWN
 
         GlucoseValue.SourceSensor.IOB_PREDICTION    -> SourceSensor.IOB_PREDICTION
@@ -74,6 +75,7 @@ fun SourceSensor.toDb(): GlucoseValue.SourceSensor =
         SourceSensor.SYAI_TAG          -> GlucoseValue.SourceSensor.SYAI_TAG
         SourceSensor.INSTARA           -> GlucoseValue.SourceSensor.INSTARA
         SourceSensor.RANDOM            -> GlucoseValue.SourceSensor.RANDOM
+        SourceSensor.NSEMULATOR_FOLLOW -> GlucoseValue.SourceSensor.NSEMULATOR_FOLLOW
         SourceSensor.UNKNOWN           -> GlucoseValue.SourceSensor.UNKNOWN
 
         SourceSensor.IOB_PREDICTION    -> GlucoseValue.SourceSensor.IOB_PREDICTION

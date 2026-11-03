@@ -24,6 +24,7 @@ private val ADVANCED_FILTERING_SENSORS = setOf(
     SourceSensor.LIBRE_3,
     SourceSensor.SYAI_TAG,
     SourceSensor.RANDOM,
+    SourceSensor.NSEMULATOR_FOLLOW, // Personal-fork: CareSens Air through xDrip+
 )
 
 private val FLAT_BG_CHECK_SENSORS = setOf(
@@ -36,4 +37,5 @@ private val FLAT_BG_CHECK_SENSORS = setOf(
     SourceSensor.AIDEX,
     SourceSensor.AIDEX_X,
     SourceSensor.UNKNOWN,
+    SourceSensor.NSEMULATOR_FOLLOW, // Personal-fork: trusted for SMB, flat check kept
 )

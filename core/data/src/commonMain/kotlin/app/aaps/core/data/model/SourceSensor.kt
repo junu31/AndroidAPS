@@ -56,6 +56,9 @@ enum class SourceSensor(val text: String, val aliases: Set<String> = emptySet())
     SYAI_TAG("Syai Tag", setOf("Ottai")),
     INSTARA("Instara"),
     RANDOM("Random"),
+    // Personal-fork: CareSens Air (i-SENS) reaches AAPS through the xDrip+ NSEmulator path. This setup has no
+    // other source behind xDrip+, so it is trusted for SMB here, and the flat check stays on.
+    NSEMULATOR_FOLLOW("NSEmulator Follow"),
     UNKNOWN("Unknown"),
 
     IOB_PREDICTION("IOBPrediction"),
@@ -82,7 +85,7 @@ enum class SourceSensor(val text: String, val aliases: Set<String> = emptySet())
          * Some sources are left out of this enum on purpose, so that they land on [UNKNOWN] and keep
          * the flat check that [needsFlatBgCheck] gives an unknown source. Do not add entries or
          * aliases for them:
-         *  - `Nightscout Follow`, `NSClient Follow` and `NSEmulator Follow` from xDrip, and
+         *  - `Nightscout Follow` and `NSClient Follow` from xDrip (Personal-fork: `NSEmulator Follow` has an entry), and
          *    `Nightscout` from Juggluco, relay readings from any app, so the real sensor is not known.
          *  - `G5 Native` is sent for a G5, but also for an xDrip WebFollow reading, so it does not
          *    identify the hardware either.

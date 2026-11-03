@@ -98,6 +98,7 @@ data class GlucoseValue(
         SYAI_TAG,
         INSTARA,
         RANDOM,
+        NSEMULATOR_FOLLOW, // Personal-fork
         UNKNOWN,
 
         IOB_PREDICTION,

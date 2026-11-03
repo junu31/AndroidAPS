@@ -31,6 +31,9 @@ enum class DiaconnIntKey(
             8 to R.string.bolus_speed_8
         )
     ),
+    // Personal-fork
+    BatteryWarningSleepMuteStartHour("diaconn_g8_batterywarning_sleepmute_start", defaultValue = 23, min = 0, max = 23, titleResId = R.string.diaconn_g8_batterywarning_sleepmute_start_title),
+    BatteryWarningSleepMuteEndHour("diaconn_g8_batterywarning_sleepmute_end", defaultValue = 7, min = 0, max = 23, titleResId = R.string.diaconn_g8_batterywarning_sleepmute_end_title),
     ;
 
     override val title: TextRef = TextRef.AndroidRes(titleResId)

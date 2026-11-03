@@ -1,21 +1,25 @@
-package app.aaps.plugins.main.general.dashboard.meal
+package app.aaps.receivers
 
 import android.content.Context
 import android.content.Intent
 import app.aaps.core.objects.workflow.MetroBroadcastReceiver
+import app.aaps.plugins.main.general.dashboard.meal.MealTracker
 import dev.zacsweers.metro.Inject
 import kotlinx.coroutines.runBlocking
 
-/** Personal-fork: answer buttons of the "what was this bolus?" notification during a meal evaluation. */
+/**
+ * Personal-fork: answer buttons of the "what was this bolus?" notification during a meal evaluation.
+ * In :app like the other receivers, because member injection is generated here.
+ */
 class MealAnswerReceiver : MetroBroadcastReceiver() {
 
     @Inject lateinit var mealTracker: MealTracker
 
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
-        val mealId = intent.getStringExtra(EXTRA_MEAL) ?: return
-        val time = intent.getLongExtra(EXTRA_TIME, 0L)
-        val answer = intent.getStringExtra(EXTRA_ANSWER) ?: return
+        val mealId = intent.getStringExtra(MealTracker.EXTRA_MEAL) ?: return
+        val time = intent.getLongExtra(MealTracker.EXTRA_TIME, 0L)
+        val answer = intent.getStringExtra(MealTracker.EXTRA_ANSWER) ?: return
         val pending = goAsync()
         Thread {
             try {
@@ -24,12 +28,5 @@ class MealAnswerReceiver : MetroBroadcastReceiver() {
                 pending.finish()
             }
         }.start()
-    }
-
-    companion object {
-
-        const val EXTRA_MEAL = "meal"
-        const val EXTRA_TIME = "time"
-        const val EXTRA_ANSWER = "answer"
     }
 }

@@ -228,8 +228,8 @@ class MealTracker(
         val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         nm.createNotificationChannel(NotificationChannel(CHANNEL_ID, rh.gs(R.string.meal_channel), NotificationManager.IMPORTANCE_DEFAULT))
         fun action(answer: String, code: Int, label: String): NotificationCompat.Action {
-            val intent = Intent(context, MealAnswerReceiver::class.java)
-                .putExtra(MealAnswerReceiver.EXTRA_MEAL, meal.id).putExtra(MealAnswerReceiver.EXTRA_TIME, b.time).putExtra(MealAnswerReceiver.EXTRA_ANSWER, answer)
+            val intent = Intent().setClassName(context, ANSWER_RECEIVER)
+                .putExtra(EXTRA_MEAL, meal.id).putExtra(EXTRA_TIME, b.time).putExtra(EXTRA_ANSWER, answer)
             val pi = PendingIntent.getBroadcast(context, askId(meal.id, b.time) * 2 + code, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
             return NotificationCompat.Action(app.aaps.core.ui.R.drawable.notif_icon, label, pi)
         }
@@ -351,6 +351,10 @@ class MealTracker(
 
         const val EARLY_MIN_HOURS = 2
         private const val CHECK_INTERVAL_MS = 60_000L
+        private const val ANSWER_RECEIVER = "app.aaps.receivers.MealAnswerReceiver"
+        const val EXTRA_MEAL = "meal"
+        const val EXTRA_TIME = "time"
+        const val EXTRA_ANSWER = "answer"
 
         private const val CHANNEL_ID = "AAPS-MealTracking"
         private const val NOTIFICATION_BASE = 0x4D000

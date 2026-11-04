@@ -85,7 +85,14 @@ data class MealRecord(
     /** carbs time (bolus time + carb time offset) */
     val time: Long = 0,
     val deliverTime: Long = 0,
+    /** carbs eaten now: the amount the bolus was calculated with */
     val carbs: Double = 0.0,
+    /** cake / pizza in the calculator: carbs entered as eCarbs, and the amount and type typed in */
+    val eCarbs: Double = 0.0,
+    val eCarbsDelayMin: Int = 0,
+    val eCarbsDurationH: Int = 0,
+    val enteredCarbs: Double = 0.0,
+    val carbType: String = "",
     val fat: Double? = null,
     val protein: Double? = null,
     val type: FoodType = FoodType.MIXED,
@@ -127,6 +134,9 @@ data class MealRecord(
     /** AI: carbs handed to the calculator / carbs dialog, null = not used */
     val appliedCarbs: Double? = null
 ) {
+
+    /** everything this meal puts in: what the insulin need is compared with */
+    val totalCarbs: Double get() = carbs + eCarbs
 
     /** evaluated and usable for a suggestion */
     val usable: Boolean get() = !legacy && !excludedByUser && eval != null && eval.grade != MealGrade.EXCLUDED && eval.neededInsulin > 0 && carbs > 0 && !eval.needsAnswer

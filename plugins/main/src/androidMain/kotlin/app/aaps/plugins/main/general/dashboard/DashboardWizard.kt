@@ -1,5 +1,9 @@
 package app.aaps.plugins.main.general.dashboard
 
+import app.aaps.core.data.model.CarbsType
+import app.aaps.core.ui.compose.icons.IcBread
+import app.aaps.core.ui.compose.icons.IcCake
+import app.aaps.core.ui.compose.icons.IcPizza
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
@@ -113,7 +117,7 @@ import kotlin.math.abs
 import kotlin.time.TimeSource
 
 /** Values handed to the calculator. [foodId]: an existing food; otherwise an AI estimate. */
-data class WizardPrefill(val carbs: Int, val foodId: String? = null, val name: String = "", val foods: String = "", val fat: Double? = null, val protein: Double? = null)
+data class WizardPrefill(val carbs: Int, val foodId: String? = null, val carbType: String = "", val name: String = "", val foods: String = "", val fat: Double? = null, val protein: Double? = null)
 
 /**
  * The inputs of one calculation. The preview here and the master's recomputation in [WizardExecutor.prepare] are built
@@ -122,13 +126,18 @@ data class WizardPrefill(val carbs: Int, val foodId: String? = null, val name: S
  */
 internal fun dashboardWizardInputs(
     bg: Double, useBg: Boolean, carbs: Int, usePercentage: Boolean, enteredPercentage: Int, enteredCorrection: Double, basePercentage: Int,
-    carbTime: Int, useCob: Boolean, useIob: Boolean, useTt: Boolean, useTrend: Boolean, alarm: Boolean, notes: String, profileName: String?
+    carbTime: Int, useCob: Boolean, useIob: Boolean, useTt: Boolean, useTrend: Boolean, alarm: Boolean, notes: String, profileName: String?,
+    eCarbs: Int = 0, eCarbsDelayMinutes: Int = 0, eCarbsDurationHours: Int = 0
 ) = MasterActionExecutor.WizardInputs(
     bg = if (useBg) bg else 0.0, carbs = carbs,
     percentage = if (usePercentage) enteredPercentage else basePercentage,
     directCorrection = if (usePercentage) 0.0 else enteredCorrection,
     carbTime = carbTime, useBg = useBg, useCob = useCob, useIob = useIob, useTt = useTt, useTrend = useTrend, alarm = alarm, notes = notes,
-    profileName = profileName
+    profileName = profileName,
+    eCarbsGrams = eCarbs,
+    // counted from now, so a later carbs time moves them too (like the 4.0 wizard)
+    eCarbsDelayMinutes = if (eCarbs > 0) eCarbsDelayMinutes + carbTime else 0,
+    eCarbsDurationHours = if (eCarbs > 0) eCarbsDurationHours else 0
 )
 
 /** The stored percentage, but 100 % when there is no recent BG (same rule as the 4.0 wizard). */
@@ -211,6 +220,7 @@ class DashboardWizard(
     private var historyApplied by mutableStateOf<Double?>(null)
     private var currentIc by mutableStateOf(0.0)
     private var lastCarbs = 0
+    private var carbsType by mutableStateOf(CarbsType.BREAD)
     private var lastHistoryAdjust = 0.0
 
     // ---- results ----
@@ -287,6 +297,7 @@ class DashboardWizard(
     fun applyPrefill(p: WizardPrefill) {
         val existing = p.foodId?.let { id -> mealTracker.data().foods.firstOrNull { it.id == id } }
         carbsText = p.carbs.toString()
+        carbsType = CarbsType.entries.firstOrNull { it.name == p.carbType } ?: CarbsType.BREAD
         if (existing != null) selectFood(existing)
         else {
             aiCarbs = p.carbs
@@ -314,7 +325,8 @@ class DashboardWizard(
         else SafeParse.stringToDouble(correctionText)
         return dashboardWizardInputs(
             SafeParse.stringToDouble(bgText), useBg, carbs, usePercentage, SafeParse.stringToInt(correctionText), correction, basePercentage,
-            carbTime, useCob, useIob, useTt && ttAvailable, useTrend, alarm, notes, if (profileIndex == 0) null else profileNames.getOrNull(profileIndex)
+            carbTime, useCob, useIob, useTt && ttAvailable, useTrend, alarm, notes, if (profileIndex == 0) null else profileNames.getOrNull(profileIndex),
+            carbsType.eCarbs(SafeParse.stringToInt(carbsText)), carbsType.eCarbsDelayMinutes, carbsType.eCarbsDurationHours
         )
     }
 
@@ -329,7 +341,8 @@ class DashboardWizard(
         } else profileStore.getSpecificProfile(selected)?.let { ProfileSealed.Pure(it, activePlugin) }
         profile ?: return
 
-        val carbs = SafeParse.stringToInt(carbsText)
+        // cake and pizza: only the part eaten now goes into the calculation, like the 4.0 wizard
+        val carbs = carbsType.carbsNow(SafeParse.stringToInt(carbsText))
         val carbsAfterConstraint = constraintChecker.applyCarbsConstraints(ConstraintObject(carbs, aapsLogger)).value()
         if (abs(carbs - carbsAfterConstraint) > 0.01) {
             carbsText = ""
@@ -353,7 +366,7 @@ class DashboardWizard(
         calculatedCorrection = w.calculatedCorrection
         currentIc = w.ic
         lastCarbs = carbsAfterConstraint
-        suggestion = food?.takeIf { !foodIsNew }?.let { MealMath.suggest(foodHistory, carbsAfterConstraint.toDouble(), w.ic, bolusStep) }
+        suggestion = food?.takeIf { !foodIsNew }?.let { MealMath.suggest(foodHistory, (carbsAfterConstraint + carbsType.eCarbs(SafeParse.stringToInt(carbsText))).toDouble(), w.ic, bolusStep) }
         // the correction came from "기록 반영" while it still holds that value
         val fromHistory = historyApplied?.takeIf { !usePercentage && abs(correction - it) < 0.001 }
         lastHistoryAdjust = fromHistory ?: 0.0
@@ -492,9 +505,11 @@ class DashboardWizard(
         if (!asAdvisor) food?.let { f ->
             if (lastCarbs > 0) runCatching {
                 val fromAi = aiCarbs != null && aiCarbs.toString() == carbsText
+                val inputsECarbs = carbsType.eCarbs(SafeParse.stringToInt(carbsText))
                 mealId = mealTracker.register(
                     f, tracked, lastCarbs.toDouble(), if (fromAi) aiFat else null, if (fromAi) aiProtein else null,
-                    carbTime, detail?.totalInsulin ?: 0.0, lastHistoryAdjust
+                    carbTime, detail?.totalInsulin ?: 0.0, lastHistoryAdjust,
+                    inputsECarbs.toDouble(), carbsType.eCarbsDelayMinutes, carbsType.eCarbsDurationHours, SafeParse.stringToInt(carbsText).toDouble(), carbsType.name
                 )
             }.onFailure { aapsLogger.error(LTag.CORE, "Meal tracking", it) }
         }
@@ -604,6 +619,7 @@ class DashboardWizard(
                 modifier = Modifier.weight(1f), compact = true
             )
             }
+            CarbsTypeRow()
             MealSection(isAi)
             // correction (U or %) and carb time + alarm
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1010,6 +1026,52 @@ class DashboardWizard(
     // ---------- small UI parts ----------
 
     private data class Chip(val text: String, val on: Boolean, val enabled: Boolean, val onClick: () -> Unit)
+
+    /** bread, cake, pizza: same types and percentages as the 4.0 wizard */
+    @Composable
+    private fun CarbsTypeRow() {
+        Row(
+            Modifier
+                .padding(top = 8.dp)
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(999.dp))
+                .border(1.dp, ToolColors.Line, RoundedCornerShape(999.dp))
+        ) {
+            CarbsType.entries.forEach { type ->
+                val on = type == carbsType
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .background(if (on) ToolColors.Accent.copy(alpha = 0.2f) else Color.Transparent)
+                        .clickable { carbsType = type; calculate() }
+                        .padding(vertical = 7.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        when (type) {
+                            CarbsType.BREAD -> IcBread
+                            CarbsType.CAKE  -> IcCake
+                            CarbsType.PIZZA -> IcPizza
+                        },
+                        contentDescription = when (type) {
+                            CarbsType.BREAD -> rh.gs(app.aaps.core.ui.R.string.carbs_type_bread)
+                            CarbsType.CAKE  -> rh.gs(app.aaps.core.ui.R.string.carbs_type_cake)
+                            CarbsType.PIZZA -> rh.gs(app.aaps.core.ui.R.string.carbs_type_pizza)
+                        },
+                        tint = if (on) ToolColors.Accent else ToolColors.Sub,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+            }
+        }
+        val entered = SafeParse.stringToInt(carbsText)
+        val later = carbsType.eCarbs(entered)
+        Text(
+            if (carbsType == CarbsType.BREAD) rh.gs(R.string.dashboard_wizard_carbs_bread)
+            else rh.gs(R.string.dashboard_wizard_carbs_split, carbsType.carbsNow(entered), later, carbsType.eCarbsDelayMinutes, carbsType.eCarbsDurationHours),
+            color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp, start = 4.dp)
+        )
+    }
 
     @Composable
     private fun FlowChips(chips: List<Chip>) {

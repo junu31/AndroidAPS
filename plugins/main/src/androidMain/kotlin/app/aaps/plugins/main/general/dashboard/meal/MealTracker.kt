@@ -110,7 +110,8 @@ class MealTracker(
     /** Called right before the wizard confirmation; kept only if the bolus is really given (see [confirmPending]). */
     suspend fun register(
         food: MealFood, tracked: Boolean, carbs: Double, fat: Double?, protein: Double?,
-        carbTimeMin: Int, bolus: Double, historyAdjust: Double
+        carbTimeMin: Int, bolus: Double, historyAdjust: Double,
+        eCarbs: Double = 0.0, eCarbsDelayMin: Int = 0, eCarbsDurationH: Int = 0, enteredCarbs: Double = carbs, carbType: String = ""
     ): String {
         val now = dateUtil.now()
         val time = now + T.mins(carbTimeMin.toLong()).msecs()
@@ -124,11 +125,12 @@ class MealTracker(
         }
         val iob = iobCobCalculator.calculateIobFromBolus().iob + iobCobCalculator.calculateIobFromTempBasalsIncludingConvertedExtended().basaliob
         val record = MealRecord(
-            id = MealStore.newId(), foodId = food.id, foodName = food.name, time = time, deliverTime = now, carbs = carbs, fat = fat, protein = protein,
+            id = MealStore.newId(), foodId = food.id, foodName = food.name, time = time, deliverTime = now, carbs = carbs, eCarbs = eCarbs, eCarbsDelayMin = eCarbsDelayMin, eCarbsDurationH = eCarbsDurationH, enteredCarbs = enteredCarbs, carbType = carbType, fat = fat, protein = protein,
             type = food.type, tracked = tracked, bolus = bolus, historyAdjust = historyAdjust,
             profileName = profileFunction.getProfileName(), ic = profile?.getIcTimeFromMidnight(sec) ?: 0.0,
             isfMgdl = profile?.getIsfMgdlTimeFromMidnight(sec) ?: 0.0, percentage = profile?.percentage ?: 100,
-            evalAt = time + T.hours(food.type.hours.toLong()).msecs(),
+            // the window also covers the eCarbs and one more hour for them to act
+            evalAt = time + maxOf(T.hours(food.type.hours.toLong()).msecs(), if (eCarbs > 0) T.mins(eCarbsDelayMin + (eCarbsDurationH + 1) * 60L).msecs() else 0L),
             entryBg = last?.value?.roundToInt(), entryDelta15 = if (last != null && before != null) (last.value - before.value).roundToInt() else null,
             entryIob = (round(iob * 100) / 100), entryCob = iobCobCalculator.getCobInfo("Meal tracking").displayCob
         )
@@ -278,10 +280,13 @@ class MealTracker(
         // the meal's own carbs entry is the first one with the same amount close to the carbs time
         val carbs = persistenceLayer.getCarbsFromTimeToTimeExpanded(start - T.mins(15).msecs(), end, true).filter { it.isValid && it.amount > 0 }
         val own = carbs.filter { abs(it.timestamp - start) <= T.mins(15).msecs() && abs(it.amount - meal.carbs) < 0.5 }.minByOrNull { abs(it.timestamp - start) }
-        val other = carbs.filter { it !== own && it.timestamp >= start }.map { c ->
-            val near = readings.filter { abs(it.timestamp - c.timestamp) <= T.mins(15).msecs() }.minOfOrNull { it.value }
-            MealMath.OtherCarbs(minOf(c.timestamp), c.amount, near?.roundToInt())
-        }
+        val other = MealMath.withoutOwnECarbs(
+            carbs.filter { it !== own && it.timestamp >= start }.map { c ->
+                val near = readings.filter { abs(it.timestamp - c.timestamp) <= T.mins(15).msecs() }.minOfOrNull { it.value }
+                MealMath.OtherCarbs(minOf(c.timestamp), c.amount, near?.roundToInt())
+            },
+            meal.eCarbs, meal.eCarbsDelayMin - 1, meal.eCarbsDelayMin + meal.eCarbsDurationH * 60 + 1
+        )
         val activityTarget = persistenceLayer.getTemporaryTargetDataFromTime(start - T.hours(2).msecs(), true)
             .any { it.isValid && it.reason == TT.Reason.ACTIVITY && it.timestamp < end && it.timestamp + it.duration > start }
         val profileSwitch = persistenceLayer.getEffectiveProfileSwitchesFromTimeToTime(start + 1, end, true).isNotEmpty()
@@ -297,7 +302,7 @@ class MealTracker(
         val asked = manualBolusesOf(meal, end).map { b -> meal.manualBoluses.firstOrNull { it.time == b.time } ?: b }
         val evaluated = MealMath.evaluate(
             MealMath.EvalInput(
-                carbs = meal.carbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
+                carbs = meal.carbs, eCarbs = meal.eCarbs, ic = meal.ic.takeIf { it > 0 } ?: atMeal.getIc(start), isfMgdl = meal.isfMgdl.takeIf { it > 0 } ?: atMeal.getIsfMgdl("Meal"),
                 bg = bg, activity = activity, mealBolus = mealBoluses.sumOf { it.amount }, smb = smbs.sumOf { it.amount }, basalExtra = basalExtra,
                 manualExtra = manual.sumOf { it.amount }, otherCarbs = other, cobBefore = cobBefore, cobAfter = cobAfter, startDeviations = startDeviations,
                 notDelivered = mealBoluses.isEmpty(), manualOther = asked.any { it.answer == ManualBolus.OTHER },

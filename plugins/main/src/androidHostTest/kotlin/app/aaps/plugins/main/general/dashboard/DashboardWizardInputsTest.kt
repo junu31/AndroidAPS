@@ -10,6 +10,17 @@ class DashboardWizardInputsTest {
         carbTime = 0, useCob = false, useIob = true, useTt = false, useTrend = false, alarm = false, notes = "", profileName = null
     )
 
+    @Test fun `eCarbs pass on and follow the carbs time`() {
+        val i = dashboardWizardInputs(
+            bg = 150.0, useBg = true, carbs = 48, usePercentage = false, enteredPercentage = 80, enteredCorrection = 0.0, basePercentage = 100,
+            carbTime = 10, useCob = false, useIob = true, useTt = false, useTrend = false, alarm = false, notes = "", profileName = null,
+            eCarbs = 21, eCarbsDelayMinutes = 60, eCarbsDurationHours = 3
+        )
+        assertThat(i.eCarbsGrams).isEqualTo(21)
+        assertThat(i.eCarbsDelayMinutes).isEqualTo(70)
+        assertThat(i.eCarbsDurationHours).isEqualTo(3)
+    }
+
     @Test fun `percent mode replaces the base percentage and drops the correction`() {
         val i = inputs(usePercentage = true)
         assertThat(i.percentage).isEqualTo(80)

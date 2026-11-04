@@ -27,6 +27,32 @@ class MealMathTest {
     }
 
     @Test
+    fun `the meal's own eCarbs are not other food`() {
+        val found = listOf(MealMath.OtherCarbs(60, 7.0, 150), MealMath.OtherCarbs(120, 7.0, 150), MealMath.OtherCarbs(180, 7.0, 150))
+        assertThat(MealMath.withoutOwnECarbs(found, 21.0, 59, 241)).isEmpty()
+        val extra = MealMath.OtherCarbs(100, 30.0, 150)
+        assertThat(MealMath.withoutOwnECarbs(found + extra, 21.0, 59, 241)).containsExactly(extra)
+        // no eCarbs: everything stays other food
+        assertThat(MealMath.withoutOwnECarbs(found, 0.0, -1, 1)).hasSize(3)
+    }
+
+    @Test
+    fun `eCarbs count in the expected insulin`() {
+        val base = input(flat(120), 6.9)
+        val e = MealMath.evaluate(base.copy(carbs = 48.0, eCarbs = 21.0))
+        assertThat(e.expectedInsulin).isEqualTo(6.9)
+        assertThat(e.expectedInsulin).isEqualTo(MealMath.evaluate(base.copy(carbs = 69.0)).expectedInsulin)
+    }
+
+    @Test
+    fun `suggestion rate uses the whole meal`() {
+        val done = MealMath.evaluate(input(flat(120), 6.9).copy(carbs = 48.0, eCarbs = 21.0))
+        val meals = List(3) { MealRecord(carbs = 48.0, eCarbs = 21.0, eval = done, confirmed = true) }
+        val s = MealMath.suggest(meals, 69.0, 10.0, 0.0)
+        if (s != null) assertThat(s.gramsPerUnit).isEqualTo(10.0)
+    }
+
+    @Test
     fun `needed insulin adds the BG left over`() {
         // used 8.5 U, ended where it started -> needed 8.5, expected 7.0 -> +21 % = too little
         val e = MealMath.evaluate(input(flat(120), 8.5))

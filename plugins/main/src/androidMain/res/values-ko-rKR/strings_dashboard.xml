@@ -131,4 +131,6 @@
     <string name="dashboard_home_closed">폐쇄 루프</string>
     <string name="dashboard_home_open">개방 루프</string>
     <string name="dashboard_home_disabled">루프 꺼짐</string>
+    <string name="dashboard_wizard_carbs_bread">100% 즉시 탄수화물, 확장 탄수화물 없음</string>
+    <string name="dashboard_wizard_carbs_split">지금 %1$d g으로 계산 · 나중에 %2$d g (%3$d분 뒤부터 %4$d시간)</string>
 </resources>

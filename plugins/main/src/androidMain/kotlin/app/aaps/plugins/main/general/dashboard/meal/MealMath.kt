@@ -57,6 +57,8 @@ object MealMath {
 
     data class EvalInput(
         val carbs: Double,
+        /** the eCarbs of this meal: part of the meal, not other food */
+        val eCarbs: Double = 0.0,
         val ic: Double,
         val isfMgdl: Double,
         /** BG every 5 min from the meal to the end of the window, null = missing */
@@ -81,6 +83,16 @@ object MealMath {
         val activityTarget: Boolean = false,
         val profileSwitch: Boolean = false
     )
+
+    /** Takes the meal's own eCarbs (up to [eCarbs] g between the two minutes) out of the carbs found in its window. */
+    fun withoutOwnECarbs(found: List<OtherCarbs>, eCarbs: Double, fromMin: Int, toMin: Int): List<OtherCarbs> {
+        var left = eCarbs
+        return found.sortedBy { it.min }.filter { c ->
+            val own = c.min in fromMin..toMin && c.grams <= left + 0.5
+            if (own) left -= c.grams
+            !own
+        }
+    }
 
     fun evaluate(i: EvalInput): MealEval {
         val known = i.bg.filterNotNull()
@@ -115,7 +127,7 @@ object MealMath {
         // IOB from before the meal needs no extra term: its action is in "used" and its effect in the BG change.
         // Carbs are different: earlier food still absorbing is taken out, this meal's carbs not absorbed yet are added.
         val needed = used + (end - start) / i.isfMgdl + (i.cobAfter - i.cobBefore - hypoCarbs) / i.ic
-        val expected = i.carbs / i.ic
+        val expected = (i.carbs + i.eCarbs) / i.ic
         if (needed <= 0.1) return stats.copy(exclude = ExcludeReason.NO_INSULIN, usedInsulin = r2(used), hypoCarbs = hypoCarbs)
         val ratio = (needed / expected - 1) * 100
         // a low in the first 2 h and a high after it: the amount may be right, the timing is not
@@ -162,7 +174,7 @@ object MealMath {
         if (usable.count { it.countable } < MIN_RECORDS || carbs <= 0 || currentIc <= 0) return null
         // newer meals and calmer starts weigh more
         val w = usable.indices.map { WEIGHTS[it] * usable[it].eval!!.reliability.weight }
-        val perGram = usable.indices.sumOf { w[it] * usable[it].eval!!.neededInsulin / usable[it].carbs } / w.sum()
+        val perGram = usable.indices.sumOf { w[it] * usable[it].eval!!.neededInsulin / usable[it].totalCarbs } / w.sum()
         val history = carbs * perGram
         val current = carbs / currentIc
         var diff = history - current

@@ -154,7 +154,7 @@ class MealRecords(
     /** like the calculator: the latest carbs amount against the current profile; percent of the meal insulin */
     private fun suggestionPct(id: String): Pair<MealMath.Suggestion, Int>? {
         val m = meals(id)
-        val carbs = m.firstOrNull()?.carbs ?: return null
+        val carbs = m.firstOrNull()?.totalCarbs ?: return null
         val s = MealMath.suggest(m, carbs, icNow(m.first().time) ?: return null, 0.0) ?: return null
         return s to round((s.historyInsulin.coerceIn(s.currentInsulin * (1 - MealMath.CAP), s.currentInsulin * (1 + MealMath.CAP)) / s.currentInsulin - 1) * 100).toInt()
     }
@@ -371,7 +371,7 @@ class MealRecords(
             }
             meals(f.id).firstOrNull()?.let { last ->
                 CalcButton(rh.gs(R.string.meal_to_calc_ai, last.carbs.toInt())) {
-                    onCalc(WizardPrefill(last.carbs.toInt(), foodId = f.id))
+                    onCalc(WizardPrefill(last.enteredCarbs.takeIf { it > 0 }?.toInt() ?: last.carbs.toInt(), foodId = f.id, carbType = last.carbType))
                 }
             }
         }
@@ -573,7 +573,7 @@ class MealRecords(
                     Text("  " + dayTime.format(Date(r.time)), color = ToolColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
                     Text(
                         if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(r.evalAt))) + left(r.evalAt)
-                        else "${r.carbs.toInt()} g" + (if (e.neededInsulin > 0) " · " + MealTracker.signed(e.ratioPct) + "%" else "") + if (e.maxBg > 0) " · " + rh.gs(R.string.meal_max, e.maxBg) else "",
+                        else "${r.totalCarbs.toInt()} g" + (if (e.neededInsulin > 0) " · " + MealTracker.signed(e.ratioPct) + "%" else "") + if (e.maxBg > 0) " · " + rh.gs(R.string.meal_max, e.maxBg) else "",
                         color = ToolColors.Sub, fontSize = 11.5.sp
                     )
                 }
@@ -626,7 +626,7 @@ class MealRecords(
             append("음식: ${f.name} (${MealTracker.typeText(rh, f.type)}, 평가 ${f.type.hours}시간)\n")
             meals.filter { it.eval != null }.take(10).forEach { m ->
                 val e = m.eval!!
-                append("- ${dayTime.format(Date(m.time))}: 탄수 ${m.carbs.toInt()}g, 판정 ${MealTracker.gradeText(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e.grade)}")
+                append("- ${dayTime.format(Date(m.time))}: 탄수 ${m.totalCarbs.toInt()}g, 판정 ${MealTracker.gradeText(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e.grade)}")
                 if (e.grade == MealGrade.EXCLUDED || m.excludedByUser) append(" (${MealTracker.excludeText(rh, if (m.excludedByUser) ExcludeReason.USER else e.exclude)})")
                 append(", 시작 ${e.startBg} → 최고 ${e.maxBg}(${e.maxAtMin}분) → 끝 ${e.endBg}, 최저 ${e.minBg}, 범위 ${e.tirPct}%")
                 append(", 식사 볼러스 ${f2(e.mealBolus)}U, 루프 추가 ${f2(e.smb + e.basalExtra)}U, 직접 추가 ${f2(e.manualExtra)}U, 필요 대비 ${MealTracker.signed(e.ratioPct)}%")
@@ -773,7 +773,7 @@ class MealRecords(
                 Kv("COB", m.entryCob?.let { "${it.toInt()} g" } ?: "—", Modifier.weight(1f))
             }
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                Kv(rh.gs(R.string.meal_entry_carbs), "${m.carbs.toInt()} g", Modifier.weight(1f))
+                Kv(rh.gs(R.string.meal_entry_carbs), if (m.eCarbs > 0) "${m.carbs.toInt()} + ${m.eCarbs.toInt()} g" else "${m.carbs.toInt()} g", Modifier.weight(1f))
                 Kv(rh.gs(R.string.meal_entry_bolus), "${f2(m.bolus)} U", Modifier.weight(1f))
             }
             Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -833,8 +833,8 @@ class MealRecords(
             CompareRow("IC (${time.format(Date(m.time))})", f1(m.ic), f1(ic) + pct(m.ic, ic))
             CompareRow("ISF", f1(m.isfMgdl), f1(isf) + pct(m.isfMgdl, isf))
             CompareRow(rh.gs(R.string.meal_profile_pct), "${m.percentage}", "${now.percentage}")
-            val alone = e.neededInsulin - m.carbs / ic
-            Text(rh.gs(R.string.meal_profile_alone, m.carbs.toInt(), (if (alone > 0) "+" else "") + f2(alone)), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+            val alone = e.neededInsulin - m.totalCarbs / ic
+            Text(rh.gs(R.string.meal_profile_alone, m.totalCarbs.toInt(), (if (alone > 0) "+" else "") + f2(alone)), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
         }
     }
 

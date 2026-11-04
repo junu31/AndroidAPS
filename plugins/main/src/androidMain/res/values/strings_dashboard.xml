@@ -131,4 +131,6 @@
     <string name="dashboard_home_closed">Closed loop</string>
     <string name="dashboard_home_open">Open loop</string>
     <string name="dashboard_home_disabled">Loop disabled</string>
+    <string name="dashboard_wizard_carbs_bread">100% carbs now, no eCarbs</string>
+    <string name="dashboard_wizard_carbs_split">Calculated with %1$d g now · %2$d g later (from %3$d min, over %4$d h)</string>
 </resources>

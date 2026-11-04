@@ -132,5 +132,4 @@
     <string name="dashboard_home_closed">폐쇄 루프</string>
     <string name="dashboard_home_open">개방 루프</string>
     <string name="dashboard_home_disabled">루프 꺼짐</string>
-    <string name="dashboard_home_not_ported">아직 4.0으로 옮기지 않았습니다</string>
 </resources>

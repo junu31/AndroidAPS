@@ -87,6 +87,9 @@
 
         <!-- Powers the screen on for a background alarm without USE_FULL_SCREEN_INTENT.
              Fired by AlarmManager.setAlarmClock() from AlarmNotificationManager. -->
+        <!-- Personal-fork: GPU (OpenCL) for the on-device LLM; optional, CPU is used without it -->
+        <uses-native-library android:name="libOpenCL.so" android:required="false" />
+        <uses-native-library android:name="libvndksupport.so" android:required="false" />
         <receiver
             android:name="app.aaps.implementation.androidNotification.AlarmScreenWakeReceiver"
             android:exported="false" />

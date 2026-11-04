@@ -117,6 +117,8 @@ android {
     namespace = "app.aaps"
 
     defaultConfig {
+        // Personal-fork: the on-device LLM libraries are large; keep phones (arm64) and the emulator (x86_64) only
+        ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         minSdk = Versions.minSdk
         targetSdk = Versions.targetSdk
 

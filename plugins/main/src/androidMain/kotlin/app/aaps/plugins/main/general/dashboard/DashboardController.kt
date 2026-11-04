@@ -57,7 +57,12 @@ import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.navigation.HomeBarItem
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.plugins.main.R
+import app.aaps.core.interfaces.autotune.Autotune
 import app.aaps.plugins.main.general.dashboard.ai.AiCarbs
+import app.aaps.plugins.main.general.dashboard.ai.AiTextEngine
+import app.aaps.plugins.main.general.dashboard.ai.WeeklyReview
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import app.aaps.plugins.main.general.dashboard.meal.MealRecords
 import app.aaps.plugins.main.general.dashboard.meal.MealTracker
 import dev.zacsweers.metro.AppScope
@@ -112,7 +117,10 @@ class DashboardController(
     private val aapsLogger: AAPSLogger,
     val newWizard: () -> DashboardWizard,
     val newMealRecords: () -> MealRecords,
-    val newAiCarbs: () -> AiCarbs
+    val newAiCarbs: () -> AiCarbs,
+    val newWeeklyReview: () -> WeeklyReview,
+    private val autotune: Autotune,
+    private val aiTextEngine: AiTextEngine
 ) {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -124,6 +132,62 @@ class DashboardController(
     val qualityMessage: String get() = bgQualityCheck.message
 
     private fun post(block: (DashboardState) -> DashboardState) = _state.update(block)
+
+    /** AI explanation of the current loop decision: the last hour's flow, the dialog already shows the math. */
+    suspend fun explainDecision() = withContext(Dispatchers.Default) {
+        val state = _state.value
+        val decision = state.loopDecision ?: return@withContext
+        if (state.decisionExplain?.let { it.runTime == decision.runTime && (it.loading || !it.error) } == true) return@withContext
+        if (!aiTextEngine.usesLocal && preferences.get(StringKey.OverviewAiCarbsApiKey).isBlank()) {
+            post { it.copy(decisionExplain = DecisionExplain(decision.runTime, loading = false, text = rh.gs(R.string.dashboard_loop_ai_no_engine), error = true)) }
+            return@withContext
+        }
+        post { it.copy(decisionExplain = DecisionExplain(decision.runTime, loading = true)) }
+        val bg = state.bg
+        val now = buildString {
+            appendLine("지금 판단: ${decision.decision}")
+            if (decision.summary.isNotEmpty()) appendLine("간단 요약: ${decision.summary}")
+            appendLine("현재 혈당: ${bg.value} (추세 ${bg.arrowDescription}), 변화 5분 ${bg.delta} / 15분 ${bg.shortAvgDelta} / 40분 ${bg.longAvgDelta}")
+            appendLine("IOB ${state.iob.value}, COB ${state.cob.value}, 기저 ${state.basal.value}, 민감도 ${state.sensitivity.value}, 목표 ${state.target.text}")
+            decision.facts.forEach { (k, v) -> appendLine("$k: $v") }
+            appendLine("알고리즘 원문: ${decision.reason.take(LOOP_AI_REASON_CHARS)}")
+        }
+        val explain = try {
+            val r = aiTextEngine.generate(LOOP_AI_SYSTEM_PROMPT, now + loopHistoryText(decision.runTime - T.mins(LOOP_AI_HISTORY_MIN).msecs(), decision.runTime))
+            val seconds = ((r.millis + 500) / 1000).toInt()
+            DecisionExplain(decision.runTime, loading = false, text = r.text, label = rh.gs(if (r.local) R.string.dashboard_loop_ai_label_local else R.string.dashboard_loop_ai_label, r.source, seconds))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            aapsLogger.error(LTag.UI, "Loop decision AI", e)
+            DecisionExplain(decision.runTime, loading = false, text = rh.gs(R.string.dashboard_loop_ai_failed), error = true)
+        }
+        post { it.copy(decisionExplain = explain) }
+    }
+
+    /** one line per loop run (oldest first) plus boluses / carbs of the window; runs on io */
+    private suspend fun loopHistoryText(start: Long, end: Long): String = buildString {
+        val runs = persistenceLayer.getApsResults(start, end + 1).sortedBy { it.date }
+        if (runs.isNotEmpty()) appendLine("최근 1시간 루프 판단 (오래된 것부터):")
+        runs.forEach { r ->
+            val bgText = r.glucoseStatus?.glucose?.let { profileUtil.fromMgdlToStringInUnits(it) } ?: "-"
+            val tbr = when {
+                !r.isTempBasalRequested -> "기저 유지"
+                r.duration == 0         -> "임시기저 취소"
+                else                    -> "기저 ${decimalFormatter.to2Decimal(r.rate)}U/h"
+            }
+            val smb = if (r.smb > 0) ", SMB ${decimalFormatter.to2Decimal(r.smb)}U" else ""
+            val ev = LoopReasonParser.eventualBg(r.reason)?.let { ", 예상 $it" } ?: ""
+            val mp = LoopReasonParser.minPredBg(r.reason)?.let { ", 예측최저 $it" } ?: ""
+            appendLine("${dateUtil.timeString(r.date)} 혈당 $bgText, IOB ${r.iob?.iob?.let { decimalFormatter.to2Decimal(it) } ?: "-"}$ev$mp → $tbr$smb")
+        }
+        val boluses = persistenceLayer.getBolusesFromTime(start, true).filter { it.timestamp <= end }
+        if (boluses.isNotEmpty())
+            appendLine("볼루스: " + boluses.joinToString(", ") { "${dateUtil.timeString(it.timestamp)} ${decimalFormatter.to2Decimal(it.amount)}U${if (it.type == BS.Type.SMB) "(SMB)" else ""}" })
+        val carbs = persistenceLayer.getCarbsFromTime(start, true).filter { it.timestamp <= end }
+        appendLine(if (carbs.isEmpty()) "탄수화물 입력: 없음" else "탄수화물 입력: " + carbs.joinToString(", ") { "${dateUtil.timeString(it.timestamp)} ${it.amount.toInt()}g" })
+    }
+
 
     /** Runs while the Dashboard is on screen. */
     suspend fun run() = withContext(Dispatchers.Default) {
@@ -514,7 +578,9 @@ class DashboardController(
         val data = mealTracker.data()
         val meals = data.meals.filter { !it.legacy }
         val meal = MealTile(tracked = data.foods.count { it.tracked }, pending = meals.count { it.confirmed && it.eval == null }, unseen = meals.count { it.eval != null && !it.seen })
-        post { it.copy(stats = stats, recentBoluses = recent, meal = meal) }
+        // weekly review card only when Autotune can be used
+        val reviewLast = if (autotune.usable) autotune.lastResultSummary()?.let { dateUtil.dateStringRelative(it.runTime, rh) } ?: "" else null
+        post { it.copy(stats = stats, recentBoluses = recent, meal = meal, weeklyReviewLast = reviewLast) }
     }
 
     // ---------- Buttons ----------
@@ -619,9 +685,10 @@ fun DashboardHome(
     var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
     var records by remember { mutableStateOf<MealRecords?>(null) }
     var aiCarbs by remember { mutableStateOf<AiCarbs?>(null) }
-    val notPorted = stringResource(R.string.dashboard_home_not_ported)
+    var weekly by remember { mutableStateOf<WeeklyReview?>(null) }
+    val scope = rememberCoroutineScope()
     fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
-    val actions = remember(controller, notPorted) {
+    val actions = remember(controller) {
         object : DashboardActions {
             override fun onProfileClick() = go(ElementType.PROFILE_MANAGEMENT)
             override fun onProfileLongClick() = go(ElementType.PROFILE_MANAGEMENT)
@@ -642,10 +709,10 @@ fun DashboardHome(
             override fun onAcceptTemp() = Unit // the loop action in the bottom bar
             override fun onScale(hours: Int) = controller.setRange(hours)
             override fun showInfo(title: String, text: String) { info = title to text }
-            override fun onWeeklyReview() { info = "" to notPorted }
+            override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }
             override fun onMealRecords() { records = controller.newMealRecords() }
             override fun onRecentBoluses() = go(ElementType.TREATMENTS)
-            override fun onExplainDecision() { info = "" to notPorted }
+            override fun onExplainDecision() { scope.launch { controller.explainDecision() } }
         }
     }
     val lights = buildList {
@@ -673,6 +740,7 @@ fun DashboardHome(
                 w.onAiPhoto = { aiCarbs = controller.newAiCarbs() }
             }
         }
+        weekly?.Content(onClose = { weekly = null })
         aiCarbs?.Content(onClose = { aiCarbs = null }) { prefill ->
             aiCarbs = null
             val open = wizard
@@ -711,3 +779,12 @@ private fun light(icon: Int, label: String, value: String, status: StatusLevel, 
     else if (severityOf(status) == Severity.WARNING || severityOf(subStatus) == Severity.WARNING) Severity.WARNING
     else Severity.NEUTRAL
 )
+
+/** Personal-fork: the dialog already shows the math, so the AI explains the last hour's flow. */
+private const val LOOP_AI_REASON_CHARS = 600
+private const val LOOP_AI_HISTORY_MIN = 60L
+private const val LOOP_AI_SYSTEM_PROMPT =
+    "AndroidAPS 루프(OpenAPS SMB)의 최근 1시간 판단 기록을 보고 흐름을 짧게 설명해.\n" +
+        "규칙: 인사, 서론, 맺음말 없이 바로 본론. 한국어 존댓말 2~3문장, 문장마다 60자 이내.\n" +
+        "지금 판단 하나를 풀어 쓰지 말고, 기록에서 보이는 변화를 설명해: 혈당이 어떻게 움직였는지, SMB·기저가 어떻게 바뀌었는지, 왜 지금 늘리거나 줄였는지(예: IOB가 쌓임, 예측최저가 낮아짐, 탄수 입력 없이 오름).\n" +
+        "아래 데이터에 있는 숫자만 쓰고 새로 계산하지 마. 치료나 용량 권고는 하지 마. 목록, 마크다운 없이 평문."

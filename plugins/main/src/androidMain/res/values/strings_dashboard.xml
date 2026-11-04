@@ -132,5 +132,4 @@
     <string name="dashboard_home_closed">Closed loop</string>
     <string name="dashboard_home_open">Open loop</string>
     <string name="dashboard_home_disabled">Loop disabled</string>
-    <string name="dashboard_home_not_ported">Not ported to 4.0 yet</string>
 </resources>

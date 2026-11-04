@@ -10,7 +10,25 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.aps.Loop
+import app.aaps.core.data.model.Block
 import app.aaps.core.interfaces.autotune.Autotune
+import app.aaps.core.interfaces.autotune.AutotuneDayTrace
+import app.aaps.core.interfaces.autotune.AutotuneSummary
+import app.aaps.core.interfaces.autotune.AutotuneTrace
+import app.aaps.core.interfaces.utils.Round
+import app.aaps.core.keys.DoubleKey
+import java.util.Calendar
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.int
+import kotlinx.serialization.json.long
+import kotlinx.serialization.json.double
+import kotlinx.serialization.json.doubleOrNull
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.add
 import app.aaps.core.interfaces.configuration.Config
 import app.aaps.core.interfaces.configuration.ExternalOptions
 import app.aaps.core.interfaces.logging.AAPSLogger
@@ -140,6 +158,11 @@ class AutotunePlugin(
     @Volatile var updateButtonVisibility: Int = 0
     @Volatile lateinit var pumpProfile: ATProfile
     @Volatile var tunedProfile: ATProfile? = null
+
+    // Personal-fork: per-day inputs of the last run for the weekly review reasons
+    private var traceDays = mutableListOf<AutotuneDayTrace>()
+    private var traceCapMax = 0.0
+    private var traceCapMin = 0.0
     private var preppedGlucose: PreppedGlucose? = null
     private lateinit var profile: Profile
     val days = WeekDay()
@@ -166,6 +189,9 @@ class AutotunePlugin(
         }
         log(sb.toString())
         tunedProfile = null
+        traceDays = mutableListOf()
+        traceCapMax = preferences.get(DoubleKey.AutosensMax)
+        traceCapMin = preferences.get(DoubleKey.AutosensMin)
         updateButtonVisibility = View.GONE
         var logResult = ""
         result = ""
@@ -253,6 +279,7 @@ class AutotunePlugin(
                     preppedGlucose = autotunePrep.categorize(it) //<=> autotune.yyyymmdd.json files exported for results compare with oref0 autotune on virtual machine
                     preppedGlucose?.let { preppedGlucose ->         //preppedGlucose and tunedProfile should never be null here
                         autotuneFS.exportPreppedGlucose(preppedGlucose)
+                        traceDays.add(dayTrace(from, preppedGlucose, it.isf))
                         tunedProfile = autotuneCore.tuneAllTheThings(preppedGlucose, it, pumpProfile).also { tunedProfile ->
                             autotuneFS.exportTunedProfile(tunedProfile)   //<=> newprofile.yyyymmdd.json files exported for results compare with oref0 autotune on virtual machine
                             if (currentCalcDay < calcDays) {
@@ -458,6 +485,140 @@ class AutotunePlugin(
      * `toPureNsJson` already answers a kotlinx document, so the profiles nest directly here - no
      * render to text and reparse.
      */
+    // ---- Personal-fork: Dashboard weekly review ----
+
+    override val usable: Boolean get() = isEnabled()
+
+    override fun lastResultSummary(): AutotuneSummary? {
+        if (!calculationRunning && tunedProfile == null) loadLastRun()
+        val tuned = tunedProfile ?: return null
+        if (!::pumpProfile.isInitialized) return null
+        return AutotuneSummary(
+            runTime = lastRun,
+            days = lastNbDays.toIntOrNull() ?: 0,
+            profileName = pumpProfile.profileName,
+            currentBasal = pumpProfile.basal.toList(),
+            tunedBasal = tuned.basal.toList(),
+            currentIsfMgdl = pumpProfile.isf,
+            tunedIsfMgdl = tuned.isf,
+            currentIc = pumpProfile.ic,
+            tunedIc = tuned.ic,
+            canUpdate = updateButtonVisibility == View.VISIBLE,
+            canRevert = updateButtonVisibility != View.VISIBLE,
+            trace = traceDays.takeIf { it.isNotEmpty() }?.let { AutotuneTrace(it.toList(), tuned.basalUnTuned.toList(), traceCapMax, traceCapMin) }
+        )
+    }
+
+    /** Same inputs AutotuneCore uses for that day (basal deviations per hour, ISF ratios, meal totals). */
+    private fun dayTrace(dayStart: Long, prepped: PreppedGlucose, isf: Double): AutotuneDayTrace {
+        val cal = Calendar.getInstance()
+        val hours = arrayOfNulls<Double>(24)
+        prepped.basalGlucoseData.forEach { d ->
+            if (d.date == 0L) return@forEach
+            cal.timeInMillis = d.date
+            val h = cal.get(Calendar.HOUR_OF_DAY)
+            hours[h] = (hours[h] ?: 0.0) + d.deviation
+        }
+        var meals = 0
+        var carbs = 0.0
+        var insulin = 0.0
+        var bgChange = 0.0
+        prepped.crData.forEach { cr ->
+            val total = cr.crInitialIOB + cr.crInsulin + (cr.crEndBG - cr.crInitialBG) / isf
+            if (total > 0) {
+                meals++
+                carbs += cr.crCarbs
+                insulin += total
+                bgChange += cr.crEndBG - cr.crInitialBG
+            }
+        }
+        return AutotuneDayTrace(
+            dayStart = dayStart,
+            hourDeviations = hours.map { it?.let { v -> Round.roundTo(v, 0.1) } },
+            isf = isf,
+            isfRatios = prepped.isfGlucoseData.filter { it.bgi != 0.0 }.map { Round.roundTo(1 + it.deviation / it.bgi, 0.001) },
+            meals = meals, mealCarbs = carbs, mealInsulin = Round.roundTo(insulin, 0.01), mealBgChange = Round.roundTo(bgChange, 0.1)
+        )
+    }
+
+    private fun traceToJson() = buildJsonArray {
+        traceDays.forEach { d ->
+            add(buildJsonObject {
+                put("day", d.dayStart)
+                put("hours", buildJsonArray { d.hourDeviations.forEach { add(if (it == null) JsonNull else JsonPrimitive(it)) } })
+                put("isf", d.isf)
+                put("isfRatios", buildJsonArray { d.isfRatios.forEach { add(JsonPrimitive(it)) } })
+                put("meals", d.meals)
+                put("mealCarbs", d.mealCarbs)
+                put("mealInsulin", d.mealInsulin)
+                put("mealBgChange", d.mealBgChange)
+            })
+        }
+    }
+
+    private fun traceFromJson(arr: kotlinx.serialization.json.JsonArray?): MutableList<AutotuneDayTrace> {
+        arr ?: return mutableListOf()
+        return arr.map { e ->
+            val o = e.jsonObject
+            AutotuneDayTrace(
+                dayStart = o.getValue("day").jsonPrimitive.long,
+                hourDeviations = o.getValue("hours").jsonArray.map { it.jsonPrimitive.doubleOrNull },
+                isf = o.getValue("isf").jsonPrimitive.double,
+                isfRatios = o.getValue("isfRatios").jsonArray.map { it.jsonPrimitive.double },
+                meals = o.getValue("meals").jsonPrimitive.int, mealCarbs = o.getValue("mealCarbs").jsonPrimitive.double,
+                mealInsulin = o.getValue("mealInsulin").jsonPrimitive.double, mealBgChange = o.getValue("mealBgChange").jsonPrimitive.double
+            )
+        }.toMutableList()
+    }
+
+    override suspend fun copyTunedToNewProfile(baseName: String): String? {
+        val tuned = tunedProfile ?: return null
+        val existing = profileRepository.profile.value?.getProfileList()?.map { it.toString() }?.toSet() ?: emptySet()
+        var name = baseName
+        var n = 2
+        while (name in existing) name = baseName + "_" + n++
+        var copy = profileRepository.copyFrom(tuned.getProfile(preferences.get(BooleanKey.AutotuneCircadianIcIsf)), name)
+        // ISF and IC keep the time blocks of the input profile, each scaled so the 24 h average equals the tuned value
+        if (::pumpProfile.isInitialized) profileRepository.profiles.value.firstOrNull { it.name == pumpProfile.profileName && it.mgdl == copy.mgdl }?.let { input ->
+            val isf = if (input.mgdl) tuned.isf else profileUtil.fromMgdlToUnits(tuned.isf, app.aaps.core.data.model.GlucoseUnit.MMOL)
+            copy = copy.copy(isf = scaledBlocks(input.isf, isf, if (input.mgdl) 0.1 else 0.01) ?: copy.isf, ic = scaledBlocks(input.ic, tuned.ic, 0.01) ?: copy.ic)
+        }
+        profileRepository.add(copy)
+        uel.log(action = Action.NEW_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(name))
+        return name
+    }
+
+    private fun scaledBlocks(input: List<Block>, target: Double, step: Double): List<Block>? {
+        val total = input.sumOf { it.duration }
+        if (total <= 0L || target <= 0.0) return null
+        val avg = input.sumOf { it.amount * it.duration } / total
+        if (avg <= 0.0) return null
+        return input.map { it.copy(amount = Round.roundTo(it.amount * target / avg, step)) }
+    }
+
+    override suspend fun updateInputProfileWithTuned(): Boolean {
+        val tuned = tunedProfile ?: return false
+        if (!::pumpProfile.isInitialized) return false
+        val localName = pumpProfile.profileName
+        tuned.profileName = localName
+        updateProfile(tuned)
+        updateButtonVisibility = View.GONE
+        saveLastRun()
+        uel.log(action = Action.STORE_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(localName))
+        return true
+    }
+
+    override suspend fun revertInputProfile(): Boolean {
+        if (!::pumpProfile.isInitialized) return false
+        val localName = pumpProfile.profileName
+        tunedProfile?.profileName = ""
+        updateProfile(pumpProfile)
+        updateButtonVisibility = View.VISIBLE
+        saveLastRun()
+        uel.log(action = Action.STORE_PROFILE, source = Sources.Autotune, value = ValueWithUnit.SimpleString(localName))
+        return true
+    }
+
     fun saveLastRun() {
         val json = buildJsonObject {
             put("lastNbDays", lastNbDays)
@@ -481,6 +642,9 @@ class AutotunePlugin(
             }
             put("result", result)
             put("updateButtonVisibility", updateButtonVisibility)
+            put("weeklyTrace", traceToJson())
+            put("weeklyTraceCapMax", traceCapMax)
+            put("weeklyTraceCapMin", traceCapMin)
         }
         preferences.put(AutotuneStringKey.AutotuneLastRun, json.toString())
     }
@@ -523,6 +687,13 @@ class AutotunePlugin(
                 days.weekdays[i] = json.safeGetBoolean(WeekDay.DayOfWeek.entries[i].name, true)
             result = json.safeGetString("result", "")
             updateButtonVisibility = json.safeGetInt("updateButtonVisibility")
+            traceDays = try {
+                traceFromJson(json["weeklyTrace"]?.jsonArray)
+            } catch (_: Exception) {
+                mutableListOf()
+            }
+            traceCapMax = json.safeGetDouble("weeklyTraceCapMax")
+            traceCapMin = json.safeGetDouble("weeklyTraceCapMin")
             lastRunSuccess = true
         } catch (e: Exception) {
             aapsLogger.error(LTag.AUTOTUNE, e.localizedMessage ?: e.toString())

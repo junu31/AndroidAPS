@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshotFlow
@@ -44,7 +45,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ProvideTextStyle
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -134,7 +135,7 @@ fun DashboardScreen(
     graph: GraphModel,
     actions: DashboardActions,
     barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>
-) = ProvideTextStyle(TextStyle.Default) { // sizes were designed without the 24sp line height of the AAPS theme
+) = CompositionLocalProvider(LocalTextStyle provides TextStyle.Default) { // sizes were designed without the 24sp line height of the AAPS theme
     Box(
         Modifier
             .fillMaxSize()

@@ -44,6 +44,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -64,6 +65,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -132,7 +134,7 @@ fun DashboardScreen(
     graph: GraphModel,
     actions: DashboardActions,
     barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>
-) {
+) = ProvideTextStyle(TextStyle.Default) { // sizes were designed without the 24sp line height of the AAPS theme
     Box(
         Modifier
             .fillMaxSize()

@@ -82,16 +82,25 @@ class BuiltInSearchables(
                         rh.gs(CoreUiStrings.concentration_disable_blocked)
                     else null
                 },
-                BooleanKey.HomeUseDashboard, // Personal-fork
-                BooleanKey.DashboardBgCardBackground, // Personal-fork
-                StringKey.OverviewAiCarbsApiKey, // Personal-fork
-                StringKey.AiTextEngine, // Personal-fork
-                BooleanKey.AiLocalFallbackGemini, // Personal-fork
                 BooleanKey.OverviewKeepScreenOn,
                 StringKey.GeneralInstanceName,
             ),
             icon = Icons.Default.Settings
         )
+
+    // Personal-fork: settings added by this fork
+    val custom = PreferenceSubScreenDef(
+        key = "custom",
+        title = CoreUiStrings.configbuilder_custom,
+        items = listOf(
+            BooleanKey.HomeUseDashboard,
+            BooleanKey.DashboardBgCardBackground,
+            StringKey.OverviewAiCarbsApiKey,
+            StringKey.AiTextEngine,
+            BooleanKey.AiLocalFallbackGemini,
+        ),
+        icon = Icons.Default.Settings
+    )
 
     val appearance = PreferenceSubScreenDef(
         key = "appearance",
@@ -348,6 +357,7 @@ class BuiltInSearchables(
     override fun getSearchableItems(): List<SearchableItem> = buildList {
         // Main preference screens (shown in AllPreferencesScreen)
         add(SearchableItem.Category(general))
+        add(SearchableItem.Category(custom))
         add(SearchableItem.Category(appearance))
         add(SearchableItem.Category(protection))
         add(SearchableItem.Category(pump))

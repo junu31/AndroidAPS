@@ -82,6 +82,7 @@
     <string name="configbuilder_loop">루프</string>
     <string name="configbuilder_sync">통신</string>
     <string name="configbuilder_general">일반</string>
+    <string name="configbuilder_custom">커스텀</string>
     <string name="protection">보안</string>
     <string name="value_unavailable_short">사용불가</string>
     <!-- master_password moved to core/keys/strings.xml -->

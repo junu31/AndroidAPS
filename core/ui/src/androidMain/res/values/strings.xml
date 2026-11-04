@@ -82,6 +82,7 @@
     <string name="configbuilder_loop">Loop</string>
     <string name="configbuilder_sync">Communication</string>
     <string name="configbuilder_general">General</string>
+    <string name="configbuilder_custom">Custom</string>
     <string name="protection">Protection</string>
     <string name="value_unavailable_short">n/a</string>
     <!-- master_password moved to core/keys/strings.xml -->

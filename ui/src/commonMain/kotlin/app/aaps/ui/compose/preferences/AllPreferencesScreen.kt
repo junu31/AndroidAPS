@@ -75,6 +75,7 @@ fun AllPreferencesScreen(
 
     // Built-in preference screens from BuiltInSearchables (single source of truth)
     val generalPreferences = builtInSearchables.general
+    val customPreferences = builtInSearchables.custom
     val appearancePreferences = builtInSearchables.appearance
     val protectionPreferences = builtInSearchables.protection
     val pumpPreferences = builtInSearchables.pump
@@ -195,6 +196,7 @@ fun AllPreferencesScreen(
                     item { MasterOfflineBanner(editingEnabled = masterEditingEnabled()) }
                     // Built-in: General settings (first)
                     addPreferenceContent(generalPreferences, onShowMessage, sectionState)
+                    addPreferenceContent(customPreferences, onShowMessage, sectionState)
                     addPreferenceContent(appearancePreferences, onShowMessage, sectionState)
 
                     // Built-in: Protection settings

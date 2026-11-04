@@ -10,4 +10,13 @@
     <string name="dash_overview_insulin_label">Insulin</string>
     <string name="dash_overview_treatment_label">Treatment</string>
     <string name="dash_required">req</string>
+    <string name="dash_active"><![CDATA[<Active>]]></string>
+    <string name="dash_boluswizard">Bolus wizard</string>
+    <string name="dash_bg_label">BG</string>
+    <string name="dash_bg_trend_label">15min trend</string>
+    <string name="dash_tt_label">TT</string>
+    <string name="dash_profile">Profile</string>
+    <string name="dash_noprofile">No profile loaded from NS yet</string>
+    <string name="dash_cancel">Cancel</string>
+    <string name="dash_format_insulin_units">%1$.2f U</string>
 </resources>

@@ -107,7 +107,8 @@ class DashboardController(
     private val tddCalculator: TddCalculator,
     private val mealTracker: MealTracker,
     private val cache: OverviewDataCache,
-    private val aapsLogger: AAPSLogger
+    private val aapsLogger: AAPSLogger,
+    val newWizard: () -> DashboardWizard
 ) {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -611,6 +612,7 @@ fun DashboardHome(
     val graph by controller.graph.collectAsStateWithLifecycle()
     LaunchedEffect(controller) { controller.run() }
     var info by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
     val notPorted = stringResource(R.string.dashboard_home_not_ported)
     fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
     val actions = remember(controller, notPorted) {
@@ -624,7 +626,7 @@ fun DashboardHome(
             override fun onPumpStatusClick() = Unit // the 4.0 pump activity button shows it
             override fun onInsulin() = go(ElementType.INSULIN)
             override fun onCarbs() = go(ElementType.CARBS)
-            override fun onWizard() = go(ElementType.BOLUS_WIZARD) // until the Dashboard calculator is ported
+            override fun onWizard() { wizard = controller.newWizard() }
             override fun onAiCarbs() = Unit
             override fun onTreatment() = go(ElementType.TREATMENT)
             override fun onQuickWizard() = Unit
@@ -657,6 +659,7 @@ fun DashboardHome(
     }
     Box(Modifier.fillMaxSize()) {
         DashboardScreen(state.copy(statusLights = lights), graph, actions, items)
+        wizard?.Content(onClose = { wizard = null })
     }
     info?.let { (title, text) ->
         AlertDialog(

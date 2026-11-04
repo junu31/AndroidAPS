@@ -37,6 +37,7 @@ kotlin {
         // Personal-fork: meal tracking
         androidMain {
             dependencies {
+                implementation(project(":ui")) // the 4.0 wizard confirmation
                 implementation(libs.androidx.core)
                 implementation(libs.jetbrains.compose.foundation)
                 implementation(libs.jetbrains.compose.material3)

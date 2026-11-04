@@ -10,4 +10,13 @@
     <string name="dash_overview_insulin_label">인슐린</string>
     <string name="dash_overview_treatment_label">관리</string>
     <string name="dash_required">필요량</string>
+    <string name="dash_active"><![CDATA[<Active>]]></string>
+    <string name="dash_boluswizard">Bolus 마법사</string>
+    <string name="dash_bg_label">혈당</string>
+    <string name="dash_bg_trend_label">15분 추이</string>
+    <string name="dash_tt_label">임시목표</string>
+    <string name="dash_profile">프로파일</string>
+    <string name="dash_noprofile">아직 NS에서 프로파일을 로드하지 못했습니다.</string>
+    <string name="dash_cancel">취소</string>
+    <string name="dash_format_insulin_units">%1$.2f U</string>
 </resources>

@@ -43,6 +43,13 @@ kotlin {
                 implementation(libs.jetbrains.compose.material3)
                 implementation(libs.androidx.lifecycle.runtime.compose)
                 implementation(libs.com.google.code.gson)
+                // Personal-fork: AI carbs and explanations
+                implementation(libs.androidx.activity.compose)
+                implementation(libs.com.squareup.okhttp3.okhttp)
+                implementation(libs.com.squareup.retrofit2.retrofit)
+                implementation(libs.com.squareup.retrofit2.converter.gson)
+                implementation(libs.com.google.mediapipe.tasks.genai)
+                implementation(libs.com.google.ai.edge.litertlm.android)
             }
         }
 

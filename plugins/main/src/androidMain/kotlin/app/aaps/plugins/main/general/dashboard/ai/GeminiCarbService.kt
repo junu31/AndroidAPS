@@ -1,0 +1,208 @@
+package app.aaps.plugins.main.general.dashboard.ai
+
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import dev.zacsweers.metro.AppScope
+import dev.zacsweers.metro.Inject
+import dev.zacsweers.metro.SingleIn
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
+import okhttp3.OkHttpClient
+import retrofit2.HttpException
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+
+/**
+ * Personal-fork feature: estimate carbohydrate grams from a natural-language food description
+ * via Google Gemini REST API.
+ *
+ * Result is intended as a *hint* — users must confirm the value before applying it to the bolus wizard.
+ */
+@SingleIn(AppScope::class)
+@Inject
+class GeminiCarbService {
+
+    companion object {
+
+        private const val BASE_URL = "https://generativelanguage.googleapis.com/"
+        const val DEFAULT_MODEL = "gemini-2.5-flash"
+
+        // Retry policy for transient Gemini errors (503/504/502/500/429 + IOException).
+        // Total attempts = MAX_RETRIES + 1 (initial call). Delays: 1s, 4s.
+        private const val MAX_RETRIES = 2
+
+        private const val SYSTEM_PROMPT =
+            """You are a nutritionist estimating carbohydrate content of foods.
+Given a user's natural-language description (and/or an image) of what they are about to eat,
+return a strict JSON object with this shape:
+
+{
+  "items": [
+    { "name": "<food name>", "carbs_g": <number>, "assumption": "<portion assumed>" }
+  ],
+  "total_carbs_g": <number>,
+  "assumptions": ["<global assumption>", ...],
+  "confidence": "low" | "medium" | "high",
+  "input_strategy": "<2~5줄 한국어 권고 텍스트>",
+  "fat_g": <number or null>,
+  "protein_g": <number or null>,
+  "duration_h": <integer 0..8>
+}
+
+Rules:
+- Use grams of net digestible carbohydrates (exclude fiber if obvious).
+- If the input is a nutrition facts label image (영양성분표) and the carbohydrate value is
+  missing, unreadable, or zero while calories are present, derive carbs from Atwater factors:
+  carbs_g ≈ (kcal − 9 × fat_g − 4 × protein_g) / 4 . If the result is negative, treat as 0.
+  Use the serving size shown on the label. Mark such items confidence "low" and explain the
+  derivation in "assumption" (예: "영양성분표에서 탄수화물 미기재 → 칼로리 역산").
+- If TOTAL FAT is also missing/unreadable, do NOT default to a generic "typical donut/pizza"
+  fat figure. Estimate total fat from SATURATED FAT (포화지방) using the typical processed-food
+  ratio (saturated_fat is usually 20~35% of total fat):
+    * Light/regular processed snacks (cookies, crackers):  total_fat ≈ saturated_fat × 3
+    * Sweet baked goods (donuts, pastries, cake):          total_fat ≈ saturated_fat × 4
+    * High-fat items (chocolate, cheese, fried, pizza):    total_fat ≈ saturated_fat × 5
+  Record the multiplier you used in the "assumption" field (예: "포화지방 3.3g × 4 →
+  총 지방 13.2g 추정 (도넛 류)"). Saturated-fat-only inference is more accurate than guessing
+  a category-average total fat.
+- FLOOR RULE: total_carbs_g MUST be ≥ any listed "당류"/sugars value on the same label.
+  Sugars are a strict subset of carbohydrates, so an Atwater-derived carbs value below the
+  printed sugars number is wrong by construction — raise it to at least the sugars value and
+  note this in "assumption" (예: "당류 14g 하한 적용").
+- If portions are ambiguous, assume a typical adult single serving and list the assumption.
+- Be conservative when unsure; prefer slightly lower carbs and mark confidence "low".
+- ALL human-readable text MUST be written in Korean (한국어):
+  the "name" field, every "assumption" string (per-item and global). No English words for these.
+- Keep JSON keys (items, name, carbs_g, assumption, total_carbs_g, assumptions, confidence,
+  input_strategy, fat_g, protein_g) in English exactly as shown.
+- Populate "fat_g" and "protein_g" with the TOTAL grams of fat and protein for the SAME serving
+  basis used for "total_carbs_g" (whole package, single serving, or whatever the user is eating
+  — must match). Read the values straight off a nutrition facts label when one is visible
+  (지방, 단백질). When only a food photo is supplied, estimate from typical composition.
+  Use null when the value is genuinely unknown — do NOT guess zero. Numbers only, no units.
+- "duration_h" is the recommended SPLIT WINDOW in hours for AAPS eCarbs (Extended Carbs).
+  This goes into the AAPS Carbs dialog's "기간/Duration" field. Map by food type:
+    * 0  → simple/fast carbs: white rice, fruit, candy, soft drink, plain bread
+    * 2  → mixed light meal: sandwich, fried rice, regular Korean side dishes
+    * 4  → high-fat OR high-protein meal: pizza, fried chicken, Korean BBQ, ramen with broth
+    * 6  → very-high-fat-AND-protein meal: cheese-stuffed processed meats, fatty cuts,
+           creamy pasta, sausage platters, hamburger combos
+  Always return an integer (0..8). When uncertain, prefer the lower number (safer — user
+  can always extend). Cross-check: if fat_g ≥ 25 OR protein_g ≥ 30, duration_h SHOULD be ≥ 4.
+- Keep the "confidence" enum value as one of the literal strings: "low", "medium", "high".
+- The "input_strategy" field is a Korean natural-language note (2~5 lines, plain text, no JSON
+  inside) advising HOW the user should enter the carbs in their insulin pump app:
+  * Consider fat and protein content visible on the label / inferred from the food (지방, 단백질).
+  * High-fat or high-protein meals (지방 ≥ 15g 또는 단백질 ≥ 20g) delay carb absorption: recommend
+    a SPLIT or EXTENDED entry (예: "즉시 60% + 2시간 후 40%", 또는 "W/Carbs Duration 3~4시간").
+  * Simple/low-fat meals (지방 < 10g, 단순당 위주): recommend a SINGLE immediate entry
+    (예: "단일 입력 권장").
+  * Be conservative — do NOT prescribe specific basal rates (TBR%), SMB toggles, or insulin
+    doses. Only describe the carb-entry timing pattern.
+  * Prefix the recommendation with one of: "단일 입력 권장", "분할 입력 권장", "연장 입력 권장".
+  * If the food is unclear, write a short generic tip and mark the overall confidence "low".
+- Respond ONLY with the JSON object, no prose."""
+    }
+
+    private fun isRetryableError(error: Throwable): Boolean = when (error) {
+        is IOException   -> true                                          // network glitches
+        is HttpException -> error.code() in setOf(429, 500, 502, 503, 504) // transient server states
+        else             -> false
+    }
+
+    private suspend fun <T> withRetry(block: suspend () -> T): T {
+        var attempt = 0
+        while (true) {
+            try {
+                return block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                attempt++
+                if (!isRetryableError(e) || attempt > MAX_RETRIES) throw e
+                delay(attempt * attempt * 1000L)
+            }
+        }
+    }
+
+    private val gson: Gson = GsonBuilder().setLenient().create()
+
+    // No HTTP logging interceptor: the request URL carries the API key as a query param,
+    // so silent-by-default prevents leaks to logcat.
+    private val client: OkHttpClient by lazy {
+        OkHttpClient.Builder()
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
+
+    private val api: GeminiApi by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+            .create(GeminiApi::class.java)
+    }
+
+    /** At least one of [foodDescription] or [imageBase64] must be non-blank. Errors are thrown. */
+    suspend fun estimateCarbs(
+        apiKey: String,
+        foodDescription: String?,
+        imageBase64: String? = null,
+        imageMimeType: String = "image/jpeg",
+        model: String = DEFAULT_MODEL
+    ): CarbEstimatePayload {
+        check(apiKey.isNotBlank()) { "API key is empty" }
+        val hasText = !foodDescription.isNullOrBlank()
+        val hasImage = !imageBase64.isNullOrBlank()
+        require(hasText || hasImage) { "Provide a food description, an image, or both" }
+        val userParts = buildList {
+            if (hasImage) add(GeminiPart(inlineData = GeminiInlineData(mimeType = imageMimeType, data = imageBase64!!)))
+            add(GeminiPart(text = if (hasText) "Food description:\n${foodDescription!!.trim()}" else "Estimate carbs for the food shown in the image."))
+        }
+        val request = GeminiRequest(
+            contents = listOf(
+                GeminiContent(parts = listOf(GeminiPart(text = SYSTEM_PROMPT)), role = "user"),
+                GeminiContent(parts = userParts, role = "user")
+            ),
+            generationConfig = GeminiGenerationConfig()
+        )
+        return withRetry { parseCarbJson(textOf(api.generateContent(model, apiKey, request))) }
+    }
+
+    /** Personal-fork: plain-text generation with the same client and key. Retries transient errors like [estimateCarbs]. */
+    suspend fun generateText(apiKey: String, systemPrompt: String, userText: String, model: String = DEFAULT_MODEL): String {
+        check(apiKey.isNotBlank()) { "API key is empty" }
+        val request = GeminiRequest(
+            contents = listOf(
+                GeminiContent(parts = listOf(GeminiPart(text = systemPrompt)), role = "user"),
+                GeminiContent(parts = listOf(GeminiPart(text = userText)), role = "user")
+            ),
+            generationConfig = GeminiGenerationConfig(responseMimeType = "text/plain", temperature = 0.3)
+        )
+        return withRetry { textOf(api.generateContent(model, apiKey, request)) }
+    }
+
+    private fun textOf(response: GeminiResponse): String {
+        response.error?.let { err -> throw RuntimeException("Gemini error: ${err.message ?: err.status ?: "unknown"}") }
+        return response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text?.trim() ?: throw RuntimeException("Empty response from Gemini")
+    }
+
+    private fun parseCarbJson(raw: String): CarbEstimatePayload {
+        // Strip markdown code fence if the model added one despite the config.
+        val cleaned = raw
+            .removePrefix("```json").removePrefix("```")
+            .removeSuffix("```")
+            .trim()
+        return try {
+            gson.fromJson(cleaned, CarbEstimatePayload::class.java)
+                ?: throw RuntimeException("Null JSON payload")
+        } catch (e: Exception) {
+            throw RuntimeException("Failed to parse AI response as JSON: ${e.message}\nRaw: ${cleaned.take(200)}")
+        }
+    }
+}

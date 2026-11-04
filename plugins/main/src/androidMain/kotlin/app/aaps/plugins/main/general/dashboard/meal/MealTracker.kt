@@ -111,7 +111,7 @@ class MealTracker(
     suspend fun register(
         food: MealFood, tracked: Boolean, carbs: Double, fat: Double?, protein: Double?,
         carbTimeMin: Int, bolus: Double, historyAdjust: Double
-    ) {
+    ): String {
         val now = dateUtil.now()
         val time = now + T.mins(carbTimeMin.toLong()).msecs()
         val profile = profileFunction.getProfile(time) ?: profileFunction.getProfile()
@@ -133,6 +133,7 @@ class MealTracker(
             entryIob = (round(iob * 100) / 100), entryCob = iobCobCalculator.getCobInfo("Meal tracking").displayCob
         )
         update { it.copy(meals = it.meals + record) }
+        return record.id
     }
 
     suspend fun checkDue() = mutex.withLock {

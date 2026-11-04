@@ -109,6 +109,13 @@ enum class StringKey(
 
     AapsDirectoryUri(key = "aaps_directory", defaultValue = "", title = KeysStrings.pref_title_aaps_directory),
 
+    // Personal-fork: AI carbs and explanations
+    OverviewAiCarbsApiKey(key = "overview_ai_carbs_api_key", defaultValue = "", title = KeysStrings.pref_title_ai_api_key, summary = KeysStrings.pref_summary_ai_api_key, isPassword = true),
+    AiTextEngine(
+        key = "ai_text_engine", defaultValue = "gemini", title = KeysStrings.pref_title_ai_engine, summary = KeysStrings.pref_summary_ai_engine,
+        preferenceType = PreferenceType.LIST, entriesRefs = mapOf("gemini" to KeysStrings.pref_ai_engine_gemini, "local" to KeysStrings.pref_ai_engine_local)
+    ),
+    AiLocalModelPath(key = "ai_local_model_path", defaultValue = "", title = KeysStrings.pref_title_ai_model_path, summary = KeysStrings.pref_summary_ai_model_path),
     ProtectionMasterPassword(key = "master_password", defaultValue = "", title = KeysStrings.pref_title_master_password, isPassword = true, isHashed = true),
     ProtectionSettingsPassword(
         key = "settings_password", defaultValue = "", title = KeysStrings.pref_title_settings_password, isPassword = true, isHashed = true,

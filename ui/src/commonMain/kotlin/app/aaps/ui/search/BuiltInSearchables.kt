@@ -84,6 +84,9 @@ class BuiltInSearchables(
                 },
                 BooleanKey.HomeUseDashboard, // Personal-fork
                 BooleanKey.DashboardBgCardBackground, // Personal-fork
+                StringKey.OverviewAiCarbsApiKey, // Personal-fork
+                StringKey.AiTextEngine, // Personal-fork
+                BooleanKey.AiLocalFallbackGemini, // Personal-fork
                 BooleanKey.OverviewKeepScreenOn,
                 StringKey.GeneralInstanceName,
             ),

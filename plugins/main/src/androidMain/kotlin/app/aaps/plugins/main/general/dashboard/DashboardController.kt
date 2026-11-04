@@ -57,6 +57,7 @@ import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.navigation.HomeBarItem
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.plugins.main.R
+import app.aaps.plugins.main.general.dashboard.meal.MealRecords
 import app.aaps.plugins.main.general.dashboard.meal.MealTracker
 import dev.zacsweers.metro.AppScope
 import dev.zacsweers.metro.Inject
@@ -108,7 +109,8 @@ class DashboardController(
     private val mealTracker: MealTracker,
     private val cache: OverviewDataCache,
     private val aapsLogger: AAPSLogger,
-    val newWizard: () -> DashboardWizard
+    val newWizard: () -> DashboardWizard,
+    val newMealRecords: () -> MealRecords
 ) {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -613,6 +615,7 @@ fun DashboardHome(
     LaunchedEffect(controller) { controller.run() }
     var info by remember { mutableStateOf<Pair<String, String>?>(null) }
     var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
+    var records by remember { mutableStateOf<MealRecords?>(null) }
     val notPorted = stringResource(R.string.dashboard_home_not_ported)
     fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
     val actions = remember(controller, notPorted) {
@@ -637,7 +640,7 @@ fun DashboardHome(
             override fun onScale(hours: Int) = controller.setRange(hours)
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { info = "" to notPorted }
-            override fun onMealRecords() { info = "" to notPorted }
+            override fun onMealRecords() { records = controller.newMealRecords() }
             override fun onRecentBoluses() = go(ElementType.TREATMENTS)
             override fun onExplainDecision() { info = "" to notPorted }
         }
@@ -660,6 +663,10 @@ fun DashboardHome(
     Box(Modifier.fillMaxSize()) {
         DashboardScreen(state.copy(statusLights = lights), graph, actions, items)
         wizard?.Content(onClose = { wizard = null })
+        records?.Content(onClose = { records = null }) { prefill ->
+            records = null
+            wizard = controller.newWizard().also { it.prefill = prefill }
+        }
     }
     info?.let { (title, text) ->
         AlertDialog(

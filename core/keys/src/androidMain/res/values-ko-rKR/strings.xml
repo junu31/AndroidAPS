@@ -383,4 +383,14 @@
     <string name="pref_title_home_use_dashboard">대시보드를 홈 화면으로 사용</string>
     <string name="pref_summary_home_use_dashboard">끄면 AAPS 4.0 기본 화면을 사용합니다</string>
     <string name="pref_title_dashboard_bg_card">대시보드 혈당을 카드로 표시</string>
+    <string name="pref_title_ai_api_key">Gemini API 키</string>
+    <string name="pref_summary_ai_api_key">AI 탄수와, Gemini 선택 시 AI 설명에 사용합니다</string>
+    <string name="pref_title_ai_engine">AI 설명 엔진</string>
+    <string name="pref_summary_ai_engine">사진 AI 탄수는 항상 Gemini를 사용합니다</string>
+    <string name="pref_ai_engine_gemini">Gemini</string>
+    <string name="pref_ai_engine_local">이 폰의 로컬 모델</string>
+    <string name="pref_title_ai_model_path">로컬 모델 파일</string>
+    <string name="pref_summary_ai_model_path">주간 리뷰 화면에서 선택합니다</string>
+    <string name="pref_title_ai_fallback">로컬 모델 실패 시 Gemini 사용</string>
+    <string name="pref_summary_ai_fallback">로컬 모델이 답하지 못하면 요약을 Gemini로 보냅니다</string>
 </resources>

@@ -431,4 +431,14 @@
     <string name="pref_title_home_use_dashboard">Dashboard as home screen</string>
     <string name="pref_summary_home_use_dashboard">Off: the AAPS 4.0 home screen</string>
     <string name="pref_title_dashboard_bg_card">Dashboard BG cards as cards</string>
+    <string name="pref_title_ai_api_key">Gemini API key</string>
+    <string name="pref_summary_ai_api_key">For AI carbs and, with Gemini selected, AI explanations</string>
+    <string name="pref_title_ai_engine">AI explanation engine</string>
+    <string name="pref_summary_ai_engine">AI carbs from a photo always use Gemini</string>
+    <string name="pref_ai_engine_gemini">Gemini</string>
+    <string name="pref_ai_engine_local">Local model on this phone</string>
+    <string name="pref_title_ai_model_path">Local model file</string>
+    <string name="pref_summary_ai_model_path">Chosen in the weekly review screen</string>
+    <string name="pref_title_ai_fallback">Use Gemini when the local model fails</string>
+    <string name="pref_summary_ai_fallback">Sends the summary to Gemini if the local model cannot answer</string>
 </resources>

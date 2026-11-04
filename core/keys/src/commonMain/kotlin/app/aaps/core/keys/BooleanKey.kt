@@ -47,6 +47,7 @@ enum class BooleanKey(
         calculatedDefaultValue = true, platforms = setOf(AppPlatform.Android, AppPlatform.Ios)
     ),
     DashboardBgCardBackground(key = "dashboard_bg_card_background", defaultValue = true, title = KeysStrings.pref_title_dashboard_bg_card), // Personal-fork
+    AiLocalFallbackGemini(key = "ai_local_fallback_gemini", defaultValue = true, title = KeysStrings.pref_title_ai_fallback, summary = KeysStrings.pref_summary_ai_fallback), // Personal-fork
     HomeUseDashboard(key = "home_use_dashboard", defaultValue = true, title = KeysStrings.pref_title_home_use_dashboard, summary = KeysStrings.pref_summary_home_use_dashboard), // Personal-fork
     OverviewShowTreatmentButton(key = "show_treatment_button", defaultValue = false, title = KeysStrings.pref_title_show_treatment_button, defaultedBySM = true),
     OverviewShowWizardButton(key = "show_wizard_button", defaultValue = true, title = KeysStrings.pref_title_show_wizard_button, defaultedBySM = true),

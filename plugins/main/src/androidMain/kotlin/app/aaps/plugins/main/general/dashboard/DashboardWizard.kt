@@ -106,6 +106,9 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.time.TimeSource
 
+/** Values handed to the calculator. [foodId]: an existing food; otherwise an AI estimate. */
+data class WizardPrefill(val carbs: Int, val foodId: String? = null, val name: String = "", val foods: String = "", val fat: Double? = null, val protein: Double? = null)
+
 /**
  * The inputs of one calculation. The preview here and the master's recomputation in [WizardExecutor.prepare] are built
  * from the same value, so the dose shown is the dose confirmed. In % mode the entered value replaces the base percentage
@@ -158,6 +161,9 @@ class DashboardWizard(
     private var calculations = 0
     private var basePercentage = 100
     private var closeRequest: (() -> Unit)? = null
+
+    /** set before [Content]: opened from the meal records or the AI carbs screen */
+    var prefill: WizardPrefill? = null
 
     // ---- inputs (same meaning and defaults as the classic wizard) ----
     private var profileNames by mutableStateOf(listOf<String>())
@@ -260,7 +266,29 @@ class DashboardWizard(
         bgText = formatBg(bg)
         sensorBgText = if (bg > 0) bgText else null
         calculateNow()
+        prefill?.let { p ->
+            prefill = null
+            applyPrefill(p)
+        }
         return true
+    }
+
+    /** a food with its last carbs, or an AI estimate */
+    fun applyPrefill(p: WizardPrefill) {
+        val existing = p.foodId?.let { id -> mealTracker.data().foods.firstOrNull { it.id == id } }
+        carbsText = p.carbs.toString()
+        if (existing != null) selectFood(existing)
+        else {
+            aiCarbs = p.carbs
+            aiFoods = p.foods
+            aiFat = p.fat
+            aiProtein = p.protein
+            // the AI names the meal as a new food; an existing food is only linked when the user taps it
+            val name = p.name.trim()
+            if (name.isNotEmpty() && (food == null || foodIsNew))
+                selectFood(MealFood(MealStore.newId(), name, MealMath.typeFor(aiFat, aiProtein), false, dateUtil.now()), isNew = true)
+        }
+        calculate()
     }
 
     private fun uiPrefs() = context.getSharedPreferences("dashboard_ui", Context.MODE_PRIVATE)
@@ -449,16 +477,20 @@ class DashboardWizard(
         val detail = prepared.wizardDetail
         // meal tracking: kept only if the bolus is really given (MealTracker checks the database). A failure here must
         // not stop the bolus. The advisor branch eats later, so it is no meal yet.
+        // Registered before the commit: it records BG and IOB as they were before this bolus.
+        var mealId: String? = null
         if (!asAdvisor) food?.let { f ->
             if (lastCarbs > 0) runCatching {
                 val fromAi = aiCarbs != null && aiCarbs.toString() == carbsText
-                mealTracker.register(
+                mealId = mealTracker.register(
                     f, tracked, lastCarbs.toDouble(), if (fromAi) aiFat else null, if (fromAi) aiProtein else null,
                     carbTime, detail?.totalInsulin ?: 0.0, lastHistoryAdjust
                 )
             }.onFailure { aapsLogger.error(LTag.CORE, "Meal tracking", it) }
         }
         val result = wizardExecutor.commit(prepared.id, asAdvisor, Sources.WizardDialog, label)
+        // a refused or failed delivery leaves no meal
+        if (result !is ActionProgress.Applied) mealId?.let { id -> mealTracker.update { d -> d.copy(meals = d.meals.filter { it.id != id }) } }
         // same reminder cleanup as the 4.0 wizard
         if (result is ActionProgress.Applied) {
             if ((detail?.totalInsulin ?: 0.0) > 0.0) automation.removeAutomationEventBolusReminder()

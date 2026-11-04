@@ -251,7 +251,7 @@ class MealRecords(
     private fun ListScreen() {
         val tracked = data.foods.filter { it.tracked }
         val pending = data.meals.count { it.confirmed && !it.legacy && it.eval == null }
-        Header("🍽 " + rh.gs(R.string.meal_records), rh.gs(R.string.meal_tracked_foods, tracked.size), null)
+        Header(rh.gs(R.string.meal_records), rh.gs(R.string.meal_tracked_foods, tracked.size), null)
         BasicTextField(
             query, { query = it }, singleLine = true,
             textStyle = TextStyle(color = ToolColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(ToolColors.Accent),

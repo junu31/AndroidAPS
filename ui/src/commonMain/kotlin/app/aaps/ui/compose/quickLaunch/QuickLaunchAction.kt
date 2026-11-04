@@ -81,6 +81,7 @@ sealed class QuickLaunchAction {
         val Carbs = StaticAction(ElementType.CARBS)
         val Wizard = StaticAction(ElementType.BOLUS_WIZARD)
         val MealRecords = StaticAction(ElementType.MEAL_RECORDS) // Personal-fork
+        val HomeSwitch = StaticAction(ElementType.HOME_SWITCH) // Personal-fork
         val DashboardCalculator = StaticAction(ElementType.DASHBOARD_CALCULATOR) // Personal-fork
         val Treatment = StaticAction(ElementType.TREATMENT)
         val Cgm = StaticAction(ElementType.CGM_XDRIP)
@@ -119,6 +120,7 @@ sealed class QuickLaunchAction {
         val staticActions: List<QuickLaunchAction> = listOf(
             MealRecords, DashboardCalculator, // Personal-fork
             Insulin, Carbs, Wizard, Treatment, Cgm, Calibration,
+            HomeSwitch, // Personal-fork
             ProfileSwitch, InsulinManagement, TempTargetManagement, QuickWizardManagement,
             SceneManagement, AutomationManagement, FoodManagement, RunningMode,
             AuthorizedClients,

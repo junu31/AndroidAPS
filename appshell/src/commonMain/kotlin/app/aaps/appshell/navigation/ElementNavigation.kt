@@ -144,6 +144,7 @@ class ElementNavigator(
             ElementType.FILL                    -> navController.navigate(AppRoute.FillDialog.createRoute(FillPreselect.CARTRIDGE_CHANGE.ordinal))
             ElementType.CANNULA_CHANGE          -> navController.navigate(AppRoute.FillDialog.createRoute(FillPreselect.SITE_CHANGE.ordinal))
             ElementType.DASHBOARD_CALCULATOR,
+            ElementType.HOME_SWITCH,
             ElementType.MEAL_RECORDS            -> onOpenDashboardTool(elementType)
             ElementType.BOLUS_WIZARD            -> navController.navigate(AppRoute.WizardDialog.createRoute())
             ElementType.TEMP_BASAL              -> navController.navigate(AppRoute.TempBasalDialog.route)

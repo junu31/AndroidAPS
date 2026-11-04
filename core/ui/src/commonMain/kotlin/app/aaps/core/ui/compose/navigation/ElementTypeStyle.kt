@@ -8,6 +8,7 @@ import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,6 +69,7 @@ fun ElementType.color(): Color = when (this) {
     ElementType.CARBS                   -> AapsTheme.elementColors.carbs
     ElementType.DASHBOARD_CALCULATOR    -> Color(0xFF2BD3BD) // Personal-fork: the Dashboard accent, not the 4.0 wizard green
     ElementType.MEAL_RECORDS            -> AapsTheme.elementColors.carbs
+    ElementType.HOME_SWITCH             -> Color(0xFF2BD3BD)
     ElementType.BOLUS_WIZARD            -> AapsTheme.elementColors.bolusWizard
     ElementType.QUICK_WIZARD,
     ElementType.QUICK_WIZARD_MANAGEMENT -> AapsTheme.elementColors.quickWizard
@@ -136,6 +138,7 @@ fun ElementType.icon(): ImageVector = when (this) {
     ElementType.BOLUS_WIZARD            -> IcCalculator
     ElementType.DASHBOARD_CALCULATOR    -> Icons.Default.Calculate
     ElementType.MEAL_RECORDS            -> Icons.Default.Restaurant
+    ElementType.HOME_SWITCH             -> Icons.Default.SwapHoriz
     ElementType.QUICK_WIZARD,
     ElementType.QUICK_WIZARD_MANAGEMENT -> IcQuickwizard
 
@@ -211,6 +214,7 @@ fun ElementType.label(): TextRef? = when (this) {
     ElementType.BOLUS_WIZARD            -> CoreUiStrings.boluswizard
     ElementType.DASHBOARD_CALCULATOR    -> CoreUiStrings.dashboard_calculator_label
     ElementType.MEAL_RECORDS            -> CoreUiStrings.meal_records_label
+    ElementType.HOME_SWITCH             -> CoreUiStrings.home_switch_label
     ElementType.QUICK_WIZARD            -> null // dynamic label
     ElementType.QUICK_WIZARD_MANAGEMENT -> CoreUiStrings.quickwizard_managemnt
     ElementType.FOOD_MANAGEMENT         -> CoreUiStrings.food_management
@@ -266,6 +270,7 @@ fun ElementType.description(): TextRef? = when (this) {
     ElementType.BOLUS_WIZARD            -> CoreUiStrings.treatment_calculator_desc
     ElementType.DASHBOARD_CALCULATOR    -> CoreUiStrings.dashboard_calculator_desc
     ElementType.MEAL_RECORDS            -> CoreUiStrings.meal_records_desc
+    ElementType.HOME_SWITCH             -> CoreUiStrings.home_switch_desc
     ElementType.TREATMENT               -> CoreUiStrings.treatment_desc
     ElementType.INSULIN_MANAGEMENT      -> CoreUiStrings.manage_insulin_desc
     ElementType.PROFILE_MANAGEMENT      -> CoreUiStrings.manage_profile_desc

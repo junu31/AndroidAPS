@@ -1281,4 +1281,6 @@
     <string name="dashboard_calculator_desc">The Dashboard calculator with food search and meal records</string>
     <string name="meal_records_label">Meal records</string>
     <string name="meal_records_desc">Foods, meals and their evaluations</string>
+    <string name="home_switch_label">Switch home screen</string>
+    <string name="home_switch_desc">Switches between the 4.0 home screen and the Dashboard</string>
 </resources>

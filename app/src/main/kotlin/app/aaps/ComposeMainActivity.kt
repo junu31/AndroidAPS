@@ -715,7 +715,11 @@ class ComposeMainActivity : MetroAppCompatActivity() {
             }
         },
         onOpenUrl = { url -> startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
-        onOpenDashboardTool = { type ->
+        onOpenDashboardTool = onOpen@{ type ->
+            if (type == app.aaps.core.interfaces.navigation.ElementType.HOME_SWITCH) {
+                preferences.put(app.aaps.core.keys.BooleanKey.HomeUseDashboard, !preferences.get(app.aaps.core.keys.BooleanKey.HomeUseDashboard))
+                return@onOpen
+            }
             dashboardController.openTool(if (type == app.aaps.core.interfaces.navigation.ElementType.MEAL_RECORDS) app.aaps.plugins.main.general.dashboard.DashboardTool.RECORDS else app.aaps.plugins.main.general.dashboard.DashboardTool.CALCULATOR)
         }
     )

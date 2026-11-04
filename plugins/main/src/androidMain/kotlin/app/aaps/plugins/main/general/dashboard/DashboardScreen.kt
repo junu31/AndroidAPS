@@ -515,9 +515,10 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
             // the centre line stops short of the card edges
             GridLineV(Modifier.padding(vertical = 14.dp))
             Column(Modifier.weight(1f)) {
-                // natural heights: weights here would inflate the intrinsic height of the whole card
                 Column(
-                    Modifier.padding(start = 10.dp, end = 12.dp, top = 8.dp, bottom = 8.dp),
+                    Modifier
+                        .weight(0.6f)
+                        .padding(start = 10.dp, end = 12.dp),
                     verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically)
                 ) {
                     DeltaBar(stringResource(R.string.dashboard_delta_5), bg.delta, bg.deltasMgdl[0])
@@ -525,14 +526,14 @@ private fun RingCard(state: DashboardState, actions: DashboardActions) {
                     DeltaBar(stringResource(R.string.dashboard_delta_40), bg.longAvgDelta, bg.deltasMgdl[2])
                 }
                 GridLineH(Modifier.padding(horizontal = 10.dp))
-                Column {
-                    Row(Modifier.height(IntrinsicSize.Min)) {
+                Column(Modifier.weight(0.4f)) {
+                    Row(Modifier.weight(1f)) {
                         GridStat("IOB", DashColors.Iob, state.iob, actions)
                         GridLineV(Modifier.padding(vertical = 6.dp))
                         GridStat("COB", DashColors.Cob, state.cob, actions)
                     }
                     GridLineH(Modifier.padding(horizontal = 10.dp))
-                    Row(Modifier.height(IntrinsicSize.Min)) {
+                    Row(Modifier.weight(1f)) {
                         GridStat("Basal", DashColors.Basal, state.basal, actions)
                         GridLineV(Modifier.padding(vertical = 6.dp))
                         GridStat(stringResource(R.string.dashboard_sens), DashColors.Zt, state.sensitivity, actions)

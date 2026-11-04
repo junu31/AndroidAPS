@@ -1013,11 +1013,9 @@ class DashboardWizard(
 
     @Composable
     private fun FlowChips(chips: List<Chip>) {
-        // two simple rows are enough for 5-6 chips on a phone
-        val rows = chips.chunked(4)
-        rows.forEach { row ->
-            Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                row.forEach { c ->
+        run {
+            Row(Modifier.padding(top = 8.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterHorizontally)) {
+                chips.forEach { c ->
                     Text(
                         (if (c.on) "✓ " else "") + c.text, fontSize = 11.5.sp, maxLines = 1,
                         color = if (!c.enabled) ToolColors.Dim.copy(alpha = 0.5f) else if (c.on) ToolColors.Accent else ToolColors.Sub,
@@ -1026,7 +1024,7 @@ class DashboardWizard(
                             .border(1.dp, if (c.on && c.enabled) ToolColors.Accent.copy(alpha = 0.6f) else ToolColors.Line, RoundedCornerShape(999.dp))
                             .background(if (c.on && c.enabled) ToolColors.Accent.copy(alpha = 0.08f) else Color.Transparent)
                             .clickable(enabled = c.enabled, onClick = c.onClick)
-                            .padding(horizontal = 10.dp, vertical = 5.dp)
+                            .padding(horizontal = 8.dp, vertical = 5.dp)
                     )
                 }
             }

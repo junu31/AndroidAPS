@@ -3,6 +3,7 @@ package app.aaps.core.ui.compose.navigation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Restaurant
@@ -65,7 +66,7 @@ fun ElementType.color(): Color = when (this) {
     ElementType.FILL                    -> AapsTheme.elementColors.insulin
 
     ElementType.CARBS                   -> AapsTheme.elementColors.carbs
-    ElementType.DASHBOARD_CALCULATOR    -> AapsTheme.elementColors.bolusWizard
+    ElementType.DASHBOARD_CALCULATOR    -> Color(0xFF2BD3BD) // Personal-fork: the Dashboard accent, not the 4.0 wizard green
     ElementType.MEAL_RECORDS            -> AapsTheme.elementColors.carbs
     ElementType.BOLUS_WIZARD            -> AapsTheme.elementColors.bolusWizard
     ElementType.QUICK_WIZARD,
@@ -132,8 +133,8 @@ fun ElementType.color(): Color = when (this) {
 fun ElementType.icon(): ImageVector = when (this) {
     ElementType.INSULIN                 -> IcBolus
     ElementType.CARBS                   -> IcCarbs
-    ElementType.BOLUS_WIZARD,
-    ElementType.DASHBOARD_CALCULATOR    -> IcCalculator
+    ElementType.BOLUS_WIZARD            -> IcCalculator
+    ElementType.DASHBOARD_CALCULATOR    -> Icons.Default.Calculate
     ElementType.MEAL_RECORDS            -> Icons.Default.Restaurant
     ElementType.QUICK_WIZARD,
     ElementType.QUICK_WIZARD_MANAGEMENT -> IcQuickwizard

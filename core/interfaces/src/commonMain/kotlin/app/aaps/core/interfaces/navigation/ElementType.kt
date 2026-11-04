@@ -33,8 +33,8 @@ enum class ElementType(
     CARBS(category = ElementCategory.TREATMENT, searchable = true, protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
     BOLUS_WIZARD(category = ElementCategory.TREATMENT, searchable = true, protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
     // Personal-fork: Dashboard tools, reachable from the quick launch toolbar on both home screens
-    DASHBOARD_CALCULATOR(protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
-    MEAL_RECORDS(visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT),
+    DASHBOARD_CALCULATOR(category = ElementCategory.TREATMENT, protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
+    MEAL_RECORDS(category = ElementCategory.TREATMENT, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT),
     QUICK_WIZARD(protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
     TREATMENT(category = ElementCategory.TREATMENT, searchable = true, protection = ProtectionCheck.Protection.BOLUS, visibility = ElementVisibility.MASTER_OR_PAIRED_CLIENT, role = ClientRole.MealAssistant),
 

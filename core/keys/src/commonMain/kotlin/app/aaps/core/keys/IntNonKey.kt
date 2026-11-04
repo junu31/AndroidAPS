@@ -9,5 +9,6 @@ enum class IntNonKey(
 ) : IntNonPreferenceKey {
 
     ObjectivesManualEnacts("ObjectivesmanualEnacts", 0),
-    TddCycleOffset("tdd_cycle_offset", 0)
+    TddCycleOffset("tdd_cycle_offset", 0),
+    RangeToDisplay("rangetodisplay", 6) // Personal-fork: Dashboard graph range, same key as on 3.4
 }

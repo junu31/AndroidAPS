@@ -50,6 +50,7 @@ import app.aaps.core.interfaces.utils.MidnightTime
 import app.aaps.core.interfaces.utils.TrendCalculator
 import app.aaps.core.keys.BooleanKey
 import app.aaps.core.keys.BooleanNonKey
+import app.aaps.core.keys.IntNonKey
 import app.aaps.core.keys.UnitDoubleKey
 import app.aaps.core.keys.StringKey
 import app.aaps.core.keys.interfaces.Preferences
@@ -128,7 +129,7 @@ class DashboardController(
 
     private val _state = MutableStateFlow(DashboardState())
     val state: StateFlow<DashboardState> = _state
-    private var rangeHours = 6
+    private var rangeHours = preferences.get(IntNonKey.RangeToDisplay)
     private val _graph = MutableStateFlow(GraphModel())
     val graph: StateFlow<GraphModel> = _graph
 
@@ -207,10 +208,12 @@ class DashboardController(
         }
     }
 
-    fun setRange(hours: Int) {
+    suspend fun setRange(hours: Int) {
         rangeHours = hours
+        preferences.put(IntNonKey.RangeToDisplay, hours)
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
         _graph.update { it.copy(rangeHours = hours) }
+        updateGraph() // the time axis follows at once, not with the next refresh
     }
 
     private suspend fun refreshAll() {
@@ -710,7 +713,7 @@ fun DashboardHome(
             override fun onCalibration() = go(ElementType.CALIBRATION)
             override fun onCgm() = go(ElementType.CGM_XDRIP)
             override fun onAcceptTemp() = Unit // the loop action in the bottom bar
-            override fun onScale(hours: Int) = controller.setRange(hours)
+            override fun onScale(hours: Int) { scope.launch { controller.setRange(hours) } }
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }
             override fun onMealRecords() { records = controller.newMealRecords() }

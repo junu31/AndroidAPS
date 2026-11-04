@@ -1,5 +1,13 @@
 package app.aaps.plugins.main.general.dashboard.meal
 
+import androidx.compose.material3.Icon
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButton
+import androidx.compose.runtime.SideEffect
+import app.aaps.core.ui.compose.AapsTopAppBar
+import app.aaps.plugins.main.general.dashboard.ToolColors
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -116,6 +124,7 @@ class MealRecords(
             data = mealTracker.data()
             mealTracker.changes.collect { d -> if (d != null) data = d }
         }
+        ToolColors.Apply()
         Dialog(onDismissRequest = { if (!back()) onClose() }, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
             Root()
         }
@@ -161,52 +170,77 @@ class MealRecords(
 
     // ---------- UI ----------
 
+    // the bar stays on top while the screen below scrolls; each screen describes it through Header()
+    private var barTitle by mutableStateOf("")
+    private var barRight by mutableStateOf("")
+    private var barCanBack by mutableStateOf(false)
+    private var barHasRightClick by mutableStateOf(false)
+    private var barBack: (() -> Unit)? = null
+    private var barRightClick: (() -> Unit)? = null
+
     @Composable
     private fun Root() {
         Column(
             Modifier
                 .fillMaxSize()
-                .background(DashColors.Bg)
-                .verticalScroll(rememberScrollState())
-                .padding(14.dp)
+                .background(ToolColors.Bg)
         ) {
-            when (screen) {
-                Screen.LIST -> ListScreen()
-                Screen.FOOD -> food(foodId)?.let { FoodScreen(it) } ?: run { screen = Screen.LIST }
-                Screen.MEAL -> data.meals.firstOrNull { it.id == mealId }?.let { MealScreen(it) } ?: run { screen = Screen.LIST }
+            TopBar()
+            Column(
+                Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(start = 14.dp, end = 14.dp, bottom = 14.dp)
+            ) {
+                when (screen) {
+                    Screen.LIST -> ListScreen()
+                    Screen.FOOD -> food(foodId)?.let { FoodScreen(it) } ?: run { screen = Screen.LIST }
+                    Screen.MEAL -> data.meals.firstOrNull { it.id == mealId }?.let { MealScreen(it) } ?: run { screen = Screen.LIST }
+                }
             }
         }
     }
 
     @Composable
+    private fun TopBar() {
+        AapsTopAppBar(
+            title = { Text(barTitle, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            navigationIcon = {
+                IconButton(onClick = { barBack?.invoke() ?: onClose() }) {
+                    if (barCanBack) Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = rh.gs(app.aaps.core.ui.R.string.close))
+                    else Icon(Icons.Filled.Close, contentDescription = rh.gs(app.aaps.core.ui.R.string.close))
+                }
+            },
+            actions = {
+                if (barRight.isNotEmpty())
+                    Text(
+                        barRight, color = if (barHasRightClick) ToolColors.Accent else ToolColors.Sub, fontSize = 13.sp,
+                        modifier = (if (barHasRightClick) Modifier.clickable { barRightClick?.invoke() } else Modifier).padding(horizontal = 12.dp, vertical = 8.dp)
+                    )
+            }
+        )
+    }
+
+    @Composable
     private fun Header(title: String, right: String = "", onBack: (() -> Unit)?, onRight: (() -> Unit)? = null) {
-        Row(Modifier.padding(bottom = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                if (onBack != null) "‹" else "✕", color = DashColors.Text, fontSize = 22.sp,
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .clickable { onBack?.invoke() ?: onClose() }
-                    .padding(horizontal = 8.dp)
-            )
-            Text(title, color = DashColors.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (right.isNotEmpty())
-                Text(
-                    right, color = if (onRight != null) DashColors.Accent else DashColors.Sub, fontSize = if (onRight != null) 13.sp else 11.5.sp,
-                    modifier = if (onRight != null) Modifier
-                        .clickable(onClick = onRight)
-                        .padding(8.dp) else Modifier
-                )
+        barBack = onBack
+        barRightClick = onRight
+        SideEffect {
+            barTitle = title
+            barRight = right
+            barCanBack = onBack != null
+            barHasRightClick = onRight != null
         }
     }
 
     @Composable
-    private fun Card(modifier: Modifier = Modifier, border: Color = DashColors.Line, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
+    private fun Card(modifier: Modifier = Modifier, border: Color = ToolColors.Line, onClick: (() -> Unit)? = null, content: @Composable () -> Unit) {
         Column(
             modifier
                 .padding(bottom = 9.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(DashColors.Card)
+                .background(ToolColors.Card)
                 .border(1.dp, border, RoundedCornerShape(14.dp))
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .padding(12.dp)
@@ -220,18 +254,18 @@ class MealRecords(
         Header("🍽 " + rh.gs(R.string.meal_records), rh.gs(R.string.meal_tracked_foods, tracked.size), null)
         BasicTextField(
             query, { query = it }, singleLine = true,
-            textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+            textStyle = TextStyle(color = ToolColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(ToolColors.Accent),
             decorationBox = { inner ->
                 Box {
-                    if (query.isEmpty()) Text("🔍 " + rh.gs(R.string.meal_search), color = DashColors.Dim, fontSize = 13.sp)
+                    if (query.isEmpty()) Text("🔍 " + rh.gs(R.string.meal_search), color = ToolColors.Dim, fontSize = 13.sp)
                     inner()
                 }
             },
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(DashColors.Card)
-                .border(1.dp, DashColors.Line, RoundedCornerShape(10.dp))
+                .background(ToolColors.Card)
+                .border(1.dp, ToolColors.Line, RoundedCornerShape(10.dp))
                 .padding(horizontal = 12.dp, vertical = 10.dp)
         )
         Row(
@@ -260,7 +294,7 @@ class MealRecords(
                     else           -> true
                 }
             }
-        if (foods.isEmpty()) Text(rh.gs(R.string.meal_empty), color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
+        if (foods.isEmpty()) Text(rh.gs(R.string.meal_empty), color = ToolColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
         foods.forEach { f -> FoodCard(f) }
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             listOf(MealGrade.OK, MealGrade.UNDER, MealGrade.OVER, MealGrade.TIMING, MealGrade.EXCLUDED).forEach {
@@ -275,23 +309,23 @@ class MealRecords(
         val evaluated = m.filter { it.eval != null }
         val unseen = m.count { it.eval != null && !it.seen }
         val pending = m.firstOrNull { it.confirmed && it.eval == null }
-        Card(border = if (unseen > 0) DashColors.Accent.copy(alpha = 0.55f) else DashColors.Line, onClick = { foodId = f.id; aiText = null; screen = Screen.FOOD }) {
+        Card(border = if (unseen > 0) ToolColors.Accent.copy(alpha = 0.55f) else ToolColors.Line, onClick = { foodId = f.id; aiText = null; screen = Screen.FOOD }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(f.name, color = DashColors.Text, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+                        Text(f.name, color = ToolColors.Text, fontSize = 14.5.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
                         if (unseen > 0) Text(
-                            " $unseen ", color = DashColors.Bg, fontSize = 10.sp, fontWeight = FontWeight.Bold,
+                            " $unseen ", color = ToolColors.OnAccent, fontSize = 10.sp, fontWeight = FontWeight.Bold,
                             modifier = Modifier
                                 .padding(start = 6.dp)
                                 .clip(RoundedCornerShape(50))
-                                .background(DashColors.Accent)
+                                .background(ToolColors.Accent)
                         )
                     }
                     Text(
                         MealUi.typeLabel(rh, f.type) + " · " + rh.gs(R.string.meal_counts, m.count { it.usable }, evaluated.size) +
                             (m.firstOrNull()?.let { " · " + day.format(Date(it.time)) } ?: "") + if (!f.tracked) " · " + rh.gs(R.string.meal_untracked) else "",
-                        color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+                        color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
                     )
                     Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                         m.take(8).forEach { r ->
@@ -301,7 +335,7 @@ class MealRecords(
                                     .size(9.dp)
                                     .clip(CircleShape)
                                     .background(if (pend) Color.Transparent else MealUi.gradeColor(if (r.excludedByUser) MealGrade.EXCLUDED else r.eval?.grade))
-                                    .border(1.dp, if (pend) DashColors.Sub else Color.Transparent, CircleShape)
+                                    .border(1.dp, if (pend) ToolColors.Sub else Color.Transparent, CircleShape)
                             )
                         }
                     }
@@ -311,26 +345,26 @@ class MealRecords(
                     val lastTiming = evaluated.firstOrNull()?.eval?.grade == MealGrade.TIMING
                     when {
                         pending != null && evaluated.isEmpty() -> {
-                            Text(rh.gs(R.string.meal_pending), color = DashColors.Sub, fontSize = 11.sp)
-                            Text("⏳ " + time.format(Date(pending.evalAt)) + left(pending.evalAt), color = DashColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(rh.gs(R.string.meal_pending), color = ToolColors.Sub, fontSize = 11.sp)
+                            Text("⏳ " + time.format(Date(pending.evalAt)) + left(pending.evalAt), color = ToolColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
                         lastTiming                             -> {
-                            Text(MealTracker.gradeText(rh, MealGrade.TIMING), color = DashColors.Sub, fontSize = 11.sp)
+                            Text(MealTracker.gradeText(rh, MealGrade.TIMING), color = ToolColors.Sub, fontSize = 11.sp)
                             Text(rh.gs(R.string.meal_split), color = DashColors.Low, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                         }
 
                         sp == null                             -> {
-                            Text(rh.gs(R.string.meal_not_enough), color = DashColors.Sub, fontSize = 11.sp)
-                            Text("—", color = DashColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text(rh.gs(R.string.meal_from_two, MealMath.MIN_RECORDS), color = DashColors.Dim, fontSize = 10.5.sp)
+                            Text(rh.gs(R.string.meal_not_enough), color = ToolColors.Sub, fontSize = 11.sp)
+                            Text("—", color = ToolColors.Sub, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(rh.gs(R.string.meal_from_two, MealMath.MIN_RECORDS), color = ToolColors.Dim, fontSize = 10.5.sp)
                         }
 
                         else                                   -> {
-                            Text(rh.gs(R.string.meal_gpu, f1(sp.first.gramsPerUnit)), color = DashColors.Sub, fontSize = 11.sp)
+                            Text(rh.gs(R.string.meal_gpu, f1(sp.first.gramsPerUnit)), color = ToolColors.Sub, fontSize = 11.sp)
                             if (abs(sp.second) < 5) Text(rh.gs(R.string.meal_grade_ok), color = DashColors.InRange, fontSize = 13.sp, fontWeight = FontWeight.Bold)
                             else Text(MealTracker.signed(sp.second) + "%", color = if (sp.second > 0) DashColors.High else DashColors.Iob, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-                            Text(rh.gs(R.string.meal_vs_ic, f1(icNow(m.first().time) ?: 0.0)), color = DashColors.Dim, fontSize = 10.5.sp)
+                            Text(rh.gs(R.string.meal_vs_ic, f1(icNow(m.first().time) ?: 0.0)), color = ToolColors.Dim, fontSize = 10.5.sp)
                         }
                     }
                 }
@@ -346,13 +380,13 @@ class MealRecords(
     @Composable
     private fun CalcButton(text: String, onClick: () -> Unit) {
         Text(
-            "🧮 $text", color = DashColors.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
+            "🧮 $text", color = ToolColors.Accent, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier
                 .padding(top = 8.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(999.dp))
-                .border(1.dp, DashColors.Accent.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
+                .border(1.dp, ToolColors.Accent.copy(alpha = 0.6f), RoundedCornerShape(999.dp))
                 .clickable(onClick = onClick)
                 .padding(vertical = 6.dp)
         )
@@ -364,7 +398,7 @@ class MealRecords(
         val list = data.meals.filter { it.legacy }
             .filter { query.isBlank() || listOf(it.foodName, it.aiDescription, it.aiItems, it.legacyText).any { s -> s.contains(query, true) } }
             .sortedByDescending { it.time }
-        if (list.isEmpty()) Text(rh.gs(R.string.meal_ai_empty), color = DashColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
+        if (list.isEmpty()) Text(rh.gs(R.string.meal_ai_empty), color = ToolColors.Sub, fontSize = 12.5.sp, modifier = Modifier.padding(vertical = 20.dp))
         list.forEach { m ->
             Card {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -381,10 +415,10 @@ class MealRecords(
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     )
                     Text(
-                        "  " + m.foodName.ifBlank { "—" }, color = DashColors.Text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
+                        "  " + m.foodName.ifBlank { "—" }, color = ToolColors.Text, fontSize = 13.5.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                     )
-                    Text(dayTime.format(Date(m.time)), color = DashColors.Sub, fontSize = 11.sp)
+                    Text(dayTime.format(Date(m.time)), color = ToolColors.Sub, fontSize = 11.sp)
                 }
                 Text(
                     listOfNotNull(
@@ -401,18 +435,18 @@ class MealRecords(
                                 }
                             )
                         }
-                    ).joinToString(" · "), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp)
+                    ).joinToString(" · "), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp)
                 )
-                if (m.aiItems.isNotBlank()) Text(m.aiItems, color = DashColors.Text, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
-                if (m.aiDescription.isNotBlank()) Text("✍ " + m.aiDescription, color = DashColors.Sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
-                if (m.legacyText.isNotBlank()) Text(m.legacyText, color = DashColors.Dim, fontSize = 11.sp, maxLines = 5, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
+                if (m.aiItems.isNotBlank()) Text(m.aiItems, color = ToolColors.Text, fontSize = 11.5.sp, modifier = Modifier.padding(top = 3.dp))
+                if (m.aiDescription.isNotBlank()) Text("✍ " + m.aiDescription, color = ToolColors.Sub, fontSize = 11.sp, maxLines = 3, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 3.dp))
+                if (m.legacyText.isNotBlank()) Text(m.legacyText, color = ToolColors.Dim, fontSize = 11.sp, maxLines = 5, overflow = TextOverflow.Ellipsis, modifier = Modifier.padding(top = 4.dp))
                 // the estimate itself (not what was applied), like the camera result
                 CalcButton(rh.gs(R.string.meal_to_calc_ai, m.carbs.toInt())) {
                     onCalc(WizardPrefill(m.carbs.toInt(), name = m.foodName, foods = m.aiItems, fat = m.fat, protein = m.protein))
                 }
                 Text(
                     if (deleteAiId == m.id) rh.gs(R.string.meal_delete_confirm) else rh.gs(R.string.meal_ai_delete),
-                    color = if (deleteAiId == m.id) DashColors.Low else DashColors.Dim, fontSize = 11.5.sp,
+                    color = if (deleteAiId == m.id) DashColors.Low else ToolColors.Dim, fontSize = 11.5.sp,
                     textAlign = androidx.compose.ui.text.style.TextAlign.End,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -434,24 +468,24 @@ class MealRecords(
         val m = meals(f.id)
         Header(f.name, rh.gs(R.string.meal_rename_action), onBack = { back() }, onRight = { renameText = f.name; renaming = true })
         if (renaming)
-            Card(border = DashColors.Accent.copy(alpha = 0.5f)) {
-                Text(rh.gs(R.string.meal_name), color = DashColors.Sub, fontSize = 11.sp)
+            Card(border = ToolColors.Accent.copy(alpha = 0.5f)) {
+                Text(rh.gs(R.string.meal_name), color = ToolColors.Sub, fontSize = 11.sp)
                 BasicTextField(
                     renameText, { renameText = it }, singleLine = true,
-                    textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+                    textStyle = TextStyle(color = ToolColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(ToolColors.Accent),
                     modifier = Modifier
                         .padding(top = 4.dp)
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(8.dp))
-                        .background(DashColors.Card2)
-                        .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                        .background(ToolColors.Card2)
+                        .border(1.dp, ToolColors.Line, RoundedCornerShape(8.dp))
                         .padding(horizontal = 10.dp, vertical = 8.dp)
                 )
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     Spacer(Modifier.weight(1f))
-                    Text(rh.gs(android.R.string.cancel), color = DashColors.Sub, fontSize = 13.sp, modifier = Modifier.clickable { renaming = false })
+                    Text(rh.gs(android.R.string.cancel), color = ToolColors.Sub, fontSize = 13.sp, modifier = Modifier.clickable { renaming = false })
                     Text(
-                        rh.gs(R.string.meal_memo_save), color = DashColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        rh.gs(R.string.meal_memo_save), color = ToolColors.Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         modifier = Modifier.clickable {
                             val name = renameText.trim()
                             if (name.isNotEmpty())
@@ -470,21 +504,21 @@ class MealRecords(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     rh.gs(R.string.meal_food_summary, m.count { it.usable }, m.count { it.eval != null && !it.usable }, MealUi.typeLabel(rh, f.type)),
-                    color = DashColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f)
+                    color = ToolColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f)
                 )
-                Text(rh.gs(R.string.meal_track_short) + "  ", color = DashColors.Sub, fontSize = 11.5.sp)
+                Text(rh.gs(R.string.meal_track_short) + "  ", color = ToolColors.Sub, fontSize = 11.5.sp)
                 MealSwitch(f.tracked) { mealTracker.update { d -> d.copy(foods = d.foods.map { if (it.id == f.id) it.copy(tracked = !f.tracked) else it }) } }
             }
             val sp = suggestionPct(f.id)
             if (sp != null) {
                 Text(
                     rh.gs(R.string.meal_food_suggest, f1(sp.first.gramsPerUnit), f1(icNow(m.first().time) ?: 0.0), MealTracker.signed(sp.second) + "%"),
-                    color = DashColors.Text, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp)
+                    color = ToolColors.Text, fontSize = 12.5.sp, modifier = Modifier.padding(top = 8.dp)
                 )
-                Text(rh.gs(R.string.meal_food_suggest_note, (MealMath.CAP * 100).toInt()), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
-            } else Text(rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, m.count { it.usable }), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp))
+                Text(rh.gs(R.string.meal_food_suggest_note, (MealMath.CAP * 100).toInt()), color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+            } else Text(rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, m.count { it.usable }), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 8.dp))
             // evaluation time: change by hand or follow the advice from the last meals
-            Text(rh.gs(R.string.meal_type_title), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))
+            Text(rh.gs(R.string.meal_type_title), color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 10.dp))
             Row(
                 Modifier
                     .padding(top = 4.dp)
@@ -506,7 +540,7 @@ class MealRecords(
         val evaluated = m.filter { it.usable }
         Text(
             if (aiBusy) "✦ " + rh.gs(R.string.meal_ai_busy) else "✦ " + rh.gs(R.string.meal_ai_pattern),
-            color = if (evaluated.size >= 2) AiPurple else DashColors.Dim, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+            color = if (evaluated.size >= 2) AiPurple else ToolColors.Dim, fontSize = 13.sp, fontWeight = FontWeight.Bold,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier
                 .padding(bottom = 9.dp)
@@ -517,10 +551,10 @@ class MealRecords(
                 .clickable(enabled = evaluated.size >= 2 && !aiBusy) { runAi(f, m) }
                 .padding(vertical = 11.dp)
         )
-        if (evaluated.size < 2 && aiText == null) Text(rh.gs(R.string.meal_ai_need), color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
+        if (evaluated.size < 2 && aiText == null) Text(rh.gs(R.string.meal_ai_need), color = ToolColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
         aiText?.let {
             Text(
-                "✦ AI · $it", color = DashColors.Sub, fontSize = 12.sp, lineHeight = 18.sp,
+                "✦ AI · $it", color = ToolColors.Sub, fontSize = 12.sp, lineHeight = 18.sp,
                 modifier = Modifier
                     .padding(bottom = 9.dp)
                     .fillMaxWidth()
@@ -530,17 +564,17 @@ class MealRecords(
                     .padding(11.dp)
             )
         }
-        Text(rh.gs(R.string.meal_list_title), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp))
+        Text(rh.gs(R.string.meal_list_title), color = ToolColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp))
         m.forEach { r ->
             val e = r.eval
-            Card(border = if (e != null && !r.seen) DashColors.Accent.copy(alpha = 0.55f) else DashColors.Line, onClick = { openMeal(r) }) {
+            Card(border = if (e != null && !r.seen) ToolColors.Accent.copy(alpha = 0.55f) else ToolColors.Line, onClick = { openMeal(r) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     GradeChip(rh, if (r.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
-                    Text("  " + dayTime.format(Date(r.time)), color = DashColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
+                    Text("  " + dayTime.format(Date(r.time)), color = ToolColors.Text, fontSize = 12.5.sp, modifier = Modifier.weight(1f))
                     Text(
                         if (e == null) rh.gs(R.string.meal_eval_at, time.format(Date(r.evalAt))) + left(r.evalAt)
                         else "${r.carbs.toInt()} g" + (if (e.neededInsulin > 0) " · " + MealTracker.signed(e.ratioPct) + "%" else "") + if (e.maxBg > 0) " · " + rh.gs(R.string.meal_max, e.maxBg) else "",
-                        color = DashColors.Sub, fontSize = 11.5.sp
+                        color = ToolColors.Sub, fontSize = 11.5.sp
                     )
                 }
                 val memo = (r.memoTags + listOfNotNull(r.memo.takeIf { it.isNotBlank() })).joinToString(" · ")
@@ -550,7 +584,7 @@ class MealRecords(
         // remove a wrongly named food together with its records
         Text(
             if (deleteAsk) rh.gs(R.string.meal_delete_confirm) else rh.gs(R.string.meal_delete),
-            color = if (deleteAsk) DashColors.Low else DashColors.Dim, fontSize = 12.sp,
+            color = if (deleteAsk) DashColors.Low else ToolColors.Dim, fontSize = 12.sp,
             modifier = Modifier
                 .padding(top = 8.dp)
                 .clickable {
@@ -624,13 +658,13 @@ class MealRecords(
         var armed by remember(m.id) { mutableStateOf(false) }
         var busy by remember(m.id) { mutableStateOf(false) }
         val on = now >= from && !busy
-        val c = if (on) DashColors.Accent else DashColors.Line
+        val c = if (on) ToolColors.Accent else ToolColors.Line
         val label = when {
             now < from -> rh.gs(R.string.meal_finish_from, time.format(Date(from)))
             else       -> rh.gs(R.string.meal_finish_now, (now - m.time) / 3_600_000L, (now - m.time) / 60_000L % 60)
         }
         Text(
-            "⏹ $label", color = if (on) DashColors.Accent else DashColors.Sub, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+            "⏹ $label", color = if (on) ToolColors.Accent else ToolColors.Sub, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             modifier = Modifier
                 .padding(top = 10.dp)
@@ -661,18 +695,18 @@ class MealRecords(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GradeChip(rh, if (m.excludedByUser) MealGrade.EXCLUDED else e?.grade, pending = e == null, ask = e?.needsAnswer == true && e.grade != MealGrade.EXCLUDED)
                 Text(
-                    MealUi.typeLabel(rh, m.type), color = DashColors.Sub, fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End,
+                    MealUi.typeLabel(rh, m.type), color = ToolColors.Sub, fontSize = 11.sp, textAlign = androidx.compose.ui.text.style.TextAlign.End,
                     modifier = Modifier.weight(1f)
                 )
             }
             if (e == null) {
-                Text(rh.gs(R.string.meal_wait_text, time.format(Date(m.evalAt))), color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
+                Text(rh.gs(R.string.meal_wait_text, time.format(Date(m.evalAt))), color = ToolColors.Sub, fontSize = 12.sp, modifier = Modifier.padding(top = 8.dp))
                 if (m.tracked) FinishEarly(m)
             } else {
                 if (m.curve.any { it > 0 }) MealChart(m)
                 Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Kv(rh.gs(R.string.meal_kv_tir), "${e.tirPct} %", Modifier.weight(1f))
-                    Kv(rh.gs(R.string.meal_kv_min), "${e.minBg}", Modifier.weight(1f), if (e.minBg in 1 until MealMath.LOW) DashColors.Low else DashColors.Text)
+                    Kv(rh.gs(R.string.meal_kv_min), "${e.minBg}", Modifier.weight(1f), if (e.minBg in 1 until MealMath.LOW) DashColors.Low else ToolColors.Text)
                 }
                 Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Kv(rh.gs(R.string.meal_kv_bolus), "${f2(e.mealBolus)} U", Modifier.weight(1f))
@@ -686,9 +720,9 @@ class MealRecords(
                 if (e.neededInsulin > 0)
                     Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Kv(rh.gs(R.string.meal_kv_needed), "${f2(e.neededInsulin)} U", Modifier.weight(1f))
-                        Kv(rh.gs(R.string.meal_kv_ratio), MealTracker.signed(e.ratioPct) + " %", Modifier.weight(1f), if (abs(e.ratioPct) >= MealMath.RATIO_LIMIT) DashColors.High else DashColors.Text)
+                        Kv(rh.gs(R.string.meal_kv_ratio), MealTracker.signed(e.ratioPct) + " %", Modifier.weight(1f), if (abs(e.ratioPct) >= MealMath.RATIO_LIMIT) DashColors.High else ToolColors.Text)
                     }
-                Text(reasonText(m, e), color = DashColors.Sub, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
+                Text(reasonText(m, e), color = ToolColors.Sub, fontSize = 12.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 8.dp))
             }
         }
         ManualCard(m)
@@ -701,12 +735,12 @@ class MealRecords(
     @Composable
     private fun ManualCard(m: MealRecord) {
         if (m.manualBoluses.isEmpty()) return
-        Card(border = if (m.manualBoluses.any { it.answer.isEmpty() }) DashColors.High.copy(alpha = 0.6f) else DashColors.Line) {
-            Text(rh.gs(R.string.meal_manual_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text(rh.gs(R.string.meal_manual_sub), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
+        Card(border = if (m.manualBoluses.any { it.answer.isEmpty() }) DashColors.High.copy(alpha = 0.6f) else ToolColors.Line) {
+            Text(rh.gs(R.string.meal_manual_title), color = ToolColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(rh.gs(R.string.meal_manual_sub), color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp))
             m.manualBoluses.sortedBy { it.time }.forEach { b ->
                 Text(
-                    time.format(Date(b.time)) + " · " + f2(b.amount) + " U", color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    time.format(Date(b.time)) + " · " + f2(b.amount) + " U", color = ToolColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -729,7 +763,7 @@ class MealRecords(
     private fun EntryCard(m: MealRecord) {
         if (m.entryBg == null && m.entryIob == null) return
         Card {
-            Text(rh.gs(R.string.meal_entry_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(rh.gs(R.string.meal_entry_title), color = ToolColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                 Kv(rh.gs(R.string.meal_entry_bg), m.entryBg?.toString() ?: "—", Modifier.weight(1f))
                 Kv(rh.gs(R.string.meal_entry_delta), m.entryDelta15?.let { MealTracker.signed(it) } ?: "—", Modifier.weight(1f))
@@ -753,14 +787,14 @@ class MealRecords(
     }
 
     @Composable
-    private fun Kv(label: String, value: String, modifier: Modifier, color: Color = DashColors.Text) {
+    private fun Kv(label: String, value: String, modifier: Modifier, color: Color = ToolColors.Text) {
         Column(
             modifier
                 .clip(RoundedCornerShape(8.dp))
-                .background(DashColors.Card2)
+                .background(ToolColors.Card2)
                 .padding(horizontal = 9.dp, vertical = 6.dp)
         ) {
-            Text(label, color = DashColors.Sub, fontSize = 10.5.sp, maxLines = 1)
+            Text(label, color = ToolColors.Sub, fontSize = 10.5.sp, maxLines = 1)
             Text(value, color = color, fontSize = 14.5.sp, fontWeight = FontWeight.Bold)
         }
     }
@@ -789,27 +823,27 @@ class MealRecords(
         val ic = now?.getIcTimeFromMidnight(sec) ?: return
         val isf = now.getIsfMgdlTimeFromMidnight(sec)
         Card {
-            Text(rh.gs(R.string.meal_profile_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(rh.gs(R.string.meal_profile_title), color = ToolColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             Row(Modifier.padding(top = 6.dp)) {
                 Text("", modifier = Modifier.weight(1.3f))
-                Text(day.format(Date(m.time)), color = DashColors.Dim, fontSize = 10.5.sp, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-                Text(rh.gs(R.string.meal_now), color = DashColors.Dim, fontSize = 10.5.sp, modifier = Modifier.weight(1.3f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text(day.format(Date(m.time)), color = ToolColors.Dim, fontSize = 10.5.sp, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+                Text(rh.gs(R.string.meal_now), color = ToolColors.Dim, fontSize = 10.5.sp, modifier = Modifier.weight(1.3f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
             }
             fun pct(old: Double, new: Double) = if (old > 0 && abs(new / old - 1) >= 0.005) "  " + MealTracker.signed(round((new / old - 1) * 100).toInt()) + "%" else ""
             CompareRow("IC (${time.format(Date(m.time))})", f1(m.ic), f1(ic) + pct(m.ic, ic))
             CompareRow("ISF", f1(m.isfMgdl), f1(isf) + pct(m.isfMgdl, isf))
             CompareRow(rh.gs(R.string.meal_profile_pct), "${m.percentage}", "${now.percentage}")
             val alone = e.neededInsulin - m.carbs / ic
-            Text(rh.gs(R.string.meal_profile_alone, m.carbs.toInt(), (if (alone > 0) "+" else "") + f2(alone)), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
+            Text(rh.gs(R.string.meal_profile_alone, m.carbs.toInt(), (if (alone > 0) "+" else "") + f2(alone)), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 6.dp))
         }
     }
 
     @Composable
     private fun CompareRow(label: String, old: String, new: String) {
         Row(Modifier.padding(top = 4.dp)) {
-            Text(label, color = DashColors.Text, fontSize = 12.sp, modifier = Modifier.weight(1.3f))
-            Text(old, color = DashColors.Sub, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
-            Text(new, color = DashColors.Text, fontSize = 12.sp, modifier = Modifier.weight(1.3f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(label, color = ToolColors.Text, fontSize = 12.sp, modifier = Modifier.weight(1.3f))
+            Text(old, color = ToolColors.Sub, fontSize = 12.sp, modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
+            Text(new, color = ToolColors.Text, fontSize = 12.sp, modifier = Modifier.weight(1.3f), textAlign = androidx.compose.ui.text.style.TextAlign.End)
         }
     }
 
@@ -817,36 +851,36 @@ class MealRecords(
     private fun MemoCard(m: MealRecord) {
         val changed = memoTags != m.memoTags || memoText != m.memo || memoExclude != m.excludedByUser
         Card {
-            Text(rh.gs(R.string.meal_memo_title), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
-            Text(rh.gs(R.string.meal_memo_tags), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
+            Text(rh.gs(R.string.meal_memo_title), color = ToolColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+            Text(rh.gs(R.string.meal_memo_tags), color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp))
             MealUi.TAGS.chunked(4).forEach { row ->
                 Row(Modifier.padding(top = 5.dp), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                     row.forEach { id ->
                         val tag = rh.gs(id)
                         val warn = id in MealUi.WARN_TAGS
-                        MealChip(tag, tag in memoTags, if (warn) DashColors.High else DashColors.Accent) {
+                        MealChip(tag, tag in memoTags, if (warn) DashColors.High else ToolColors.Accent) {
                             memoTags = if (tag in memoTags) memoTags - tag else memoTags + tag
                         }
                     }
                 }
             }
-            Text(rh.gs(R.string.meal_memo_text), color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
+            Text(rh.gs(R.string.meal_memo_text), color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 8.dp))
             BasicTextField(
                 memoText, { memoText = it },
-                textStyle = TextStyle(color = DashColors.Text, fontSize = 13.sp), cursorBrush = SolidColor(DashColors.Accent),
+                textStyle = TextStyle(color = ToolColors.Text, fontSize = 13.sp), cursorBrush = SolidColor(ToolColors.Accent),
                 modifier = Modifier
                     .padding(top = 4.dp)
                     .fillMaxWidth()
                     .height(64.dp)
                     .clip(RoundedCornerShape(10.dp))
-                    .background(DashColors.Card2)
-                    .border(1.dp, DashColors.Line, RoundedCornerShape(10.dp))
+                    .background(ToolColors.Card2)
+                    .border(1.dp, ToolColors.Line, RoundedCornerShape(10.dp))
                     .padding(10.dp)
             )
             Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
-                    Text(rh.gs(R.string.meal_memo_exclude), color = DashColors.Text, fontSize = 12.5.sp)
-                    Text(rh.gs(R.string.meal_memo_exclude_sub), color = DashColors.Dim, fontSize = 10.5.sp)
+                    Text(rh.gs(R.string.meal_memo_exclude), color = ToolColors.Text, fontSize = 12.5.sp)
+                    Text(rh.gs(R.string.meal_memo_exclude_sub), color = ToolColors.Dim, fontSize = 10.5.sp)
                 }
                 MealSwitch(memoExclude) { memoExclude = !memoExclude }
             }
@@ -860,13 +894,13 @@ class MealRecords(
                         .clickable { memoExclude = true }
                 )
             Text(
-                rh.gs(R.string.meal_memo_save), color = if (changed) DashColors.Bg else DashColors.Dim, fontSize = 14.sp, fontWeight = FontWeight.Bold,
+                rh.gs(R.string.meal_memo_save), color = if (changed) ToolColors.OnAccent else ToolColors.Dim, fontSize = 14.sp, fontWeight = FontWeight.Bold,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 modifier = Modifier
                     .padding(top = 12.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(if (changed) DashColors.Accent else DashColors.Card2)
+                    .background(if (changed) ToolColors.Accent else ToolColors.Card2)
                     .clickable(enabled = changed) {
                         mealTracker.update { d ->
                             d.copy(meals = d.meals.map { if (it.id == m.id) it.copy(memoTags = memoTags, memo = memoText.trim(), excludedByUser = memoExclude, seen = true) else it })
@@ -900,7 +934,7 @@ class MealRecords(
             drawLine(DashColors.InRange.copy(alpha = 0.35f), Offset(0f, y(MealMath.HIGH)), Offset(w, y(MealMath.HIGH)), 1.dp.toPx(), pathEffect = dash)
             drawLine(DashColors.InRange.copy(alpha = 0.35f), Offset(0f, y(MealMath.LOW)), Offset(w, y(MealMath.LOW)), 1.dp.toPx(), pathEffect = dash)
             // meal line
-            drawLine(DashColors.Accent, Offset(1f, 0f), Offset(1f, size.height), 1.5.dp.toPx())
+            drawLine(ToolColors.Accent, Offset(1f, 0f), Offset(1f, size.height), 1.5.dp.toPx())
             val path = Path()
             var started = false
             curve.forEachIndexed { i, v ->
@@ -910,7 +944,7 @@ class MealRecords(
                 if (!started) path.moveTo(x(i.toFloat()), y(v)) else path.lineTo(x(i.toFloat()), y(v))
                 started = true
             }
-            drawPath(path, DashColors.Text, style = Stroke(2.dp.toPx()))
+            drawPath(path, ToolColors.Text, style = Stroke(2.dp.toPx()))
             val mi = curve.indexOf(max)
             if (mi >= 0 && max > 0) drawCircle(DashColors.High, 4.dp.toPx(), Offset(x(mi.toFloat()), y(max)))
             curve.forEachIndexed { i, v -> if (v in 1 until MealMath.LOW) drawCircle(DashColors.Low, 3.dp.toPx(), Offset(x(i.toFloat()), y(v))) }
@@ -920,14 +954,14 @@ class MealRecords(
                 val (c, len) = when (ev.kind) {
                     MealEvent.SMB        -> DashColors.Iob to (ev.amount * 20).toFloat().coerceIn(3f, 14f)
                     MealEvent.BOLUS      -> DashColors.Basal to 14f
-                    MealEvent.MEAL_BOLUS -> DashColors.Accent to 14f
+                    MealEvent.MEAL_BOLUS -> ToolColors.Accent to 14f
                     else                 -> DashColors.Cob to 14f
                 }
                 drawRect(c, Offset(px, size.height - len.dp.toPx()), Size(3.dp.toPx(), len.dp.toPx()))
             }
         }
         Row(Modifier.padding(top = 4.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            Legend(DashColors.Accent, rh.gs(R.string.meal_legend_meal, m.carbs.toInt(), f2(m.eval?.mealBolus ?: 0.0)))
+            Legend(ToolColors.Accent, rh.gs(R.string.meal_legend_meal, m.carbs.toInt(), f2(m.eval?.mealBolus ?: 0.0)))
             Legend(DashColors.Iob, "SMB " + f2(m.eval?.smb ?: 0.0) + " U")
             if (max > 0) Legend(DashColors.High, rh.gs(R.string.meal_max, max) + " (" + rh.gs(R.string.meal_after_min, m.eval?.maxAtMin ?: 0) + ")")
         }
@@ -943,7 +977,7 @@ class MealRecords(
                     .background(c)
             )
             Spacer(Modifier.width(4.dp))
-            Text(text, color = DashColors.Sub, fontSize = 10.5.sp, maxLines = 1)
+            Text(text, color = ToolColors.Sub, fontSize = 10.5.sp, maxLines = 1)
         }
     }
 

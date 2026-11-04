@@ -1,5 +1,11 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.IconButton
+import app.aaps.core.ui.compose.AapsTopAppBar
 import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.background
@@ -233,6 +239,7 @@ class DashboardWizard(
             }
             rxBus.toFlow(EventAutosensCalculationFinished::class).collect { calculateNow() }
         }
+        ToolColors.Apply()
         Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false, dismissOnClickOutside = false)) {
             WizardScreen(onClose)
         }
@@ -514,34 +521,42 @@ class DashboardWizard(
         val r = result
         Column(
             Modifier
-                .padding(horizontal = 12.dp)
-                .clip(RoundedCornerShape(22.dp))
-                .background(PopupBg)
-                .border(1.dp, PopupLine, RoundedCornerShape(22.dp))
+                .fillMaxSize()
+                .background(ToolColors.Bg)
+        ) {
+        AapsTopAppBar(
+            title = { Text(rh.gs(app.aaps.core.ui.R.string.dashboard_calculator_label)) },
+            navigationIcon = {
+                IconButton(onClick = onClose) { Icon(Icons.Filled.Close, contentDescription = rh.gs(app.aaps.core.ui.R.string.close)) }
+            }
+        )
+        Column(
+            Modifier
+                .weight(1f)
                 .verticalScroll(scroll)
                 .padding(16.dp)
         ) {
             // title with the profile selector on the right
             var open by remember { mutableStateOf(false) }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("🧮 " + rh.gs(R.string.dash_boluswizard), color = DashColors.Text, fontSize = 17.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                Spacer(Modifier.weight(1f))
                 Row(
                     Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(DashColors.Card2)
-                        .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                        .background(ToolColors.Card2)
+                        .border(1.dp, ToolColors.Line, RoundedCornerShape(8.dp))
                         .clickable { open = !open }
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        rh.gs(R.string.dash_profile) + " ", color = DashColors.Dim, fontSize = 11.sp
+                        rh.gs(R.string.dash_profile) + " ", color = ToolColors.Dim, fontSize = 11.sp
                     )
                     Text(
-                        profileNames.getOrNull(profileIndex).orEmpty(), color = DashColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold,
+                        profileNames.getOrNull(profileIndex).orEmpty(), color = ToolColors.Text, fontSize = 13.sp, fontWeight = FontWeight.Bold,
                         maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.widthIn(max = 130.dp)
                     )
-                    Text(if (open) " ▴" else " ▾", color = DashColors.Sub, fontSize = 12.sp)
+                    Text(if (open) " ▴" else " ▾", color = ToolColors.Sub, fontSize = 12.sp)
                 }
             }
             if (open) Column(
@@ -549,11 +564,11 @@ class DashboardWizard(
                     .padding(top = 6.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(10.dp))
-                    .background(DashColors.Card2)
+                    .background(ToolColors.Card2)
             ) {
                 profileNames.forEachIndexed { i, n ->
                     Text(
-                        n, color = if (i == profileIndex) DashColors.Accent else DashColors.Text, fontSize = 14.sp,
+                        n, color = if (i == profileIndex) ToolColors.Accent else ToolColors.Text, fontSize = 14.sp,
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { profileIndex = i; open = false; calculate() }
@@ -570,19 +585,19 @@ class DashboardWizard(
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Stepper(
                 label = rh.gs(R.string.dash_bg_label) + if (bgEdited) " · " + rh.gs(R.string.dashboard_wizard_bg_edited, sensorBgText) else "",
-                labelColor = if (bgEdited) DashColors.High else DashColors.Sub, value = bgText, unit = units.asText,
-                border = if (bgEdited) DashColors.High.copy(alpha = 0.55f) else DashColors.Line,
+                labelColor = if (bgEdited) DashColors.High else ToolColors.Sub, value = bgText, unit = units.asText,
+                border = if (bgEdited) DashColors.High.copy(alpha = 0.55f) else ToolColors.Line,
                 onValue = { bgText = it; calculate() },
                 onMinus = { bgText = step(bgText, -bgStep, 0.0, bgMax, if (units == GlucoseUnit.MGDL) 0 else 1); calculate() },
                 onPlus = { bgText = step(bgText, bgStep, 0.0, bgMax, if (units == GlucoseUnit.MGDL) 0 else 1); calculate() },
-                extra = if (bgEdited) ({ SmallAction("↺", DashColors.Accent) { bgText = sensorBgText!!; calculate() } }) else null,
+                extra = if (bgEdited) ({ SmallAction("↺", ToolColors.Accent) { bgText = sensorBgText!!; calculate() } }) else null,
                 modifier = Modifier.weight(1f), compact = true
             )
             // carbs (the AI photo button sits on the food field below)
             Stepper(
                 label = rh.gs(R.string.dash_carbs) + if (isAi) " · ✦ " + rh.gs(R.string.dashboard_wizard_ai_estimate) else "",
-                labelColor = if (isAi) AiLilac else DashColors.Sub, value = carbsText, unit = "g",
-                border = if (isAi) AiPurple.copy(alpha = 0.55f) else DashColors.Line,
+                labelColor = if (isAi) AiLilac else ToolColors.Sub, value = carbsText, unit = "g",
+                border = if (isAi) AiPurple.copy(alpha = 0.55f) else ToolColors.Line,
                 onValue = { carbsText = it; calculate() },
                 onMinus = { carbsText = step(carbsText, -1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
                 onPlus = { carbsText = step(carbsText, 1.0, 0.0, maxCarbs.toDouble(), 0); calculate() },
@@ -593,7 +608,7 @@ class DashboardWizard(
             // correction (U or %) and carb time + alarm
             Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Stepper(
-                    label = rh.gs(R.string.dashboard_wizard_correction), labelColor = DashColors.Sub, value = correctionText, unit = if (usePercentage) "%" else "U",
+                    label = rh.gs(R.string.dashboard_wizard_correction), labelColor = ToolColors.Sub, value = correctionText, unit = if (usePercentage) "%" else "U",
                     onValue = { correctionText = it; calculate() },
                     onMinus = {
                         correctionText = if (usePercentage) step(correctionText, -5.0, 10.0, 200.0, 0) else step(correctionText, -bolusStep, -maxCorrection, maxCorrection, 2); calculate()
@@ -602,7 +617,7 @@ class DashboardWizard(
                         correctionText = if (usePercentage) step(correctionText, 5.0, 10.0, 200.0, 0) else step(correctionText, bolusStep, -maxCorrection, maxCorrection, 2); calculate()
                     },
                     extra = {
-                        SmallAction(if (usePercentage) "%" else "U", DashColors.Accent) {
+                        SmallAction(if (usePercentage) "%" else "U", ToolColors.Accent) {
                             usePercentage = !usePercentage
                             uiPrefs().edit().putBoolean(KEY_PERCENT, usePercentage).apply()
                             correctionText = if (usePercentage) calculatedPercentage.toString() else String.format(Locale.US, "%.2f", Round.roundTo(calculatedCorrection, bolusStep))
@@ -612,11 +627,11 @@ class DashboardWizard(
                     modifier = Modifier.weight(1f), compact = true
                 )
                 Stepper(
-                    label = rh.gs(R.string.dashboard_wizard_carb_time), labelColor = DashColors.Sub, value = carbTime.toString(), unit = rh.gs(R.string.dashboard_wizard_minutes),
+                    label = rh.gs(R.string.dashboard_wizard_carb_time), labelColor = ToolColors.Sub, value = carbTime.toString(), unit = rh.gs(R.string.dashboard_wizard_minutes),
                     onValue = { carbTime = SafeParse.stringToInt(it).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
                     onMinus = { carbTime = (carbTime - 5).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
                     onPlus = { carbTime = (carbTime + 5).coerceIn(-60, 60); alarm = carbTime > 0; calculate() },
-                    extra = { SmallAction("⏰", if (alarm) DashColors.High else DashColors.Dim, dim = !alarm) { alarm = !alarm; calculate() } },
+                    extra = { SmallAction("⏰", if (alarm) DashColors.High else ToolColors.Dim, dim = !alarm) { alarm = !alarm; calculate() } },
                     modifier = Modifier.weight(1f), compact = true
                 )
             }
@@ -626,7 +641,7 @@ class DashboardWizard(
                         FieldLabel(rh.gs(R.string.dashboard_wizard_notes))
                         BasicTextField(
                             notes, { notes = it; calculate() }, singleLine = true,
-                            textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+                            textStyle = TextStyle(color = ToolColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(ToolColors.Accent),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -656,15 +671,15 @@ class DashboardWizard(
                         .clickable { showCalc = !showCalc; uiPrefs().edit().putBoolean(KEY_CALC, showCalc).apply() }
                         .padding(vertical = 4.dp)
                 ) {
-                    Text(rh.gs(R.string.dashboard_wizard_show_calc) + if (showCalc) " ▴" else " ▾", color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
+                    Text(rh.gs(R.string.dashboard_wizard_show_calc) + if (showCalc) " ▴" else " ▾", color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.weight(1f))
                     if (showCalc)
                         Text(
                             (if (showEasy) "✓ " else "") + rh.gs(R.string.dashboard_wizard_easy),
-                            color = if (showEasy) DashColors.Accent else DashColors.Sub, fontSize = 11.sp, fontWeight = if (showEasy) FontWeight.Bold else FontWeight.Normal,
+                            color = if (showEasy) ToolColors.Accent else ToolColors.Sub, fontSize = 11.sp, fontWeight = if (showEasy) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(50))
-                                .background(if (showEasy) DashColors.Accent.copy(alpha = 0.1f) else Color.Transparent)
-                                .border(1.dp, if (showEasy) DashColors.Accent.copy(alpha = 0.6f) else DashColors.Line, RoundedCornerShape(50))
+                                .background(if (showEasy) ToolColors.Accent.copy(alpha = 0.1f) else Color.Transparent)
+                                .border(1.dp, if (showEasy) ToolColors.Accent.copy(alpha = 0.6f) else ToolColors.Line, RoundedCornerShape(50))
                                 .clickable { showEasy = !showEasy; uiPrefs().edit().putBoolean(KEY_EASY, showEasy).apply() }
                                 .padding(horizontal = 9.dp, vertical = 2.dp)
                         )
@@ -677,36 +692,36 @@ class DashboardWizard(
                             .height(27.dp), verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            row.label, color = if (easy) DashColors.Text else DashColors.Sub, fontSize = 12.5.sp, fontWeight = if (easy) FontWeight.Bold else FontWeight.Normal,
+                            row.label, color = if (easy) ToolColors.Text else ToolColors.Sub, fontSize = 12.5.sp, fontWeight = if (easy) FontWeight.Bold else FontWeight.Normal,
                             modifier = Modifier.width(80.dp), maxLines = 1
                         )
-                        Text(row.detail, color = DashColors.Dim, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(end = 10.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Text(row.insulin, color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.width(72.dp))
+                        Text(row.detail, color = ToolColors.Dim, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.weight(1f).padding(end = 10.dp), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(row.insulin, color = ToolColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End, modifier = Modifier.width(72.dp))
                     }
-                    if (easy) Text(row.easy, color = DashColors.Sub, fontSize = 11.5.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
+                    if (easy) Text(row.easy, color = ToolColors.Sub, fontSize = 11.5.sp, lineHeight = 16.sp, modifier = Modifier.padding(bottom = 6.dp))
                     Box(
                         Modifier
                             .fillMaxWidth()
                             .height(1.dp)
-                            .background(DashColors.Line)
+                            .background(ToolColors.Line)
                     )
                 }
                 Row(Modifier.padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         rh.gs(R.string.dashboard_wizard_result) + (view.percent?.let { " ($it)" } ?: ""),
-                        color = if (view.percent != null) DashColors.High else DashColors.Sub, fontSize = 13.sp, modifier = Modifier.weight(1f)
+                        color = if (view.percent != null) DashColors.High else ToolColors.Sub, fontSize = 13.sp, modifier = Modifier.weight(1f)
                     )
-                    Text(view.total, color = if (view.canDeliver) DashColors.Accent else DashColors.Cob, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Text(view.total, color = if (view.canDeliver) ToolColors.Accent else DashColors.Cob, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                 }
                 if (showCalc && showEasy) view.roundingNote?.let {
-                    Text(it, color = DashColors.Sub, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
+                    Text(it, color = ToolColors.Sub, fontSize = 11.sp, textAlign = TextAlign.End, modifier = Modifier.fillMaxWidth())
                 }
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ActionButton(rh.gs(R.string.dash_cancel), DashColors.Card, DashColors.Text, Modifier.weight(1f)) { onClose() }
                     if (view.canDeliver)
-                        ActionButton(rh.gs(R.string.dashboard_wizard_ok), DashColors.Accent, DashColors.Bg, Modifier.weight(1.4f)) { deliver() }
+                        ActionButton(rh.gs(R.string.dashboard_wizard_ok), ToolColors.Accent, ToolColors.OnAccent, Modifier.weight(1f)) { deliver() }
                 }
             }
+        }
         }
     }
 
@@ -741,14 +756,14 @@ class DashboardWizard(
     private fun MealSection(isAi: Boolean) {
         val f = food
         FieldBox(
-            Modifier.padding(top = 8.dp), border = if (f != null) DashColors.Accent.copy(alpha = 0.45f) else DashColors.Line,
+            Modifier.padding(top = 8.dp), border = if (f != null) ToolColors.Accent.copy(alpha = 0.45f) else ToolColors.Line,
             onClick = { foodSheet = !foodSheet; foodQuery = if (foodIsNew) f?.name.orEmpty() else "" }
         ) {
             Column(Modifier.weight(1f)) {
                 FieldLabel(rh.gs(R.string.meal_food))
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                     Text(
-                        if (f == null) rh.gs(R.string.meal_food_none) else f.name, color = if (f == null) DashColors.Dim else DashColors.Text,
+                        if (f == null) rh.gs(R.string.meal_food_none) else f.name, color = if (f == null) ToolColors.Dim else ToolColors.Text,
                         fontSize = 14.sp, fontWeight = if (f != null) FontWeight.Bold else FontWeight.Normal, maxLines = 1, overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f, fill = false)
                     )
@@ -761,19 +776,19 @@ class DashboardWizard(
                                 .background(AiPurple.copy(alpha = 0.15f))
                                 .padding(horizontal = 5.dp, vertical = 1.dp)
                         )
-                    if (f != null) Text("  " + MealUi.typeLabel(rh, f.type), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1)
+                    if (f != null) Text("  " + MealUi.typeLabel(rh, f.type), color = ToolColors.Dim, fontSize = 11.sp, maxLines = 1)
                 }
             }
             // AI photo: fills the carbs and names the food
-            SmallAction("📷", DashColors.Accent) { onAiPhoto() }
+            SmallAction("📷", ToolColors.Accent) { onAiPhoto() }
             if (f != null) {
                 Spacer(Modifier.width(6.dp))
-                SmallAction("✕", DashColors.Sub) { selectFood(null) }
+                SmallAction("✕", ToolColors.Sub) { selectFood(null) }
             }
         }
         if (isAi && aiFoods.isNotEmpty())
             Text(
-                aiFoods, color = DashColors.Sub, fontSize = 11.5.sp,
+                aiFoods, color = ToolColors.Sub, fontSize = 11.5.sp,
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .fillMaxWidth()
@@ -794,7 +809,7 @@ class DashboardWizard(
         val similar = if (f != null && foodIsNew) recentFoods.firstOrNull { MealUi.similar(it.name, f.name) } else null
         if (similar != null)
             Text(
-                rh.gs(R.string.meal_similar, similar.name, mealTracker.mealsOf(similar.id).size), color = DashColors.Accent, fontSize = 11.5.sp,
+                rh.gs(R.string.meal_similar, similar.name, mealTracker.mealsOf(similar.id).size), color = ToolColors.Accent, fontSize = 11.5.sp,
                 modifier = Modifier
                     .padding(top = 6.dp)
                     .clickable { selectFood(similar) }
@@ -802,9 +817,9 @@ class DashboardWizard(
         if (foodSheet) FoodSheet(f)
         if (f != null) {
             Row(Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text("📈 " + rh.gs(R.string.meal_track), color = DashColors.Text, fontSize = 12.5.sp)
+                Text("📈 " + rh.gs(R.string.meal_track), color = ToolColors.Text, fontSize = 12.5.sp)
                 Text(
-                    "  " + rh.gs(R.string.meal_track_hours, f.type.hours), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    "  " + rh.gs(R.string.meal_track_hours, f.type.hours), color = ToolColors.Dim, fontSize = 11.sp, maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f)
                 )
                 MealSwitch(tracked) { tracked = !tracked }
@@ -833,20 +848,20 @@ class DashboardWizard(
                 .padding(top = 8.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
-                .background(Color(0xFF1A1F27))
-                .border(1.dp, PopupLine, RoundedCornerShape(14.dp))
+                .background(ToolColors.Card)
+                .border(1.dp, ToolColors.Line, RoundedCornerShape(14.dp))
                 .padding(10.dp)
         ) {
             FieldLabel(rh.gs(if (f != null && foodIsNew) R.string.meal_name else R.string.meal_search_hint))
             BasicTextField(
                 foodQuery, { foodQuery = it }, singleLine = true,
-                textStyle = TextStyle(color = DashColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(DashColors.Accent),
+                textStyle = TextStyle(color = ToolColors.Text, fontSize = 14.sp), cursorBrush = SolidColor(ToolColors.Accent),
                 modifier = Modifier
                     .padding(top = 4.dp)
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(8.dp))
-                    .background(DashColors.Card)
-                    .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
+                    .background(ToolColors.Card)
+                    .border(1.dp, ToolColors.Line, RoundedCornerShape(8.dp))
                     .padding(horizontal = 10.dp, vertical = 8.dp)
             )
             val q = foodQuery.trim()
@@ -857,14 +872,14 @@ class DashboardWizard(
                         .clickable { selectFood(item) }
                         .padding(vertical = 7.dp), verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(item.name, color = DashColors.Text, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(MealUi.typeLabel(rh, item.type) + if (item.tracked) "  📈" else "", color = DashColors.Dim, fontSize = 11.sp)
+                    Text(item.name, color = ToolColors.Text, fontSize = 13.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(MealUi.typeLabel(rh, item.type) + if (item.tracked) "  📈" else "", color = ToolColors.Dim, fontSize = 11.sp)
                 }
             }
             if (q.isNotEmpty() && recentFoods.none { MealUi.norm(it.name) == MealUi.norm(q) }) {
                 val rename = f != null && foodIsNew
                 Text(
-                    rh.gs(if (rename) R.string.meal_rename else R.string.meal_add_new, q), color = DashColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    rh.gs(if (rename) R.string.meal_rename else R.string.meal_add_new, q), color = ToolColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { useQuery(f, q) }
@@ -883,11 +898,11 @@ class DashboardWizard(
                 if (aiFat != null || aiProtein != null)
                     Text(
                         rh.gs(R.string.meal_type_ai, aiFat?.let { f1(it) } ?: "?", aiProtein?.let { f1(it) } ?: "?", MealTracker.typeText(rh, MealMath.typeFor(aiFat, aiProtein))),
-                        color = DashColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp)
+                        color = ToolColors.Sub, fontSize = 11.sp, modifier = Modifier.padding(top = 6.dp)
                     )
             }
             Text(
-                rh.gs(R.string.meal_done), color = DashColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End,
+                rh.gs(R.string.meal_done), color = ToolColors.Accent, fontSize = 12.5.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End,
                 modifier = Modifier
                     .fillMaxWidth()
                     // a typed name counts as chosen (same as tapping the match or "+ new food")
@@ -911,18 +926,18 @@ class DashboardWizard(
                 .padding(top = 8.dp)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(12.dp))
-                .background(DashColors.Card2)
+                .background(ToolColors.Card2)
                 .border(1.dp, amber.copy(alpha = 0.35f), RoundedCornerShape(12.dp))
                 .padding(10.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    rh.gs(R.string.meal_history_title, f.name), color = DashColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
+                    rh.gs(R.string.meal_history_title, f.name), color = ToolColors.Text, fontSize = 12.5.sp, fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     rh.gs(R.string.meal_history_counts, meals.count { it.usable }, meals.count { it.eval != null && !it.usable }, meals.count { it.eval == null }),
-                    color = DashColors.Sub, fontSize = 10.5.sp
+                    color = ToolColors.Sub, fontSize = 10.5.sp
                 )
             }
             meals.take(3).forEach { m ->
@@ -934,15 +949,15 @@ class DashboardWizard(
                             R.string.meal_history_line, m.carbs.toInt(),
                             e?.takeIf { it.neededInsulin > 0 }?.let { MealTracker.signed(it.ratioPct) + "%" } ?: "—"
                         ),
-                        color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.weight(1f), maxLines = 1
+                        color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.weight(1f), maxLines = 1
                     )
-                    if (e != null && e.maxBg > 0) Text(rh.gs(R.string.meal_max, e.maxBg), color = DashColors.Dim, fontSize = 11.sp)
+                    if (e != null && e.maxBg > 0) Text(rh.gs(R.string.meal_max, e.maxBg), color = ToolColors.Dim, fontSize = 11.sp)
                 }
                 // a less trusted start counts less in the suggestion
                 if (m.usable && e!!.reliability != app.aaps.plugins.main.general.dashboard.meal.Reliability.HIGH)
                     Text(
                         rh.gs(R.string.meal_rel_short, MealTracker.reliabilityText(rh, e.reliability)), fontSize = 10.5.sp,
-                        color = if (e.reliability == app.aaps.plugins.main.general.dashboard.meal.Reliability.LOW) DashColors.Low else DashColors.Sub,
+                        color = if (e.reliability == app.aaps.plugins.main.general.dashboard.meal.Reliability.LOW) DashColors.Low else ToolColors.Sub,
                         modifier = Modifier.padding(start = 4.dp, top = 1.dp)
                     )
                 val memo = (m.memoTags + listOfNotNull(m.memo.takeIf { it.isNotBlank() })).joinToString(" · ")
@@ -953,25 +968,25 @@ class DashboardWizard(
                     .padding(vertical = 8.dp)
                     .fillMaxWidth()
                     .height(1.dp)
-                    .background(DashColors.Line)
+                    .background(ToolColors.Line)
             )
             val s = suggestion
             if (s == null)
                 Text(
                     if (meals.count { it.countable } >= MealMath.MIN_RECORDS) rh.gs(R.string.meal_suggest_carbs)
                     else rh.gs(R.string.meal_suggest_need, MealMath.MIN_RECORDS, meals.count { it.countable }),
-                    color = DashColors.Sub, fontSize = 11.5.sp
+                    color = ToolColors.Sub, fontSize = 11.5.sp
                 )
             else {
-                Text(rh.gs(R.string.meal_suggest_gpu, f1(s.gramsPerUnit), f1(currentIc)), color = DashColors.Text, fontSize = 12.sp)
+                Text(rh.gs(R.string.meal_suggest_gpu, f1(s.gramsPerUnit), f1(currentIc)), color = ToolColors.Text, fontSize = 12.sp)
                 Text(
                     rh.gs(
                         R.string.meal_suggest_calc, lastCarbs, f1(s.gramsPerUnit), String.format(Locale.getDefault(), "%.2f", s.historyInsulin), f1(currentIc),
                         String.format(Locale.getDefault(), "%.2f", s.currentInsulin), signedU(if (s.capped) s.historyInsulin - s.currentInsulin else s.units)
                     ),
-                    color = DashColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
+                    color = ToolColors.Dim, fontSize = 11.sp, modifier = Modifier.padding(top = 2.dp)
                 )
-                if (s.capped) Text(rh.gs(R.string.meal_suggest_capped, (MealMath.CAP * 100).toInt(), signedU(s.units)), color = DashColors.Sub, fontSize = 11.sp)
+                if (s.capped) Text(rh.gs(R.string.meal_suggest_capped, (MealMath.CAP * 100).toInt(), signedU(s.units)), color = ToolColors.Sub, fontSize = 11.sp)
                 if (s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_hypo), color = DashColors.Low, fontSize = 11.sp)
                 if (abs(s.units) >= 0.001) {
                     val applied = historyApplied?.let { !usePercentage && abs(SafeParse.stringToDouble(correctionText) - it) < 0.001 } == true
@@ -987,7 +1002,7 @@ class DashboardWizard(
                             .clickable { if (applied) undoHistory() else applyHistory(s.units) }
                             .padding(vertical = 9.dp)
                     )
-                } else if (!s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_none), color = DashColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
+                } else if (!s.blockedByHypo) Text(rh.gs(R.string.meal_suggest_none), color = ToolColors.Sub, fontSize = 11.5.sp, modifier = Modifier.padding(top = 4.dp))
             }
         }
     }
@@ -1005,11 +1020,11 @@ class DashboardWizard(
                 row.forEach { c ->
                     Text(
                         (if (c.on) "✓ " else "") + c.text, fontSize = 11.5.sp, maxLines = 1,
-                        color = if (!c.enabled) DashColors.Dim.copy(alpha = 0.5f) else if (c.on) DashColors.Accent else DashColors.Sub,
+                        color = if (!c.enabled) ToolColors.Dim.copy(alpha = 0.5f) else if (c.on) ToolColors.Accent else ToolColors.Sub,
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .border(1.dp, if (c.on && c.enabled) DashColors.Accent.copy(alpha = 0.6f) else DashColors.Line, RoundedCornerShape(999.dp))
-                            .background(if (c.on && c.enabled) DashColors.Accent.copy(alpha = 0.08f) else Color.Transparent)
+                            .border(1.dp, if (c.on && c.enabled) ToolColors.Accent.copy(alpha = 0.6f) else ToolColors.Line, RoundedCornerShape(999.dp))
+                            .background(if (c.on && c.enabled) ToolColors.Accent.copy(alpha = 0.08f) else Color.Transparent)
                             .clickable(enabled = c.enabled, onClick = c.onClick)
                             .padding(horizontal = 10.dp, vertical = 5.dp)
                     )
@@ -1019,12 +1034,12 @@ class DashboardWizard(
     }
 
     @Composable
-    private fun FieldBox(modifier: Modifier = Modifier, border: Color = DashColors.Line, onClick: (() -> Unit)? = null, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    private fun FieldBox(modifier: Modifier = Modifier, border: Color = ToolColors.Line, onClick: (() -> Unit)? = null, content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
         Row(
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(DashColors.Card2)
+                .background(ToolColors.Card2)
                 .border(1.dp, border, RoundedCornerShape(10.dp))
                 .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
                 .padding(horizontal = 10.dp, vertical = 7.dp),
@@ -1033,7 +1048,7 @@ class DashboardWizard(
     }
 
     @Composable
-    private fun FieldLabel(text: String, color: Color = DashColors.Sub) {
+    private fun FieldLabel(text: String, color: Color = ToolColors.Sub) {
         Text(text, color = color, fontSize = 10.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 
@@ -1041,7 +1056,7 @@ class DashboardWizard(
     private fun Stepper(
         label: String, labelColor: Color, value: String, unit: String,
         onValue: (String) -> Unit, onMinus: () -> Unit, onPlus: () -> Unit,
-        modifier: Modifier = Modifier, border: Color = DashColors.Line,
+        modifier: Modifier = Modifier, border: Color = ToolColors.Line,
         extra: (@Composable () -> Unit)? = null, compact: Boolean = false
     ) {
         // label on its own line so narrow (half width) fields do not cut it
@@ -1049,7 +1064,7 @@ class DashboardWizard(
             modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
-                .background(DashColors.Card2)
+                .background(ToolColors.Card2)
                 .border(1.dp, border, RoundedCornerShape(10.dp))
                 .padding(horizontal = 10.dp, vertical = 7.dp)
         ) {
@@ -1065,14 +1080,14 @@ class DashboardWizard(
                     BasicTextField(
                         value, { v -> onValue(v.filter { it.isDigit() || it == '.' || it == '-' }) }, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        textStyle = TextStyle(color = DashColors.Text, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Bold),
-                        cursorBrush = SolidColor(DashColors.Accent),
+                        textStyle = TextStyle(color = ToolColors.Text, fontSize = if (compact) 16.sp else 18.sp, fontWeight = FontWeight.Bold),
+                        cursorBrush = SolidColor(ToolColors.Accent),
                         // as wide as the number, so the unit right after it is never pushed out
                         modifier = Modifier
                             .width(IntrinsicSize.Min)
                             .widthIn(min = 32.dp, max = if (compact) 64.dp else 96.dp)
                     )
-                    Text(" $unit", color = DashColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
+                    Text(" $unit", color = ToolColors.Dim, fontSize = if (compact) 10.sp else 11.sp, maxLines = 1, softWrap = false)
                 }
             }
             extra?.let {
@@ -1090,10 +1105,10 @@ class DashboardWizard(
             Modifier
                 .size(30.dp)
                 .clip(RoundedCornerShape(7.dp))
-                .background(DashColors.Line)
+                .background(ToolColors.Line)
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
-        ) { Text(text, color = DashColors.Sub, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
+        ) { Text(text, color = ToolColors.Sub, fontSize = 16.sp, fontWeight = FontWeight.Bold) }
     }
 
     @Composable
@@ -1116,7 +1131,7 @@ class DashboardWizard(
                 .height(44.dp)
                 .clip(RoundedCornerShape(8.dp))
                 .background(bg)
-                .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(8.dp))
+                .border(1.dp, if (bg == ToolColors.Card) ToolColors.Line else bg, RoundedCornerShape(8.dp))
                 .clickable(onClick = onClick),
             contentAlignment = Alignment.Center
         ) { Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Bold) }
@@ -1124,8 +1139,6 @@ class DashboardWizard(
 
     companion object {
 
-        private val PopupBg = Color(0xFF222833)
-        private val PopupLine = Color(0xFF3A4250)
         private val AiPurple = Color(0xFFA78BFA)
         private val AiLilac = Color(0xFFC4B5FD)
 

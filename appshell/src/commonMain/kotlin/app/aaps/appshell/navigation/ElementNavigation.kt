@@ -47,7 +47,8 @@ class ElementNavigator(
     private val onOpenCgmApp: (packageName: String) -> Unit,
     private val onExit: () -> Unit,
     val onRequestDirectoryAccess: () -> Unit,
-    val onOpenUrl: (url: String) -> Unit
+    val onOpenUrl: (url: String) -> Unit,
+    private val onOpenDashboardTool: (ElementType) -> Unit = {} // Personal-fork
 ) {
 
     /** Where a tap in the drawer, a search result or a quick launch tile goes. */
@@ -142,6 +143,8 @@ class ElementNavigator(
             ElementType.TREATMENT               -> navController.navigate(AppRoute.TreatmentDialog.route)
             ElementType.FILL                    -> navController.navigate(AppRoute.FillDialog.createRoute(FillPreselect.CARTRIDGE_CHANGE.ordinal))
             ElementType.CANNULA_CHANGE          -> navController.navigate(AppRoute.FillDialog.createRoute(FillPreselect.SITE_CHANGE.ordinal))
+            ElementType.DASHBOARD_CALCULATOR,
+            ElementType.MEAL_RECORDS            -> onOpenDashboardTool(elementType)
             ElementType.BOLUS_WIZARD            -> navController.navigate(AppRoute.WizardDialog.createRoute())
             ElementType.TEMP_BASAL              -> navController.navigate(AppRoute.TempBasalDialog.route)
             ElementType.EXTENDED_BOLUS          -> navController.navigate(AppRoute.ExtendedBolusDialog.route)

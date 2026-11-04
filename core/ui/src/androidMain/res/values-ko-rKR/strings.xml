@@ -1205,4 +1205,8 @@
     <string name="units_years">년</string>
     <string name="prefs_range_title">차트 표시 범위</string>
     <string name="secrets_not_protected">이 컴퓨터에서 시스템 키 저장소를 찾을 수 없습니다. 설정과 마스터와의 페어링을 보호하는 키가 데이터 옆의 파일에 보관되므로, 파일 사본을 얻은 사람은 누구나 키도 얻게 됩니다. Linux에서는 키링(예: GNOME Keyring 또는 KWallet)을 설치하고 실행한 다음 AAPS를 다시 시작하십시오.</string>
+    <string name="dashboard_calculator_label">계산기 (대시보드)</string>
+    <string name="dashboard_calculator_desc">음식 검색과 식사 기록을 쓰는 대시보드 계산기</string>
+    <string name="meal_records_label">식사 기록</string>
+    <string name="meal_records_desc">음식과 식사, 평가 결과</string>
 </resources>

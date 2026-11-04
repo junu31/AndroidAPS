@@ -112,7 +112,7 @@ fun OverviewScreen(
     autoShowNotificationSheet: Boolean,
     onAutoShowConsumed: () -> Unit,
     /** Personal-fork: see MainScreen */
-    dashboardHome: (@Composable (List<app.aaps.core.ui.compose.navigation.HomeBarItem>) -> Unit)? = null
+    dashboardHome: (@Composable () -> Unit)? = null
 ) {
     val state by mainViewModel.uiState.collectAsStateWithLifecycle()
     val searchState by searchViewModel.uiState.collectAsStateWithLifecycle()

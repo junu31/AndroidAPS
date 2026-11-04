@@ -111,9 +111,6 @@ interface DashboardActions {
     fun onLoopLongClick()
     fun onBgQualityClick()
     fun onPumpStatusClick()
-    fun onInsulin()
-    fun onCarbs()
-    fun onWizard()
     fun onAiCarbs()
     fun onTreatment()
     fun onQuickWizard()
@@ -133,8 +130,7 @@ interface DashboardActions {
 fun DashboardScreen(
     state: DashboardState,
     graph: GraphModel,
-    actions: DashboardActions,
-    barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>
+    actions: DashboardActions
 ) = CompositionLocalProvider(LocalTextStyle provides TextStyle.Default) { // sizes were designed without the 24sp line height of the AAPS theme
     Box(
         Modifier
@@ -145,7 +141,7 @@ fun DashboardScreen(
             Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = if (state.pumpStatus.isNotEmpty()) 156.dp else 116.dp),
+                .padding(start = ScreenPadding, end = ScreenPadding, top = 0.dp, bottom = if (state.pumpStatus.isNotEmpty()) 112.dp else 72.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             // notifications (often empty) and the compact profile/target line sit tight above the BG card,
@@ -169,7 +165,7 @@ fun DashboardScreen(
             if (state.buttons.userActions.isNotEmpty() || state.buttons.quickWizard != null || state.buttons.calibration || state.buttons.cgm || state.buttons.treatment)
                 SecondaryActions(state.buttons, actions)
         }
-        BottomActions(state, actions, barItems, Modifier.align(Alignment.BottomCenter))
+        BottomActions(state, actions, Modifier.align(Alignment.BottomCenter))
     }
 }
 
@@ -957,20 +953,19 @@ private fun ChipButton(text: String, @DrawableRes icon: Int, color: Color, onCli
 }
 
 @Composable
-private fun BottomActions(state: DashboardState, actions: DashboardActions, barItems: List<app.aaps.core.ui.compose.navigation.HomeBarItem>, modifier: Modifier) {
-    val buttons = state.buttons
+private fun BottomActions(state: DashboardState, actions: DashboardActions, modifier: Modifier = Modifier) {
+    if (state.pumpStatus.isEmpty() && state.calcProgressPct == 100) return
     Column(
         modifier
             .fillMaxWidth()
             .background(Brush.verticalGradient(listOf(Color.Transparent, DashColors.Bg, DashColors.Bg)))
-            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 12.dp)
+            .padding(start = 14.dp, end = 14.dp, top = 16.dp, bottom = 64.dp) // above the quick launch toolbar
     ) {
-        // pump communication status and calculation progress right above the buttons, like the classic Overview
         if (state.pumpStatus.isNotEmpty()) {
             PumpStatusBanner(state.pumpStatus, actions)
             Spacer(Modifier.height(8.dp))
         }
-        if (state.calcProgressPct != 100) {
+        if (state.calcProgressPct != 100)
             LinearProgressIndicator(
                 progress = { state.calcProgressPct / 100f },
                 modifier = Modifier
@@ -979,121 +974,5 @@ private fun BottomActions(state: DashboardState, actions: DashboardActions, barI
                 color = DashColors.Accent,
                 trackColor = DashColors.Card2
             )
-            Spacer(Modifier.height(8.dp))
-        }
-        // first page fixed (treatment buttons never move); the 4.0 menu and the quick launch items on the next pages
-        val extraPages = barItems.chunked(BAR_ITEMS_PER_PAGE)
-        val pager = androidx.compose.foundation.pager.rememberPagerState { 1 + extraPages.size }
-        val scope = androidx.compose.runtime.rememberCoroutineScope()
-        // back to the first page: after 30 s without use, and whenever the screen is left
-        androidx.compose.runtime.LaunchedEffect(pager.currentPage, pager.isScrollInProgress) {
-            if (pager.currentPage != 0 && !pager.isScrollInProgress) {
-                kotlinx.coroutines.delay(BAR_IDLE_MS)
-                scope.launch { pager.animateScrollToPage(0) } // not here: the scroll restarts this effect
-            }
-        }
-        androidx.lifecycle.compose.LifecycleEventEffect(androidx.lifecycle.Lifecycle.Event.ON_STOP) { scope.launch { pager.scrollToPage(0) } }
-        androidx.compose.foundation.pager.HorizontalPager(pager, verticalAlignment = Alignment.Top) { page ->
-            if (page == 0) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (buttons.insulin)
-                    ActionButton(
-                        stringResource(R.string.dash_overview_insulin_label), R.drawable.dash_ic_bolus,
-                        if (buttons.insulinWarning) DashColors.High else DashColors.Iob, DashColors.Card
-                    ) { actions.onInsulin() }
-                if (buttons.carbs)
-                    // the carbs drawable has more inner padding than the others: scale the drawing (same 28dp slot keeps labels aligned)
-                    ActionButton(stringResource(R.string.dash_carbs), R.drawable.dash_ic_cp_bolus_carbs, DashColors.Cob, DashColors.Card, iconScale = 1.45f) { actions.onCarbs() }
-                // the AI photo carbs are inside the Dashboard calculator now; meal records next to it (dot = unseen evaluation)
-                ActionButton(stringResource(R.string.meal_records), 0, DashColors.Text, DashColors.Card, emoji = "🍽", badge = state.meal.unseen > 0) { actions.onMealRecords() }
-                if (buttons.wizard)
-                    ActionButton(stringResource(R.string.dash_calculator_label), R.drawable.dash_ic_calculator, Color(0xFF062521), DashColors.Accent) { actions.onWizard() }
-            }
-            } else Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                extraPages[page - 1].forEach { item ->
-                    ExtraButton(item) {
-                        scope.launch { pager.scrollToPage(0) }
-                        item.onClick()
-                    }
-                }
-            }
-        }
-        if (extraPages.isNotEmpty()) Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(top = 6.dp),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            repeat(1 + extraPages.size) { i ->
-                Box(
-                    Modifier
-                        .padding(horizontal = 3.dp)
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(if (i == pager.currentPage) DashColors.Accent else DashColors.Line)
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.ExtraButton(item: app.aaps.core.ui.compose.navigation.HomeBarItem, onClick: () -> Unit) {
-    val fg = if (item.enabled) DashColors.Text else DashColors.Dim
-    Column(
-        Modifier
-            .weight(1f)
-            .height(72.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(DashColors.Card)
-            .border(1.dp, DashColors.Line, RoundedCornerShape(8.dp))
-            .then(if (item.enabled) Modifier.clicks(onClick) else Modifier),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-            Icon(item.icon, contentDescription = null, tint = fg, modifier = Modifier.size(26.dp))
-            item.badge?.let { Text(it, color = DashColors.Accent, fontSize = 9.sp, fontWeight = FontWeight.Bold, modifier = Modifier.align(Alignment.TopEnd)) }
-        }
-        Spacer(Modifier.height(5.dp))
-        Text(item.label, color = fg, fontSize = 11.sp, fontWeight = FontWeight.Bold, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-    }
-}
-
-private const val BAR_ITEMS_PER_PAGE = 5
-private const val BAR_IDLE_MS = 30_000L
-
-@Composable
-private fun RowScope.ActionButton(text: String, @DrawableRes icon: Int, fg: Color, bg: Color, iconScale: Float = 1f, emoji: String? = null, badge: Boolean = false, onClick: () -> Unit) {
-    // icon on top, label below (option A)
-    Column(
-        Modifier
-            .weight(1f)
-            .height(72.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(bg)
-            .border(1.dp, if (bg == DashColors.Card) DashColors.Line else bg, RoundedCornerShape(8.dp))
-            .clicks(onClick),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-            if (emoji != null) Text(emoji, fontSize = 20.sp)
-            else Icon(
-                painterResource(icon), contentDescription = null, tint = fg,
-                modifier = Modifier
-                    .size(28.dp)
-                    .scale(iconScale)
-            )
-            if (badge) Box(
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(DashColors.Accent)
-            )
-        }
-        Spacer(Modifier.height(5.dp))
-        Text(text, color = fg, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }

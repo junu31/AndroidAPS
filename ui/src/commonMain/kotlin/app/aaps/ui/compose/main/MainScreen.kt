@@ -156,8 +156,8 @@ fun MainScreen(
     queueStatusText: AnnotatedString? = null,
     isPumpCommunicating: Boolean = false,
     onStopBolus: () -> Unit = {},
-    /** Personal-fork: the Dashboard as the home screen; it draws its own bottom bar from these items. */
-    dashboardHome: (@Composable (List<app.aaps.core.ui.compose.navigation.HomeBarItem>) -> Unit)? = null,
+    /** Personal-fork: the Dashboard as the home screen; the bottom bar and quick launch stay the same as on the 4.0 home. */
+    dashboardHome: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     LocalDateUtil.current
@@ -240,14 +240,14 @@ fun MainScreen(
             // WindowInsets.statusBars / navigationBars, which would be consumed
             // (returning zero height) if those Scaffold slots were populated.
             Scaffold { scaffoldPadding ->
-                val hasToolbar = quickLaunchItems.isNotEmpty() && dashboardHome == null
+                val hasToolbar = quickLaunchItems.isNotEmpty()
 
                 // Content padding: in preview mode use only system bars;
                 // in normal mode add measured bar heights
                 val contentPadding = if (previewMode) scaffoldPadding
                 else {
                     val topBarHeight = with(density) { topBarHeightPx.toDp() }
-                    val bottomBarHeight = if (dashboardHome != null) 0.dp else with(density) { bottomBarHeightPx.toDp() }
+                    val bottomBarHeight = with(density) { bottomBarHeightPx.toDp() }
                     PaddingValues(
                         top = scaffoldPadding.calculateTopPadding() + topBarHeight,
                         bottom = scaffoldPadding.calculateBottomPadding() + bottomBarHeight
@@ -315,7 +315,7 @@ fun MainScreen(
                             )
                         },
                         paddingValues = contentPadding,
-                        fabBottomOffset = if (dashboardHome != null) 40.dp else if (hasToolbar && showChrome) 56.dp else 0.dp,
+                        fabBottomOffset = if (hasToolbar && showChrome) 56.dp else 0.dp,
                         // In preview mode the bottom bar lies over the content instead of above it, so the end of each
                         // column needs its height too. The height is kept once measured, so the columns do not move each
                         // time the bars show and hide.
@@ -325,38 +325,7 @@ fun MainScreen(
                         queueStatusText = queueStatusText,
                         isPumpCommunicating = isPumpCommunicating,
                         onStopBolus = onStopBolus,
-                        homeContent = dashboardHome?.let { home ->
-                            {
-                                val loopAction = loopActionViewModel.uiState.collectAsStateWithLifecycle().value
-                                val attention = "!"
-                                val items = buildList {
-                                    if (masterOrPairedClient) add(app.aaps.core.ui.compose.navigation.HomeBarItem(stringResource(CoreUiStrings.treatments), androidx.compose.material.icons.Icons.Default.Fastfood) {
-                                        treatmentViewModel.refreshState()
-                                        showTreatmentSheet = true
-                                    })
-                                    add(app.aaps.core.ui.compose.navigation.HomeBarItem(stringResource(CoreUiStrings.manage), androidx.compose.material.icons.Icons.Default.ManageAccounts) { manageSheetState.show() })
-                                    if (loopAction.actionAvailable) add(app.aaps.core.ui.compose.navigation.HomeBarItem(stringResource(UiStrings.loop_accept_nav_label), androidx.compose.material.icons.Icons.Default.PlayCircle, attention) { showLoopActionSheet = true })
-                                    val automations = automationState.items.size + automationState.sceneItems.size
-                                    if (masterOrPairedClient && automations > 0) add(app.aaps.core.ui.compose.navigation.HomeBarItem(stringResource(CoreUiStrings.scenes), app.aaps.core.ui.compose.icons.IcAutomation) {
-                                        scenesViewModel.refreshState()
-                                        showAutomationSheet = true
-                                    })
-                                    listOfNotNull(pumpSetupPlugin, bgSetupPlugin).forEach { p ->
-                                        p.pluginDescription.icon?.let { icon ->
-                                            add(app.aaps.core.ui.compose.navigation.HomeBarItem(p.name, icon, attention) { onNavigate(NavigationRequest.Plugin(p::class.simpleName.orEmpty())) })
-                                        }
-                                    }
-                                    objectivesSetupPlugin?.let { p ->
-                                        p.pluginDescription.icon?.let { icon ->
-                                            add(app.aaps.core.ui.compose.navigation.HomeBarItem(p.name, icon, objectivesProgressText) { onNavigate(NavigationRequest.Plugin(p::class.simpleName.orEmpty())) })
-                                        }
-                                    }
-                                    if (permissionsMissing) add(app.aaps.core.ui.compose.navigation.HomeBarItem(stringResource(UiStrings.permission_sheet_title), androidx.compose.material.icons.Icons.Default.GppMaybe, attention, onClick = onPermissionsClick))
-                                    quickLaunchItems.forEach { q -> add(app.aaps.core.ui.compose.navigation.HomeBarItem(q.label, q.icon, enabled = q.enabled) { onQuickLaunchActionClick(q.action) }) }
-                                }
-                                home(items)
-                            }
-                        }
+                        homeContent = dashboardHome
                     )
 
                     // Search results overlay
@@ -461,7 +430,7 @@ fun MainScreen(
 
                     // Bottom bar overlay
                     AnimatedVisibility(
-                        visible = showChrome && dashboardHome == null,
+                        visible = showChrome,
                         enter = slideInVertically { it },
                         exit = slideOutVertically { it },
                         modifier = Modifier

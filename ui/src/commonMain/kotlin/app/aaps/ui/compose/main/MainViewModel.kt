@@ -86,6 +86,7 @@ import app.aaps.ui.compose.aboutDialog.AboutDialogData
 import app.aaps.ui.compose.quickLaunch.QuickLaunchAction
 import app.aaps.ui.compose.quickLaunch.QuickLaunchResolver
 import app.aaps.ui.compose.quickLaunch.QuickLaunchSerializer
+import app.aaps.core.keys.BooleanNonKey
 import app.aaps.ui.compose.quickLaunch.ResolvedQuickLaunchItem
 import app.aaps.ui.compose.scenes.SceneIcons
 import app.aaps.ui.compose.tempTarget.toTTPresetsWithDisplayName
@@ -706,6 +707,13 @@ class MainViewModel(
     // ── Toolbar ──
 
     private fun observeQuickLaunch() {
+        // Personal-fork: the Dashboard tools lost their fixed buttons, so they start on the toolbar once
+        if (!preferences.get(BooleanNonKey.QuickLaunchForkToolsAdded)) {
+            val current = QuickLaunchSerializer.fromJson(preferences.get(StringNonKey.QuickLaunchActions))
+            val tools = listOf(QuickLaunchAction.MealRecords, QuickLaunchAction.DashboardCalculator).filter { it !in current }
+            preferences.put(StringNonKey.QuickLaunchActions, QuickLaunchSerializer.toJson(tools + current))
+            preferences.put(BooleanNonKey.QuickLaunchForkToolsAdded, true)
+        }
         preferences.observe(StringNonKey.QuickLaunchActions)
             .onEach { refreshQuickLaunch(it) }
             .launchIn(viewModelScope)

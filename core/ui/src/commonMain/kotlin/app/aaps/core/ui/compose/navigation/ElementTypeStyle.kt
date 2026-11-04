@@ -5,6 +5,7 @@ import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Devices
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -64,6 +65,8 @@ fun ElementType.color(): Color = when (this) {
     ElementType.FILL                    -> AapsTheme.elementColors.insulin
 
     ElementType.CARBS                   -> AapsTheme.elementColors.carbs
+    ElementType.DASHBOARD_CALCULATOR    -> AapsTheme.elementColors.bolusWizard
+    ElementType.MEAL_RECORDS            -> AapsTheme.elementColors.carbs
     ElementType.BOLUS_WIZARD            -> AapsTheme.elementColors.bolusWizard
     ElementType.QUICK_WIZARD,
     ElementType.QUICK_WIZARD_MANAGEMENT -> AapsTheme.elementColors.quickWizard
@@ -129,7 +132,9 @@ fun ElementType.color(): Color = when (this) {
 fun ElementType.icon(): ImageVector = when (this) {
     ElementType.INSULIN                 -> IcBolus
     ElementType.CARBS                   -> IcCarbs
-    ElementType.BOLUS_WIZARD            -> IcCalculator
+    ElementType.BOLUS_WIZARD,
+    ElementType.DASHBOARD_CALCULATOR    -> IcCalculator
+    ElementType.MEAL_RECORDS            -> Icons.Default.Restaurant
     ElementType.QUICK_WIZARD,
     ElementType.QUICK_WIZARD_MANAGEMENT -> IcQuickwizard
 
@@ -203,6 +208,8 @@ fun ElementType.label(): TextRef? = when (this) {
     ElementType.INSULIN                 -> CoreUiStrings.overview_insulin_label
     ElementType.CARBS                   -> InterfacesStrings.carbs
     ElementType.BOLUS_WIZARD            -> CoreUiStrings.boluswizard
+    ElementType.DASHBOARD_CALCULATOR    -> CoreUiStrings.dashboard_calculator_label
+    ElementType.MEAL_RECORDS            -> CoreUiStrings.meal_records_label
     ElementType.QUICK_WIZARD            -> null // dynamic label
     ElementType.QUICK_WIZARD_MANAGEMENT -> CoreUiStrings.quickwizard_managemnt
     ElementType.FOOD_MANAGEMENT         -> CoreUiStrings.food_management
@@ -256,6 +263,8 @@ fun ElementType.description(): TextRef? = when (this) {
     ElementType.INSULIN                 -> CoreUiStrings.treatment_insulin_desc
     ElementType.CARBS                   -> CoreUiStrings.treatment_carbs_desc
     ElementType.BOLUS_WIZARD            -> CoreUiStrings.treatment_calculator_desc
+    ElementType.DASHBOARD_CALCULATOR    -> CoreUiStrings.dashboard_calculator_desc
+    ElementType.MEAL_RECORDS            -> CoreUiStrings.meal_records_desc
     ElementType.TREATMENT               -> CoreUiStrings.treatment_desc
     ElementType.INSULIN_MANAGEMENT      -> CoreUiStrings.manage_insulin_desc
     ElementType.PROFILE_MANAGEMENT      -> CoreUiStrings.manage_profile_desc

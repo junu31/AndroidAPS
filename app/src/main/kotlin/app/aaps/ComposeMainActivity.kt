@@ -520,15 +520,16 @@ class ComposeMainActivity : MetroAppCompatActivity() {
                 },
                 onRequestPermission = { group -> permissionsViewModel.requestPermission(group) },
                 overview = {
+                    // Personal-fork: quick launch opens these from either home screen
+                    app.aaps.plugins.main.general.dashboard.DashboardTools(dashboardController)
                     // Personal-fork: the home screen setting
                     val useDashboard by preferences.observe(app.aaps.core.keys.BooleanKey.HomeUseDashboard).collectAsStateWithLifecycle()
                     OverviewScreen(
-                        dashboardHome = if (useDashboard) { items ->
+                        dashboardHome = if (useDashboard) { {
                             val status by statusViewModel.uiState.collectAsStateWithLifecycle()
                             fun input(i: app.aaps.ui.compose.overview.statusLights.StatusItem?) = i?.let { app.aaps.plugins.main.general.dashboard.StatusInput(it.age, it.ageStatus, it.level, it.levelStatus) }
                             app.aaps.plugins.main.general.dashboard.DashboardHome(
                                 controller = dashboardController,
-                                items = items,
                                 cannula = input(status.cannulaStatus),
                                 insulin = input(status.insulinStatus),
                                 sensor = input(status.sensorStatus),
@@ -536,7 +537,7 @@ class ComposeMainActivity : MetroAppCompatActivity() {
                                 isPatchPump = status.isPatchPump,
                                 onNavigate = { request -> handleNavigationRequest(request, navController) }
                             )
-                        } else null,
+                        } } else null,
                         mainViewModel = mainViewModel,
                         manageViewModel = manageViewModel,
                         maintenanceViewModel = maintenanceViewModel,
@@ -713,7 +714,10 @@ class ComposeMainActivity : MetroAppCompatActivity() {
             } catch (_: Exception) {
             }
         },
-        onOpenUrl = { url -> startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }
+        onOpenUrl = { url -> startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) },
+        onOpenDashboardTool = { type ->
+            dashboardController.openTool(if (type == app.aaps.core.interfaces.navigation.ElementType.MEAL_RECORDS) app.aaps.plugins.main.general.dashboard.DashboardTool.RECORDS else app.aaps.plugins.main.general.dashboard.DashboardTool.CALCULATOR)
+        }
     )
 
     private fun handleNavigationRequest(request: NavigationRequest, navController: NavController) {

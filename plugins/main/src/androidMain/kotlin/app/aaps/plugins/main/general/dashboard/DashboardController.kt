@@ -57,7 +57,6 @@ import app.aaps.core.keys.interfaces.Preferences
 import app.aaps.core.ui.extensions.displayText
 import app.aaps.core.objects.extensions.round
 import app.aaps.core.ui.compose.StatusLevel
-import app.aaps.core.ui.compose.navigation.HomeBarItem
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.plugins.main.R
 import app.aaps.core.interfaces.autotune.Autotune
@@ -207,6 +206,12 @@ class DashboardController(
             delay(MIN_REFRESH_GAP_MS)
         }
     }
+
+    private val _toolRequest = MutableStateFlow<DashboardTool?>(null)
+    val toolRequest: kotlinx.coroutines.flow.StateFlow<DashboardTool?> = _toolRequest
+
+    fun openTool(tool: DashboardTool) { _toolRequest.value = tool }
+    fun toolOpened() { _toolRequest.value = null }
 
     suspend fun setRange(hours: Int) {
         rangeHours = hours
@@ -676,7 +681,6 @@ class DashboardController(
 @Composable
 fun DashboardHome(
     controller: DashboardController,
-    items: List<HomeBarItem>,
     cannula: StatusInput?,
     insulin: StatusInput?,
     sensor: StatusInput?,
@@ -688,9 +692,6 @@ fun DashboardHome(
     val graph by controller.graph.collectAsStateWithLifecycle()
     LaunchedEffect(controller) { controller.run() }
     var info by remember { mutableStateOf<Pair<String, String>?>(null) }
-    var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
-    var records by remember { mutableStateOf<MealRecords?>(null) }
-    var aiCarbs by remember { mutableStateOf<AiCarbs?>(null) }
     var weekly by remember { mutableStateOf<WeeklyReview?>(null) }
     val scope = rememberCoroutineScope()
     fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
@@ -703,10 +704,7 @@ fun DashboardHome(
             override fun onLoopLongClick() = go(ElementType.RUNNING_MODE)
             override fun onBgQualityClick() { info = "" to controller.qualityMessage }
             override fun onPumpStatusClick() = Unit // the 4.0 pump activity button shows it
-            override fun onInsulin() = go(ElementType.INSULIN)
-            override fun onCarbs() = go(ElementType.CARBS)
-            override fun onWizard() { wizard = controller.newWizard().also { w -> w.onAiPhoto = { aiCarbs = controller.newAiCarbs() } } }
-            override fun onAiCarbs() { aiCarbs = controller.newAiCarbs() }
+            override fun onAiCarbs() = controller.openTool(DashboardTool.AI_CARBS)
             override fun onTreatment() = go(ElementType.TREATMENT)
             override fun onQuickWizard() = Unit
             override fun onQuickWizardLong() = go(ElementType.QUICK_WIZARD_MANAGEMENT)
@@ -716,7 +714,7 @@ fun DashboardHome(
             override fun onScale(hours: Int) { scope.launch { controller.setRange(hours) } }
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }
-            override fun onMealRecords() { records = controller.newMealRecords() }
+            override fun onMealRecords() = controller.openTool(DashboardTool.RECORDS)
             override fun onRecentBoluses() = go(ElementType.TREATMENTS)
             override fun onExplainDecision() { scope.launch { controller.explainDecision() } }
         }
@@ -737,25 +735,8 @@ fun DashboardHome(
         }
     }
     Box(Modifier.fillMaxSize()) {
-        DashboardScreen(state.copy(statusLights = lights), graph, actions, items)
-        wizard?.Content(onClose = { wizard = null })
-        records?.Content(onClose = { records = null }) { prefill ->
-            records = null
-            wizard = controller.newWizard().also { w ->
-                w.prefill = prefill
-                w.onAiPhoto = { aiCarbs = controller.newAiCarbs() }
-            }
-        }
+        DashboardScreen(state.copy(statusLights = lights), graph, actions)
         weekly?.Content(onClose = { weekly = null })
-        aiCarbs?.Content(onClose = { aiCarbs = null }) { prefill ->
-            aiCarbs = null
-            val open = wizard
-            if (open != null) open.applyPrefill(prefill)
-            else wizard = controller.newWizard().also { w ->
-                w.prefill = prefill
-                w.onAiPhoto = { aiCarbs = controller.newAiCarbs() }
-            }
-        }
     }
     info?.let { (title, text) ->
         AlertDialog(
@@ -764,6 +745,36 @@ fun DashboardHome(
             text = { Text(text) },
             confirmButton = { TextButton(onClick = { info = null }) { Text("OK") } }
         )
+    }
+}
+
+/** Personal-fork: the calculator and meal records, opened from the Dashboard or from quick launch on either home screen. */
+@Composable
+fun DashboardTools(controller: DashboardController) {
+    val request by controller.toolRequest.collectAsStateWithLifecycle()
+    var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
+    var records by remember { mutableStateOf<MealRecords?>(null) }
+    var aiCarbs by remember { mutableStateOf<AiCarbs?>(null) }
+    fun newWizard() = controller.newWizard().also { w -> w.onAiPhoto = { aiCarbs = controller.newAiCarbs() } }
+    LaunchedEffect(request) {
+        when (request) {
+            DashboardTool.CALCULATOR -> wizard = newWizard()
+            DashboardTool.RECORDS    -> records = controller.newMealRecords()
+            DashboardTool.AI_CARBS   -> aiCarbs = controller.newAiCarbs()
+            null                     -> Unit
+        }
+        controller.toolOpened()
+    }
+    wizard?.Content(onClose = { wizard = null })
+    records?.Content(onClose = { records = null }) { prefill ->
+        records = null
+        wizard = newWizard().also { it.prefill = prefill }
+    }
+    aiCarbs?.Content(onClose = { aiCarbs = null }) { prefill ->
+        aiCarbs = null
+        val open = wizard
+        if (open != null) open.applyPrefill(prefill)
+        else wizard = newWizard().also { it.prefill = prefill }
     }
 }
 

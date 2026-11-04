@@ -175,7 +175,7 @@ fun DashboardScreen(
 
 @Composable
 private fun SectionTitle(text: String) {
-    // same style and left edge as the graph's "BG" title
+    // same left edge as the other sections
     Text(text, color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
 }
 
@@ -742,11 +742,15 @@ private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
             layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
         }
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(start = 18.dp, end = 14.dp)) {
-            Text(stringResource(R.string.dashboard_bg), color = DashColors.Text, fontSize = 14.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            ScaleSelector(graph.rangeHours, actions)
+        Box {
+            BgChart(graph)
+            ScaleSelector(
+                graph.rangeHours, actions,
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(top = 4.dp, end = 14.dp)
+            )
         }
-        BgChart(graph, Modifier.padding(top = 6.dp))
         // only the prediction lines need a legend (BG and basal are self-explanatory)
         if (graph.predictions.isNotEmpty())
             Row(
@@ -776,11 +780,11 @@ private fun SectionDivider() {
 }
 
 @Composable
-private fun ScaleSelector(current: Int, actions: DashboardActions) {
+private fun ScaleSelector(current: Int, actions: DashboardActions, modifier: Modifier = Modifier) {
     Row(
-        Modifier
+        modifier
             .clip(RoundedCornerShape(10.dp))
-            .background(DashColors.Card2)
+            .background(DashColors.Card2.copy(alpha = 0.85f))
             .padding(3.dp)
     ) {
         listOf(3, 6, 12, 18, 24).forEach { h ->

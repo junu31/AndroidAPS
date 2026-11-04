@@ -11,7 +11,6 @@
     <string name="dashboard_delta_15">Δ 15분</string>
     <string name="dashboard_delta_40">Δ 40분</string>
     <string name="dashboard_sens">민감도</string>
-    <string name="dashboard_bg">혈당</string>
     <string name="dashboard_cannula">캐뉼라</string>
     <string name="dashboard_patch">패치</string>
     <string name="dashboard_insulin">인슐린</string>

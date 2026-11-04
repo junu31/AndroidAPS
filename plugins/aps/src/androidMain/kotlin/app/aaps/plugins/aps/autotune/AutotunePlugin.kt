@@ -10,7 +10,7 @@ import app.aaps.core.data.ue.Action
 import app.aaps.core.data.ue.Sources
 import app.aaps.core.data.ue.ValueWithUnit
 import app.aaps.core.interfaces.aps.Loop
-import app.aaps.core.data.model.Block
+import app.aaps.core.data.model.data.Block
 import app.aaps.core.interfaces.autotune.Autotune
 import app.aaps.core.interfaces.autotune.AutotuneDayTrace
 import app.aaps.core.interfaces.autotune.AutotuneSummary

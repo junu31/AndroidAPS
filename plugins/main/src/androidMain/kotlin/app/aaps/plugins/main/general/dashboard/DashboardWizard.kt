@@ -165,6 +165,9 @@ class DashboardWizard(
     /** set before [Content]: opened from the meal records or the AI carbs screen */
     var prefill: WizardPrefill? = null
 
+    /** the 📷 button: the Dashboard opens the AI carbs screen on top and calls [applyPrefill] */
+    var onAiPhoto: () -> Unit = {}
+
     // ---- inputs (same meaning and defaults as the classic wizard) ----
     private var profileNames by mutableStateOf(listOf<String>())
     private var profileIndex by mutableIntStateOf(0)
@@ -761,6 +764,8 @@ class DashboardWizard(
                     if (f != null) Text("  " + MealUi.typeLabel(rh, f.type), color = DashColors.Dim, fontSize = 11.sp, maxLines = 1)
                 }
             }
+            // AI photo: fills the carbs and names the food
+            SmallAction("📷", DashColors.Accent) { onAiPhoto() }
             if (f != null) {
                 Spacer(Modifier.width(6.dp))
                 SmallAction("✕", DashColors.Sub) { selectFood(null) }

@@ -57,6 +57,7 @@ import app.aaps.core.ui.compose.StatusLevel
 import app.aaps.core.ui.compose.navigation.HomeBarItem
 import app.aaps.core.ui.compose.navigation.NavigationRequest
 import app.aaps.plugins.main.R
+import app.aaps.plugins.main.general.dashboard.ai.AiCarbs
 import app.aaps.plugins.main.general.dashboard.meal.MealRecords
 import app.aaps.plugins.main.general.dashboard.meal.MealTracker
 import dev.zacsweers.metro.AppScope
@@ -110,7 +111,8 @@ class DashboardController(
     private val cache: OverviewDataCache,
     private val aapsLogger: AAPSLogger,
     val newWizard: () -> DashboardWizard,
-    val newMealRecords: () -> MealRecords
+    val newMealRecords: () -> MealRecords,
+    val newAiCarbs: () -> AiCarbs
 ) {
 
     private val _state = MutableStateFlow(DashboardState())
@@ -616,6 +618,7 @@ fun DashboardHome(
     var info by remember { mutableStateOf<Pair<String, String>?>(null) }
     var wizard by remember { mutableStateOf<DashboardWizard?>(null) }
     var records by remember { mutableStateOf<MealRecords?>(null) }
+    var aiCarbs by remember { mutableStateOf<AiCarbs?>(null) }
     val notPorted = stringResource(R.string.dashboard_home_not_ported)
     fun go(type: ElementType) = onNavigate(NavigationRequest.Element(type))
     val actions = remember(controller, notPorted) {
@@ -629,8 +632,8 @@ fun DashboardHome(
             override fun onPumpStatusClick() = Unit // the 4.0 pump activity button shows it
             override fun onInsulin() = go(ElementType.INSULIN)
             override fun onCarbs() = go(ElementType.CARBS)
-            override fun onWizard() { wizard = controller.newWizard() }
-            override fun onAiCarbs() = Unit
+            override fun onWizard() { wizard = controller.newWizard().also { w -> w.onAiPhoto = { aiCarbs = controller.newAiCarbs() } } }
+            override fun onAiCarbs() { aiCarbs = controller.newAiCarbs() }
             override fun onTreatment() = go(ElementType.TREATMENT)
             override fun onQuickWizard() = Unit
             override fun onQuickWizardLong() = go(ElementType.QUICK_WIZARD_MANAGEMENT)
@@ -665,7 +668,19 @@ fun DashboardHome(
         wizard?.Content(onClose = { wizard = null })
         records?.Content(onClose = { records = null }) { prefill ->
             records = null
-            wizard = controller.newWizard().also { it.prefill = prefill }
+            wizard = controller.newWizard().also { w ->
+                w.prefill = prefill
+                w.onAiPhoto = { aiCarbs = controller.newAiCarbs() }
+            }
+        }
+        aiCarbs?.Content(onClose = { aiCarbs = null }) { prefill ->
+            aiCarbs = null
+            val open = wizard
+            if (open != null) open.applyPrefill(prefill)
+            else wizard = controller.newWizard().also { w ->
+                w.prefill = prefill
+                w.onAiPhoto = { aiCarbs = controller.newAiCarbs() }
+            }
         }
     }
     info?.let { (title, text) ->

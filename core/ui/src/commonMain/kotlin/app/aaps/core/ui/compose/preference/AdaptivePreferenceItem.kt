@@ -114,8 +114,10 @@ fun AdaptivePreferenceItem(
         }
 
         is StringPreferenceKey          -> {
-            // Handle password/PIN fields specially
-            if (key.isPassword || key.isPin) {
+            // Personal-fork: an API key is pasted once, so masked in the summary but no repeat field
+            if (key == StringKey.OverviewAiCarbsApiKey) {
+                AdaptiveStringPreferenceItem(stringKey = key, visibilityContext = visibilityContext)
+            } else if (key.isPassword || key.isPin) { // Handle password/PIN fields specially
                 val checkPassword = LocalCheckPassword.current
                 val hashPassword = LocalHashPassword.current
                 if (checkPassword != null && hashPassword != null) {

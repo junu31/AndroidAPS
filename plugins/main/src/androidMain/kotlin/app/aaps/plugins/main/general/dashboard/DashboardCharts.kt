@@ -343,5 +343,5 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, styl
     drawText(layout, topLeft = Offset(left, anchor.y - layout.size.height / 2f))
 }
 
-private const val MIN_RANGE_H = 3
+private const val MIN_RANGE_H = 1
 private const val MAX_RANGE_H = 24

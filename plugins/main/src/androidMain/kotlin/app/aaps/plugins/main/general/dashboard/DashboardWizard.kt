@@ -220,6 +220,8 @@ class DashboardWizard(
     private var historyApplied by mutableStateOf<Double?>(null)
     private var currentIc by mutableStateOf(0.0)
     private var lastCarbs = 0
+    /** the carbs a food filled in, so picking another food may replace them */
+    private var autoCarbs: String? = null
     private var carbsType by mutableStateOf(CarbsType.BREAD)
     private var lastHistoryAdjust = 0.0
 
@@ -298,7 +300,7 @@ class DashboardWizard(
         val existing = p.foodId?.let { id -> mealTracker.data().foods.firstOrNull { it.id == id } }
         carbsText = p.carbs.toString()
         carbsType = CarbsType.entries.firstOrNull { it.name == p.carbType } ?: CarbsType.BREAD
-        if (existing != null) selectFood(existing)
+        if (existing != null) selectFood(existing, fillCarbs = false)
         else {
             aiCarbs = p.carbs
             aiFoods = p.foods
@@ -743,11 +745,18 @@ class DashboardWizard(
 
     // ---------- meal tracking ----------
 
-    private fun selectFood(f: MealFood?, isNew: Boolean = false) {
+    private fun selectFood(f: MealFood?, isNew: Boolean = false, fillCarbs: Boolean = true) {
         food = f
         foodIsNew = isNew
         tracked = f != null && !isNew && f.tracked
         foodHistory = if (f != null && !isNew) mealTracker.mealsOf(f.id) else emptyList()
+        // the food's last meal fills the carbs (amount and type as typed) unless the user typed something else
+        val last = foodHistory.firstOrNull()
+        if (fillCarbs && last != null && (SafeParse.stringToInt(carbsText) == 0 || carbsText == autoCarbs)) {
+            carbsText = (last.enteredCarbs.takeIf { it > 0 } ?: last.carbs).toInt().toString()
+            carbsType = CarbsType.entries.firstOrNull { it.name == last.carbType } ?: CarbsType.BREAD
+            autoCarbs = carbsText
+        }
         if (historyApplied != null) undoHistory(recalc = false)
         foodSheet = false
         foodQuery = ""

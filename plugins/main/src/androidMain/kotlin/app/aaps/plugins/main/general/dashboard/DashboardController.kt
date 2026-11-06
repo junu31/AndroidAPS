@@ -214,11 +214,20 @@ class DashboardController(
     fun toolOpened() { _toolRequest.value = null }
 
     private var shiftMs = 0L
+    @Volatile private var panning = false
 
     /** [fraction] of the visible width, positive = back in time */
     suspend fun pan(fraction: Float) {
-        shiftMs += (fraction * T.hours(rangeHours.toLong()).msecs()).toLong()
-        updateGraph()
+        // the window moves faster than the finger: a short swipe covers a good part of the day
+        shiftMs += (fraction * PAN_SPEED * T.hours(rangeHours.toLong()).msecs()).toLong()
+        // one redraw at a time: many queued redraws made the graph trail behind the finger
+        if (panning) return
+        panning = true
+        try {
+            updateGraph()
+        } finally {
+            panning = false
+        }
     }
 
     suspend fun setRange(hours: Int) {
@@ -682,6 +691,7 @@ class DashboardController(
 
     private companion object {
 
+        const val PAN_SPEED = 3f
         const val REFRESH_MS = 60_000L
         const val MIN_REFRESH_GAP_MS = 500L
         const val COLOR_OK = 0xFF4ADE80.toInt()

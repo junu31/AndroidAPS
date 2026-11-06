@@ -1,5 +1,7 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.calculateZoom
@@ -47,7 +49,7 @@ private const val GAP_MS = 15 * 60 * 1000L
 private val MARKER_SIZE = 3.dp
 
 @Composable
-fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoom: ((Int) -> Unit)? = null) {
+fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoom: ((Int) -> Unit)? = null, onPan: ((Float) -> Unit)? = null) {
     val tm = rememberTextMeasurer()
     var selected by remember(model) { mutableStateOf<GraphPoint?>(null) }
     val hourFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -56,6 +58,15 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         modifier
             .fillMaxWidth()
             .height(height)
+            .clipToBounds()
+            .pointerInput(onPan) {
+                // a sideways swipe moves the time window; up and down still scroll the page
+                if (onPan == null) return@pointerInput
+                detectHorizontalDragGestures { change, dx ->
+                    change.consume()
+                    onPan(dx / size.width)
+                }
+            }
             .pointerInput(onZoom) {
                 // two fingers only: one finger keeps scrolling the page
                 if (onZoom == null) return@pointerInput

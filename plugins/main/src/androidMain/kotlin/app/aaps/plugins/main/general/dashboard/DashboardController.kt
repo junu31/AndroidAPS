@@ -213,6 +213,14 @@ class DashboardController(
     fun openTool(tool: DashboardTool) { _toolRequest.value = tool }
     fun toolOpened() { _toolRequest.value = null }
 
+    private var shiftMs = 0L
+
+    /** [fraction] of the visible width, positive = back in time */
+    suspend fun pan(fraction: Float) {
+        shiftMs += (fraction * T.hours(rangeHours.toLong()).msecs()).toLong()
+        updateGraph()
+    }
+
     suspend fun setRange(hours: Int) {
         rangeHours = hours
         preferences.put(IntNonKey.RangeToDisplay, hours)
@@ -620,11 +628,16 @@ class DashboardController(
         val range = cache.timeRangeFlow.value ?: return
         val now = dateUtil.now()
         val hours = rangeHours
-        val from = maxOf(range.fromTime, range.toTime - T.hours(hours.toLong()).msecs())
+        // a swipe moves the window back in time, never before the cached 24 h nor past now
+        val span = T.hours(hours.toLong()).msecs()
+        shiftMs = shiftMs.coerceIn(0L, maxOf(0L, range.toTime - span - range.fromTime))
+        val end = range.endTime - shiftMs
+        val from = maxOf(range.fromTime, range.toTime - span - shiftMs)
+        fun <T> List<T>.inView(t: (T) -> Long) = filter { t(it) in from..end }
         val low = preferences.get(UnitDoubleKey.OverviewLowMark)
         val high = preferences.get(UnitDoubleKey.OverviewHighMark)
         val isMgdl = profileFunction.getUnits() == GlucoseUnit.MGDL
-        val bg = cache.bgReadingsFlow.value.filter { it.timestamp in from..range.endTime }.map { GraphPoint(it.timestamp, it.value) }
+        val bg = cache.bgReadingsFlow.value.inView { it.timestamp }.map { GraphPoint(it.timestamp, it.value) }
         val predictions = cache.predictionsFlow.value.mapNotNull { p ->
             when (p.type) {
                 BgType.IOB_PREDICTION   -> PredictionKind.IOB to GraphPoint(p.timestamp, p.value)
@@ -638,12 +651,12 @@ class DashboardController(
         val treatments = cache.treatmentGraphFlow.value
         fun nearestBg(t: Long) = bg.minByOrNull { abs(it.x - t) }?.y ?: low
         val markers = buildList {
-            treatments.boluses.filter { it.timestamp >= from }.forEach {
+            treatments.boluses.inView { it.timestamp }.forEach {
                 val smb = it.bolusType == app.aaps.core.interfaces.overview.graph.BolusType.SMB
                 add(GraphMarker(it.timestamp, if (smb) low else nearestBg(it.timestamp), if (smb) MarkerKind.SMB else MarkerKind.BOLUS, it.label, !it.isValid))
             }
-            treatments.carbs.filter { it.timestamp >= from }.forEach { add(GraphMarker(it.timestamp, nearestBg(it.timestamp), MarkerKind.CARBS, it.label, !it.isValid)) }
-            cache.epsGraphFlow.value.filter { it.timestamp >= from }.forEach { add(GraphMarker(it.timestamp, 0.0, MarkerKind.PROFILE, it.label)) }
+            treatments.carbs.inView { it.timestamp }.forEach { add(GraphMarker(it.timestamp, nearestBg(it.timestamp), MarkerKind.CARBS, it.label, !it.isValid)) }
+            cache.epsGraphFlow.value.inView { it.timestamp }.forEach { add(GraphMarker(it.timestamp, 0.0, MarkerKind.PROFILE, it.label)) }
         }
         val basalData = cache.basalGraphFlow.value
         val step = if (isMgdl) 20.0 else 1.0
@@ -651,7 +664,7 @@ class DashboardController(
         _graph.value = GraphModel(
             fromTime = from,
             now = now,
-            endTime = range.endTime,
+            endTime = end,
             rangeHours = hours,
             maxY = maxY,
             lowMark = low,
@@ -660,10 +673,10 @@ class DashboardController(
             bg = bg,
             predictions = predictions,
             markers = markers,
-            basal = basalData.actualBasal.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
-            basalProfile = basalData.profileBasal.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
-            targetLine = cache.targetLineFlow.value.targets.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) },
-            activity = cache.activityGraphFlow.value.activity.filter { it.timestamp >= from }.map { GraphPoint(it.timestamp, it.value) }
+            basal = basalData.actualBasal.inView { it.timestamp }.map { GraphPoint(it.timestamp, it.value) },
+            basalProfile = basalData.profileBasal.inView { it.timestamp }.map { GraphPoint(it.timestamp, it.value) },
+            targetLine = cache.targetLineFlow.value.targets.inView { it.timestamp }.map { GraphPoint(it.timestamp, it.value) },
+            activity = cache.activityGraphFlow.value.activity.inView { it.timestamp }.map { GraphPoint(it.timestamp, it.value) }
         )
     }
 
@@ -712,6 +725,7 @@ fun DashboardHome(
             override fun onCgm() = go(ElementType.CGM_XDRIP)
             override fun onAcceptTemp() = Unit // the loop action in the bottom bar
             override fun onScale(hours: Int) { scope.launch { controller.setRange(hours) } }
+            override fun onPan(fraction: Float) { scope.launch { controller.pan(fraction) } }
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }
             override fun onMealRecords() = controller.openTool(DashboardTool.RECORDS)

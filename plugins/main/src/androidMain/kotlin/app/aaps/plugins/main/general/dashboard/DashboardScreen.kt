@@ -738,15 +738,7 @@ private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
             layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
         }
     ) {
-        Box {
-            BgChart(graph)
-            ScaleSelector(
-                graph.rangeHours, actions,
-                Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(top = 4.dp, end = 14.dp)
-            )
-        }
+        BgChart(graph, onZoom = { actions.onScale(it) }) // pinch to change the range, like the 4.0 graphs
         // only the prediction lines need a legend (BG and basal are self-explanatory)
         if (graph.predictions.isNotEmpty())
             Row(
@@ -773,31 +765,6 @@ private fun SectionDivider() {
             .height(1.dp)
             .background(DashColors.Line)
     )
-}
-
-@Composable
-private fun ScaleSelector(current: Int, actions: DashboardActions, modifier: Modifier = Modifier) {
-    Row(
-        modifier
-            .clip(RoundedCornerShape(10.dp))
-            .background(DashColors.Card2.copy(alpha = 0.85f))
-            .padding(3.dp)
-    ) {
-        listOf(3, 6, 12, 18, 24).forEach { h ->
-            val on = h == current
-            Text(
-                "${h}h",
-                color = if (on) DashColors.Text else DashColors.Sub,
-                fontSize = 12.sp,
-                fontWeight = if (on) FontWeight.Bold else FontWeight.Normal,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(if (on) Color(0xFF2B3340) else Color.Transparent)
-                    .clicks({ actions.onScale(h) })
-                    .padding(horizontal = 9.dp, vertical = 4.dp)
-            )
-        }
-    }
 }
 
 @Composable

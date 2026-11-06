@@ -1,5 +1,9 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculateZoom
+import kotlin.math.roundToInt
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -43,7 +47,7 @@ private const val GAP_MS = 15 * 60 * 1000L
 private val MARKER_SIZE = 3.dp
 
 @Composable
-fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp) {
+fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoom: ((Int) -> Unit)? = null) {
     val tm = rememberTextMeasurer()
     var selected by remember(model) { mutableStateOf<GraphPoint?>(null) }
     val hourFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -52,6 +56,26 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         modifier
             .fillMaxWidth()
             .height(height)
+            .pointerInput(onZoom) {
+                // two fingers only: one finger keeps scrolling the page
+                if (onZoom == null) return@pointerInput
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    var hours = model.rangeHours.toFloat()
+                    do {
+                        val event = awaitPointerEvent()
+                        if (event.changes.count { it.pressed } >= 2) {
+                            val zoom = event.calculateZoom()
+                            if (zoom != 1f) {
+                                hours = (hours / zoom).coerceIn(MIN_RANGE_H.toFloat(), MAX_RANGE_H.toFloat())
+                                val h = hours.roundToInt()
+                                if (h != model.rangeHours) onZoom(h)
+                            }
+                            event.changes.forEach { it.consume() }
+                        }
+                    } while (event.changes.any { it.pressed })
+                }
+            }
             .pointerInput(model) {
                 detectTapGestures { off ->
                     val left = 30.dp.toPx()
@@ -307,3 +331,6 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, styl
     val left = (anchor.x + dx).coerceIn(0f, (size.width - layout.size.width).coerceAtLeast(0f))
     drawText(layout, topLeft = Offset(left, anchor.y - layout.size.height / 2f))
 }
+
+private const val MIN_RANGE_H = 3
+private const val MAX_RANGE_H = 24

@@ -218,8 +218,8 @@ class DashboardController(
 
     /** [fraction] of the visible width, positive = back in time */
     suspend fun pan(fraction: Float) {
-        // the window moves faster than the finger: a short swipe covers a good part of the day
-        shiftMs += (fraction * PAN_SPEED * T.mins(rangeMinutes.toLong()).msecs()).toLong()
+        // 1:1 with the finger like the 4.0 graphs; a fling (see BgChart) carries it further
+        shiftMs += (fraction * T.mins(rangeMinutes.toLong()).msecs()).toLong()
         // one redraw at a time: many queued redraws made the graph trail behind the finger
         if (panning) return
         panning = true
@@ -691,7 +691,6 @@ class DashboardController(
 
     private companion object {
 
-        const val PAN_SPEED = 3f
         const val REFRESH_MS = 60_000L
         const val MIN_REFRESH_GAP_MS = 500L
         const val COLOR_OK = 0xFF4ADE80.toInt()

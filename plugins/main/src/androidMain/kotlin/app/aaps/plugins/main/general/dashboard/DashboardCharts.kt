@@ -1,5 +1,12 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.animation.core.AnimationState
+import androidx.compose.animation.core.animateDecay
+import androidx.compose.animation.core.exponentialDecay
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.draw.clipToBounds
@@ -55,6 +62,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
     val zoomTo by rememberUpdatedState(onZoom)
     val panBy by rememberUpdatedState(onPan)
     val current by rememberUpdatedState(model)
+    val flingScope = rememberCoroutineScope()
+    var fling by remember { mutableStateOf<Job?>(null) }
     val tm = rememberTextMeasurer()
     var selected by remember(model) { mutableStateOf<GraphPoint?>(null) }
     val hourFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -67,8 +76,24 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             .pointerInput(onPan != null) {
                 // a sideways swipe moves the time window; up and down still scroll the page
                 if (panBy == null) return@pointerInput
-                detectHorizontalDragGestures { change, dx ->
+                val tracker = VelocityTracker()
+                detectHorizontalDragGestures(
+                    onDragStart = { fling?.cancel(); tracker.resetTracking() },
+                    onDragEnd = {
+                        // keeps sliding after the finger lifts, slowing down like the 4.0 graphs
+                        val velocity = tracker.calculateVelocity().x
+                        val width = size.width.toFloat()
+                        fling = flingScope.launch {
+                            var last = 0f
+                            AnimationState(initialValue = 0f, initialVelocity = velocity).animateDecay(exponentialDecay()) {
+                                panBy?.invoke((value - last) / width)
+                                last = value
+                            }
+                        }
+                    }
+                ) { change, dx ->
                     change.consume()
+                    tracker.addPosition(change.uptimeMillis, change.position)
                     panBy?.invoke(dx / size.width)
                 }
             }
@@ -77,6 +102,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                 if (zoomTo == null) return@pointerInput
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
+                    fling?.cancel()
                     var minutes = current.rangeMinutes.toFloat()
                     do {
                         val event = awaitPointerEvent()

@@ -213,18 +213,26 @@ class DashboardController(
     fun openTool(tool: DashboardTool) { _toolRequest.value = tool }
     fun toolOpened() { _toolRequest.value = null }
 
-    private var shiftMs = 0L
+    @Volatile private var shiftMs = 0L
     @Volatile private var panning = false
+    @Volatile private var pendingPan = false
 
     /** [fraction] of the visible width, positive = back in time */
     suspend fun pan(fraction: Float) {
         // 1:1 with the finger like the 4.0 graphs; a fling (see BgChart) carries it further
         shiftMs += (fraction * T.mins(rangeMinutes.toLong()).msecs()).toLong()
-        // one redraw at a time: many queued redraws made the graph trail behind the finger
+        // one redraw at a time, off the main thread; moves that came in meanwhile are drawn right after,
+        // so the end of a fling is never left out
+        pendingPan = true
         if (panning) return
         panning = true
         try {
-            updateGraph()
+            withContext(Dispatchers.Default) {
+                while (pendingPan) {
+                    pendingPan = false
+                    updateGraph()
+                }
+            }
         } finally {
             panning = false
         }

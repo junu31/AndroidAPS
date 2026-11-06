@@ -10,5 +10,6 @@ enum class IntNonKey(
 
     ObjectivesManualEnacts("ObjectivesmanualEnacts", 0),
     TddCycleOffset("tdd_cycle_offset", 0),
-    RangeToDisplay("rangetodisplay", 6) // Personal-fork: Dashboard graph range, same key as on 3.4
+    RangeToDisplay("rangetodisplay", 6), // Personal-fork: Dashboard graph range in hours, the 3.4 key (read once)
+    RangeToDisplayMinutes("rangetodisplay_minutes", 0) // Personal-fork: Dashboard graph range in minutes
 }

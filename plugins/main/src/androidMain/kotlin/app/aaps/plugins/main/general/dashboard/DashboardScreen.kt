@@ -118,7 +118,7 @@ interface DashboardActions {
     fun onCalibration()
     fun onCgm()
     fun onAcceptTemp()
-    fun onScale(hours: Int)
+    fun onScale(minutes: Int)
     fun onPan(fraction: Float)
     fun showInfo(title: String, text: String)
     fun onWeeklyReview()

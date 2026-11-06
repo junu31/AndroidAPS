@@ -77,15 +77,16 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                 if (zoomTo == null) return@pointerInput
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
-                    var hours = current.rangeHours.toFloat()
+                    var minutes = current.rangeMinutes.toFloat()
                     do {
                         val event = awaitPointerEvent()
                         if (event.changes.count { it.pressed } >= 2) {
                             val zoom = event.calculateZoom()
                             if (zoom != 1f) {
-                                hours = (hours / zoom).coerceIn(MIN_RANGE_H.toFloat(), MAX_RANGE_H.toFloat())
-                                val h = hours.roundToInt()
-                                if (h != current.rangeHours) zoomTo?.invoke(h)
+                                minutes = (minutes / zoom).coerceIn(MIN_RANGE_MIN.toFloat(), MAX_RANGE_MIN.toFloat())
+                                // 5 min steps: smooth enough without a redraw on every pixel
+                                val m = (minutes / 5f).roundToInt() * 5
+                                if (m != current.rangeMinutes) zoomTo?.invoke(m)
                             }
                             event.changes.forEach { it.consume() }
                         }
@@ -139,8 +140,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
         }
         // time axis (local hours)
         val hourStep = when {
-            model.rangeHours <= 6  -> 1
-            model.rangeHours <= 12 -> 2
+            model.rangeMinutes <= 360 -> 1
+            model.rangeMinutes <= 720 -> 2
             else                   -> 4
         }
         val hourMs = 3600_000L
@@ -348,5 +349,6 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, styl
     drawText(layout, topLeft = Offset(left, anchor.y - layout.size.height / 2f))
 }
 
-private const val MIN_RANGE_H = 1
-private const val MAX_RANGE_H = 24
+// same limits as the 4.0 graphs (MIN_GRAPH_ZOOM_MINUTES, 24 h of cached data)
+private const val MIN_RANGE_MIN = 30
+private const val MAX_RANGE_MIN = 24 * 60

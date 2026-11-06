@@ -128,7 +128,7 @@ class DashboardController(
 
     private val _state = MutableStateFlow(DashboardState())
     val state: StateFlow<DashboardState> = _state
-    private var rangeHours = preferences.get(IntNonKey.RangeToDisplay)
+    private var rangeMinutes = preferences.get(IntNonKey.RangeToDisplayMinutes).takeIf { it > 0 } ?: (preferences.get(IntNonKey.RangeToDisplay) * 60)
     private val _graph = MutableStateFlow(GraphModel())
     val graph: StateFlow<GraphModel> = _graph
 
@@ -219,7 +219,7 @@ class DashboardController(
     /** [fraction] of the visible width, positive = back in time */
     suspend fun pan(fraction: Float) {
         // the window moves faster than the finger: a short swipe covers a good part of the day
-        shiftMs += (fraction * PAN_SPEED * T.hours(rangeHours.toLong()).msecs()).toLong()
+        shiftMs += (fraction * PAN_SPEED * T.mins(rangeMinutes.toLong()).msecs()).toLong()
         // one redraw at a time: many queued redraws made the graph trail behind the finger
         if (panning) return
         panning = true
@@ -230,11 +230,11 @@ class DashboardController(
         }
     }
 
-    suspend fun setRange(hours: Int) {
-        rangeHours = hours
-        preferences.put(IntNonKey.RangeToDisplay, hours)
+    suspend fun setRange(minutes: Int) {
+        rangeMinutes = minutes
+        preferences.put(IntNonKey.RangeToDisplayMinutes, minutes)
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
-        _graph.update { it.copy(rangeHours = hours) }
+        _graph.update { it.copy(rangeMinutes = minutes) }
         updateGraph() // the time axis follows at once, not with the next refresh
     }
 
@@ -636,9 +636,9 @@ class DashboardController(
     private suspend fun updateGraph() {
         val range = cache.timeRangeFlow.value ?: return
         val now = dateUtil.now()
-        val hours = rangeHours
+        val minutes = rangeMinutes
         // a swipe moves the window back in time, never before the cached 24 h nor past now
-        val span = T.hours(hours.toLong()).msecs()
+        val span = T.mins(minutes.toLong()).msecs()
         shiftMs = shiftMs.coerceIn(0L, maxOf(0L, range.toTime - span - range.fromTime))
         val end = range.endTime - shiftMs
         val from = maxOf(range.fromTime, range.toTime - span - shiftMs)
@@ -674,7 +674,7 @@ class DashboardController(
             fromTime = from,
             now = now,
             endTime = end,
-            rangeHours = hours,
+            rangeMinutes = minutes,
             maxY = maxY,
             lowMark = low,
             highMark = high,
@@ -734,7 +734,7 @@ fun DashboardHome(
             override fun onCalibration() = go(ElementType.CALIBRATION)
             override fun onCgm() = go(ElementType.CGM_XDRIP)
             override fun onAcceptTemp() = Unit // the loop action in the bottom bar
-            override fun onScale(hours: Int) { scope.launch { controller.setRange(hours) } }
+            override fun onScale(minutes: Int) { scope.launch { controller.setRange(minutes) } }
             override fun onPan(fraction: Float) { scope.launch { controller.pan(fraction) } }
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }

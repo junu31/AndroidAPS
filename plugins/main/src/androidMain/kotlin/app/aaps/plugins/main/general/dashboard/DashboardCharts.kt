@@ -1,5 +1,6 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -50,6 +51,10 @@ private val MARKER_SIZE = 3.dp
 
 @Composable
 fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoom: ((Int) -> Unit)? = null, onPan: ((Float) -> Unit)? = null) {
+    // the gestures read the latest values: restarting them on every redraw would drop a pinch half way
+    val zoomTo by rememberUpdatedState(onZoom)
+    val panBy by rememberUpdatedState(onPan)
+    val current by rememberUpdatedState(model)
     val tm = rememberTextMeasurer()
     var selected by remember(model) { mutableStateOf<GraphPoint?>(null) }
     val hourFmt = remember { SimpleDateFormat("HH:mm", Locale.getDefault()) }
@@ -59,20 +64,20 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             .fillMaxWidth()
             .height(height)
             .clipToBounds()
-            .pointerInput(onPan) {
+            .pointerInput(onPan != null) {
                 // a sideways swipe moves the time window; up and down still scroll the page
-                if (onPan == null) return@pointerInput
+                if (panBy == null) return@pointerInput
                 detectHorizontalDragGestures { change, dx ->
                     change.consume()
-                    onPan(dx / size.width)
+                    panBy?.invoke(dx / size.width)
                 }
             }
-            .pointerInput(onZoom) {
+            .pointerInput(onZoom != null) {
                 // two fingers only: one finger keeps scrolling the page
-                if (onZoom == null) return@pointerInput
+                if (zoomTo == null) return@pointerInput
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
-                    var hours = model.rangeHours.toFloat()
+                    var hours = current.rangeHours.toFloat()
                     do {
                         val event = awaitPointerEvent()
                         if (event.changes.count { it.pressed } >= 2) {
@@ -80,7 +85,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                             if (zoom != 1f) {
                                 hours = (hours / zoom).coerceIn(MIN_RANGE_H.toFloat(), MAX_RANGE_H.toFloat())
                                 val h = hours.roundToInt()
-                                if (h != model.rangeHours) onZoom(h)
+                                if (h != current.rangeHours) zoomTo?.invoke(h)
                             }
                             event.changes.forEach { it.consume() }
                         }

@@ -1,5 +1,7 @@
 package app.aaps.plugins.main.general.dashboard
 
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.animation.core.AnimationState
 import androidx.compose.animation.core.animateDecay
 import androidx.compose.animation.core.exponentialDecay
@@ -57,11 +59,18 @@ private const val GAP_MS = 15 * 60 * 1000L
 private val MARKER_SIZE = 3.dp
 
 @Composable
-fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoom: ((Int) -> Unit)? = null, onPan: ((Float) -> Unit)? = null) {
-    // the gestures read the latest values: restarting them on every redraw would drop a pinch half way
-    val zoomTo by rememberUpdatedState(onZoom)
-    val panBy by rememberUpdatedState(onPan)
+fun BgChart(full: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.dp, onZoomEnd: ((Int) -> Unit)? = null) {
+    // The window is chosen here from the whole cached 24 h: a swipe, a fling or a pinch only redraws this chart.
+    // (Asking the Dashboard for a new window every frame redrew the whole screen and made the swipe slow.)
+    var spanMin by remember { mutableFloatStateOf(full.rangeMinutes.toFloat()) }
+    var shiftMs by remember { mutableLongStateOf(0L) }
+    val model = remember(full, spanMin, shiftMs) { full.window(spanMin, shiftMs) }
     val current by rememberUpdatedState(model)
+    val zoomEnd by rememberUpdatedState(onZoomEnd)
+    fun moveBy(fraction: Float) {
+        val visible = current.endTime - current.fromTime
+        shiftMs = (shiftMs + (fraction * visible).toLong()).coerceIn(0L, full.maxShift(spanMin))
+    }
     val flingScope = rememberCoroutineScope()
     var fling by remember { mutableStateOf<Job?>(null) }
     val tm = rememberTextMeasurer()
@@ -73,9 +82,8 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
             .fillMaxWidth()
             .height(height)
             .clipToBounds()
-            .pointerInput(onPan != null) {
-                // a sideways swipe moves the time window; up and down still scroll the page
-                if (panBy == null) return@pointerInput
+            .pointerInput(Unit) {
+                // a sideways swipe moves the time window 1:1 with the finger; up and down still scroll the page
                 val tracker = VelocityTracker()
                 detectHorizontalDragGestures(
                     onDragStart = { fling?.cancel(); tracker.resetTracking() },
@@ -86,7 +94,7 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                         fling = flingScope.launch {
                             var last = 0f
                             AnimationState(initialValue = 0f, initialVelocity = velocity).animateDecay(exponentialDecay()) {
-                                panBy?.invoke((value - last) / width)
+                                moveBy((value - last) / width)
                                 last = value
                             }
                         }
@@ -94,29 +102,28 @@ fun BgChart(model: GraphModel, modifier: Modifier = Modifier, height: Dp = 250.d
                 ) { change, dx ->
                     change.consume()
                     tracker.addPosition(change.uptimeMillis, change.position)
-                    panBy?.invoke(dx / size.width)
+                    moveBy(dx / size.width)
                 }
             }
-            .pointerInput(onZoom != null) {
+            .pointerInput(Unit) {
                 // two fingers only: one finger keeps scrolling the page
-                if (zoomTo == null) return@pointerInput
                 awaitEachGesture {
                     awaitFirstDown(requireUnconsumed = false)
                     fling?.cancel()
-                    var minutes = current.rangeMinutes.toFloat()
+                    var zoomed = false
                     do {
                         val event = awaitPointerEvent()
                         if (event.changes.count { it.pressed } >= 2) {
                             val zoom = event.calculateZoom()
                             if (zoom != 1f) {
-                                minutes = (minutes / zoom).coerceIn(MIN_RANGE_MIN.toFloat(), MAX_RANGE_MIN.toFloat())
-                                // 5 min steps: smooth enough without a redraw on every pixel
-                                val m = (minutes / 5f).roundToInt() * 5
-                                if (m != current.rangeMinutes) zoomTo?.invoke(m)
+                                spanMin = (spanMin / zoom).coerceIn(MIN_RANGE_MIN.toFloat(), MAX_RANGE_MIN.toFloat())
+                                zoomed = true
                             }
                             event.changes.forEach { it.consume() }
                         }
                     } while (event.changes.any { it.pressed })
+                    // kept for the next start, rounded to 5 min
+                    if (zoomed) zoomEnd?.invoke((spanMin / 5f).roundToInt() * 5)
                 }
             }
             .pointerInput(model) {
@@ -378,3 +385,26 @@ private fun DrawScope.label(tm: TextMeasurer, text: String, anchor: Offset, styl
 // same limits as the 4.0 graphs (MIN_GRAPH_ZOOM_MINUTES, 24 h of cached data)
 private const val MIN_RANGE_MIN = 30
 private const val MAX_RANGE_MIN = 24 * 60
+
+/** How far back the window can go: never before the cached data. */
+private fun GraphModel.maxShift(spanMin: Float): Long =
+    maxOf(0L, toTime - (spanMin * 60_000L).toLong() - fromTime)
+
+/** The visible part: [spanMin] minutes of BG up to now (plus the predictions), moved back by [shiftMs]. */
+private fun GraphModel.window(spanMin: Float, shiftMs: Long): GraphModel {
+    if (isEmpty) return this
+    val shift = shiftMs.coerceIn(0L, maxShift(spanMin))
+    val end = endTime - shift
+    val from = maxOf(fromTime, toTime - (spanMin * 60_000L).toLong() - shift)
+    fun List<GraphPoint>.inView() = filter { it.x in from..end }
+    val visibleBg = bg.inView()
+    // the Y axis follows the visible BG, same rule as before
+    val step = if (isMgdl) 20.0 else 1.0
+    val top = kotlin.math.ceil((maxOf(visibleBg.maxOfOrNull { it.y } ?: 0.0, highMark) + step) / step) * step
+    return copy(
+        fromTime = from, endTime = end, rangeMinutes = spanMin.roundToInt(), maxY = top,
+        bg = visibleBg, predictions = predictions.mapValues { it.value.inView() },
+        markers = markers.filter { it.x in from..end }, basal = basal.inView(), basalProfile = basalProfile.inView(),
+        targetLine = targetLine.inView(), activity = activity.inView()
+    )
+}

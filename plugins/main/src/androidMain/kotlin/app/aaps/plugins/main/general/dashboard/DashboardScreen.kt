@@ -119,7 +119,6 @@ interface DashboardActions {
     fun onCgm()
     fun onAcceptTemp()
     fun onScale(minutes: Int)
-    fun onPan(fraction: Float)
     fun showInfo(title: String, text: String)
     fun onWeeklyReview()
     fun onMealRecords()
@@ -739,7 +738,7 @@ private fun GraphCard(graph: GraphModel, actions: DashboardActions) {
             layout(constraints.maxWidth, placeable.height) { placeable.place(-extra / 2, 0) }
         }
     ) {
-        BgChart(graph, onZoom = { actions.onScale(it) }, onPan = { actions.onPan(it) }) // pinch to change the range, like the 4.0 graphs
+        BgChart(graph, onZoomEnd = { actions.onScale(it) }) // pinch to change the range, like the 4.0 graphs
         // only the prediction lines need a legend (BG and basal are self-explanatory)
         if (graph.predictions.isNotEmpty())
             Row(

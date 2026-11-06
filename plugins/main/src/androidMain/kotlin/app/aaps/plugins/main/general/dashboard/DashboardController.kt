@@ -213,37 +213,10 @@ class DashboardController(
     fun openTool(tool: DashboardTool) { _toolRequest.value = tool }
     fun toolOpened() { _toolRequest.value = null }
 
-    @Volatile private var shiftMs = 0L
-    @Volatile private var panning = false
-    @Volatile private var pendingPan = false
-
-    /** [fraction] of the visible width, positive = back in time */
-    suspend fun pan(fraction: Float) {
-        // 1:1 with the finger like the 4.0 graphs; a fling (see BgChart) carries it further
-        shiftMs += (fraction * T.mins(rangeMinutes.toLong()).msecs()).toLong()
-        // one redraw at a time, off the main thread; moves that came in meanwhile are drawn right after,
-        // so the end of a fling is never left out
-        pendingPan = true
-        if (panning) return
-        panning = true
-        try {
-            withContext(Dispatchers.Default) {
-                while (pendingPan) {
-                    pendingPan = false
-                    updateGraph()
-                }
-            }
-        } finally {
-            panning = false
-        }
-    }
-
     suspend fun setRange(minutes: Int) {
         rangeMinutes = minutes
         preferences.put(IntNonKey.RangeToDisplayMinutes, minutes)
         preferences.put(BooleanNonKey.ObjectivesScaleUsed, true)
-        _graph.update { it.copy(rangeMinutes = minutes) }
-        updateGraph() // the time axis follows at once, not with the next refresh
     }
 
     private suspend fun refreshAll() {
@@ -645,11 +618,9 @@ class DashboardController(
         val range = cache.timeRangeFlow.value ?: return
         val now = dateUtil.now()
         val minutes = rangeMinutes
-        // a swipe moves the window back in time, never before the cached 24 h nor past now
-        val span = T.mins(minutes.toLong()).msecs()
-        shiftMs = shiftMs.coerceIn(0L, maxOf(0L, range.toTime - span - range.fromTime))
-        val end = range.endTime - shiftMs
-        val from = maxOf(range.fromTime, range.toTime - span - shiftMs)
+        // the whole cached 24 h: the chart picks the visible window itself, so a swipe or a pinch redraws only the chart
+        val end = range.endTime
+        val from = range.fromTime
         fun <T> List<T>.inView(t: (T) -> Long) = filter { t(it) in from..end }
         val low = preferences.get(UnitDoubleKey.OverviewLowMark)
         val high = preferences.get(UnitDoubleKey.OverviewHighMark)
@@ -682,6 +653,7 @@ class DashboardController(
             fromTime = from,
             now = now,
             endTime = end,
+            toTime = range.toTime,
             rangeMinutes = minutes,
             maxY = maxY,
             lowMark = low,
@@ -742,7 +714,6 @@ fun DashboardHome(
             override fun onCgm() = go(ElementType.CGM_XDRIP)
             override fun onAcceptTemp() = Unit // the loop action in the bottom bar
             override fun onScale(minutes: Int) { scope.launch { controller.setRange(minutes) } }
-            override fun onPan(fraction: Float) { scope.launch { controller.pan(fraction) } }
             override fun showInfo(title: String, text: String) { info = title to text }
             override fun onWeeklyReview() { weekly = controller.newWeeklyReview() }
             override fun onMealRecords() = controller.openTool(DashboardTool.RECORDS)

@@ -1,5 +1,7 @@
 package app.aaps.plugins.main.general.dashboard
 
+import kotlin.math.PI
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +34,10 @@ import kotlin.math.sin
 /** Gap between the trend circle and the edge of the ring box, room for the triangles. */
 private val TrendMargin = 14.dp
 
+/** 4.0 home ring (AapsSpacing.bgRingStrokeWidth) and its trend arc */
+private val RingStroke = 8.dp
+private const val TREND_SWEEP = 40f
+
 /** Radius of the outer edge of the loop icon (arrow head included) in its 24-unit viewport. */
 private const val LOOP_ICON_EXTENT = 11.94f
 
@@ -49,23 +55,41 @@ fun BgRing(
 ) {
     val density = LocalDensity.current
     val outerRadius = size / 2 - TrendMargin
-    // shrunk so the loop arrow head stays inside the trend circle
-    val iconSize = with(density) { ((outerRadius - 7.dp).toPx() / LOOP_ICON_EXTENT * 24f).toDp() }
+    // shrunk so the loop arrow head stays inside the ring band (the 4.0 band is wider than the old line)
+    val iconSize = with(density) { ((outerRadius - RingStroke - 4.dp).toPx() / LOOP_ICON_EXTENT * 24f).toDp() }
     Box(modifier.size(size), contentAlignment = Alignment.Center) {
         Canvas(Modifier.size(size)) {
             val c = Offset(this.size.width / 2, this.size.height / 2)
-            val r = outerRadius.toPx()
-            drawCircle(color.copy(alpha = 0.55f), radius = r, center = c, style = Stroke(3.dp.toPx()))
+            // Same drawing as the 4.0 home ring (BgInfoSection): a faint full ring, a bright 40 degree arc in the trend
+            // direction and 1 to 3 triangles pointing outward
+            val strokeWidth = RingStroke.toPx()
+            val ringRadius = outerRadius.toPx() - strokeWidth / 2
+            val topLeft = Offset(c.x - ringRadius, c.y - ringRadius)
+            val arcSize = Size(ringRadius * 2, ringRadius * 2)
+            drawArc(color.copy(alpha = 0.3f), 0f, 360f, false, topLeft, arcSize, style = Stroke(strokeWidth, cap = StrokeCap.Round))
             bg.trendAngle?.let { angle ->
-                val a = Math.toRadians(-angle.toDouble())
-                val offsets = if (bg.trendFast) listOf(0.2, -0.2) else listOf(0.0)
-                offsets.forEach { off ->
-                    val t = a + off
-                    fun pt(radius: Float, rad: Double) = Offset(c.x + radius * cos(rad).toFloat(), c.y + radius * sin(rad).toFloat())
-                    val tip = pt(r + 13.dp.toPx(), t)
-                    val b1 = pt(r + 2.dp.toPx(), t - 0.17)
-                    val b2 = pt(r + 2.dp.toPx(), t + 0.17)
-                    drawPath(Path().apply { moveTo(tip.x, tip.y); lineTo(b1.x, b1.y); lineTo(b2.x, b2.y); close() }, color)
+                val centerAngle = -angle // 4.0 angles: 0 = right, -90 = up
+                drawArc(color, centerAngle - TREND_SWEEP / 2, TREND_SWEEP, false, topLeft, arcSize, style = Stroke(strokeWidth, cap = StrokeCap.Round))
+                val triHeight = strokeWidth * 1.2f
+                val triHalfBase = strokeWidth * 1.6f
+                val n = bg.trendCount.coerceIn(1, 3)
+                val baseDist = ringRadius + strokeWidth * 0.2f
+                val angularSpacing = ((triHalfBase * 1.6 / ringRadius) * 180.0 / PI).toFloat()
+                for (i in 0 until n) {
+                    val triAngle = centerAngle + (i - (n - 1) / 2f) * angularSpacing
+                    val triRad = triAngle.toDouble() / 180.0 * PI
+                    val dirX = cos(triRad).toFloat()
+                    val dirY = sin(triRad).toFloat()
+                    val baseX = c.x + baseDist * dirX
+                    val baseY = c.y + baseDist * dirY
+                    val tipX = baseX + triHeight * dirX
+                    val tipY = baseY + triHeight * dirY
+                    drawPath(Path().apply {
+                        moveTo(tipX, tipY)
+                        lineTo(baseX - triHalfBase * dirY, baseY + triHalfBase * dirX)
+                        lineTo(baseX + triHalfBase * dirY, baseY - triHalfBase * dirX)
+                        close()
+                    }, color)
                 }
             }
         }

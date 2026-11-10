@@ -58,6 +58,8 @@ data class BgInfo(
     val trendAngle: Float? = null,
     /** double / triple arrows: the ring card shows two triangles */
     val trendFast: Boolean = false,
+    /** triangles on the ring, as on the 4.0 home: 1, 2 for double, 3 for triple arrows */
+    val trendCount: Int = 1,
     val delta: String = "",
     val shortAvgDelta: String = "",
     val longAvgDelta: String = "",

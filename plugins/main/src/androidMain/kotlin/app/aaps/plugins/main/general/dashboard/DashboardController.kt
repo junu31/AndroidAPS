@@ -267,6 +267,11 @@ class DashboardController(
                 else                                                                   -> null
             },
             trendFast = trendArrow in listOf(TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN, TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN),
+            trendCount = when (trendArrow) {
+                TrendArrow.TRIPLE_UP, TrendArrow.TRIPLE_DOWN -> 3
+                TrendArrow.DOUBLE_UP, TrendArrow.DOUBLE_DOWN -> 2
+                else                                         -> 1
+            },
             delta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.delta) } ?: "",
             shortAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.shortAvgDelta) } ?: "",
             longAvgDelta = glucoseStatus?.let { profileUtil.fromMgdlToSignedStringInUnits(it.longAvgDelta) } ?: "",

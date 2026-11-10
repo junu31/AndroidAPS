@@ -658,7 +658,6 @@ class DashboardController(
             fromTime = from,
             now = now,
             endTime = end,
-            toTime = range.toTime,
             rangeMinutes = minutes,
             maxY = maxY,
             lowMark = low,

@@ -17,8 +17,6 @@ data class GraphModel(
     val fromTime: Long = 0,
     val now: Long = 0,
     val endTime: Long = 0,
-    /** end of the BG part (the predictions go on to [endTime]) */
-    val toTime: Long = 0,
     val rangeMinutes: Int = 360,
     val maxY: Double = 0.0,
     val lowMark: Double = 0.0,

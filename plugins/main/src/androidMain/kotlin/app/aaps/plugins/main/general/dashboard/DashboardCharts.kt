@@ -388,7 +388,10 @@ private const val MAX_RANGE_MIN = 24 * 60
 
 /** How far back the window can go: never before the cached data. */
 private fun GraphModel.maxShift(spanMin: Float): Long =
-    maxOf(0L, now - (spanMin * 60_000L).toLong() - fromTime)
+    maxOf(0L, viewEnd(spanMin) - (spanMin * 60_000L).toLong() - fromTime)
+
+/** The span is the whole width, like the 4.0 graphs: the predictions take at most half of it, so BG stays in view. */
+private fun GraphModel.viewEnd(spanMin: Float): Long = minOf(rightEdge(), now + (spanMin * 30_000L).toLong())
 
 /** Right edge: the newest prediction, or now. (toTime and endTime run to the next full hour, which left the
  *  BG off screen or squeezed to the left at short ranges.) */
@@ -399,8 +402,8 @@ private fun GraphModel.rightEdge(): Long =
 private fun GraphModel.window(spanMin: Float, shiftMs: Long): GraphModel {
     if (isEmpty) return this
     val shift = shiftMs.coerceIn(0L, maxShift(spanMin))
-    val end = rightEdge() - shift
-    val from = maxOf(fromTime, now - (spanMin * 60_000L).toLong() - shift)
+    val end = viewEnd(spanMin) - shift
+    val from = maxOf(fromTime, end - (spanMin * 60_000L).toLong())
     fun List<GraphPoint>.inView() = filter { it.x in from..end }
     val visibleBg = bg.inView()
     // the Y axis follows the visible BG, same rule as before
